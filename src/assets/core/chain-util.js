@@ -1,0 +1,74 @@
+const { createHash } = require('crypto');
+const { FIRST_MINING_REWARD } = require('./config');
+const EC = require('elliptic').ec;
+const uuidV1 = require('uuid').v1;
+const ec = new EC('secp256k1');
+
+class ChainUtil {
+  static genKeyPair(privateKey, pubKey) {
+    if (privateKey === null && pubKey === null) {
+      return ec.genKeyPair();
+    }
+    else if (privateKey) {
+      return ec.keyFromPrivate(privateKey, 'hex');
+    }
+    else if (pubKey) {
+      return ec.keyFromPublic(pubKey, 'hex');
+    }
+    return null;
+  }
+
+  static genId() {
+    return uuidV1();
+  }
+
+  static createHash(data) {
+    return createHash('sha256')
+      .update(JSON.stringify(data))
+      .digest('hex');
+  }
+
+  static verifySignature(publicKey, signature, dataHash) {
+    return ec.keyFromPublic(publicKey, 'hex').verify(dataHash, signature);
+  }
+
+  static sizeOfObjectInMb(object) {
+    const objectList = [];
+    const stack = [object];
+    let bytes = 0;
+
+    while (stack.length) {
+      const value = stack.pop();
+
+      if (typeof value === 'boolean') {
+        bytes += 4;
+      }
+      else if (typeof value === 'string') {
+        bytes += Buffer.from(value).length;
+      }
+      else if (typeof value === 'number') {
+        bytes += 8;
+      }
+      else if
+      (
+        typeof value === 'object'
+        && objectList.indexOf(value) === -1
+      ) {
+        objectList.push(value);
+
+        for (let key in value) {
+          if (value.hasOwnProperty(key)) {
+            stack.push(value[key]);
+          }
+        }
+      }
+    }
+    return bytes / (1024 * 1024);
+  }
+
+  static miningRewardAmount(chain) {
+    return FIRST_MINING_REWARD * Math.pow(0.5, Math.floor((chain.length - 1) / 200000));
+  }
+}
+
+module.exports = ChainUtil;
