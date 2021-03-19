@@ -16,5 +16,6 @@ module.exports = {
     'no-restricted-syntax': 'off',
     'arrow-parens': 'off',
     'import/no-extraneous-dependencies': 'off',
+    'import/extensions': 'off'
   },
 };

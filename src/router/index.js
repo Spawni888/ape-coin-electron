@@ -1,6 +1,7 @@
 import { createRouter, createWebHistory } from 'vue-router';
 import Main from '@/views/Main.vue';
 import Login from '@/views/Login.vue';
+import Wallet from '@/views/Wallet';
 
 const routes = [
   {
@@ -8,8 +9,18 @@ const routes = [
     component: Main,
     children: [
       {
-        path: '',
-        name: 'login',
+        path: '/p2p',
+        name: 'p2p',
+        component: Login,
+      },
+      {
+        path: '/wallet',
+        name: 'wallet',
+        component: Wallet,
+      },
+      {
+        path: '/mining',
+        name: 'mining',
         component: Login,
       },
     ],
