@@ -7,7 +7,6 @@ import {
 export default function useField(field) {
   const valid = ref(true);
   const value = ref(field.value);
-  const placeholder = ref(field.placeholder);
   const errors = reactive({});
 
   const reassign = val => {
@@ -28,8 +27,8 @@ export default function useField(field) {
   watch(value, reassign);
 
   return {
+    ...field,
     value,
-    placeholder,
     valid,
     errors,
   };

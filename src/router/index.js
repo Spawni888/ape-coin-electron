@@ -1,29 +1,23 @@
 import { createRouter, createWebHistory } from 'vue-router';
-import Main from '@/views/Main.vue';
 import Login from '@/views/Login.vue';
 import Wallet from '@/views/Wallet';
+import PeerToPeer from '@/views/PeerToPeer';
 
 const routes = [
   {
     path: '/',
-    component: Main,
-    children: [
-      {
-        path: '/p2p',
-        name: 'p2p',
-        component: Login,
-      },
-      {
-        path: '/wallet',
-        name: 'wallet',
-        component: Wallet,
-      },
-      {
-        path: '/mining',
-        name: 'mining',
-        component: Login,
-      },
-    ],
+    name: 'p2p',
+    component: PeerToPeer,
+  },
+  {
+    path: '/wallet',
+    name: 'wallet',
+    component: Wallet,
+  },
+  {
+    path: '/mining',
+    name: 'mining',
+    component: Login,
   },
 ];
 

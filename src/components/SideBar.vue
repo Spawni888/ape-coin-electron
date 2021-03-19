@@ -14,12 +14,11 @@
         custom
         v-slot="{navigate, isActive}"
         :key="feature.name"
-        :class="feature.name"
         :to="{name: feature.route}"
       >
         <div
           class="feature"
-          :class="{'active': isActive}"
+          :class="[{'active': isActive}, feature.className]"
           @click="navigate"
         >
           <div class="feature__icon">
@@ -75,16 +74,19 @@ export default {
 .sidebar {
   padding: 20px 0;
 
-  flex: 1 0 340px;
+  flex: 1 0 260px;
   box-shadow: 0 0 5px rgba(0, 0, 0, 0.5);
   background-color: $surfaceColor;
+
   .logo {
     display: flex;
     flex-direction: column;
     align-items: center;
+
     &__container {
       display: flex;
       justify-content: center;
+
       img {
         display: block;
         width: 100%;
@@ -92,24 +94,39 @@ export default {
         max-width: 50%;
       }
     }
+
     &__name {
       margin-top: 5px;
 
+      font-weight: 500;
       font-size: 20px;
       color: $onSurfaceColor;
     }
   }
+
   .features {
     margin-top: 40px;
-    .feature {
-      cursor: pointer;
-      padding: 20px 10px;
 
+    .feature {
+      padding: 20px 20px;
+
+      overflow: hidden;
+      position: relative;
+
+      width: 100%;
+      transition: .4s ease;
+      cursor: pointer;
       display: flex;
       justify-content: left;
       align-items: center;
+
+      &:hover {
+        background-color: lighten($surfaceColor, 20%);
+      }
+
       &__icon {
         margin-right: 20px;
+
         img {
           display: block;
           width: 100%;
@@ -117,18 +134,38 @@ export default {
           max-width: 30px;
         }
       }
+
       &__name {
         font-size: 16px;
         color: $onSurfaceColor;
       }
     }
+
     .feature.active {
+      width: calc(100% + 5px);
       background-color: $primaryColor;
-      box-shadow: ;
+      box-shadow: 0 0 10px rgba(0, 0, 0, 0.8);
+
       .feature__name {
         color: $onPrimaryColor;
       }
     }
   }
 }
+
+span.ripple {
+  position: absolute; /* The absolute position we mentioned earlier */
+  border-radius: 50%;
+  transform: scale(0);
+  animation: ripple 600ms linear;
+  background-color: rgba(255, 255, 255, 0.7);
+}
+
+@keyframes ripple {
+  to {
+    transform: scale(4);
+    opacity: 0;
+  }
+}
+
 </style>
