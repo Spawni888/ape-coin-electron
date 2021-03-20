@@ -1,7 +1,10 @@
 <template>
   <div
     class="core-input"
-    :class="{'compressed': compressedPlaceholder}"
+    :class="{
+      'compressed': compressedPlaceholder,
+      'show-error': showError,
+    }"
   >
     <div
       class="placeholder"
@@ -18,6 +21,11 @@
       @blur="onInputBlur"
     >
     <span class="border" />
+    <transition name="fade" mode="out-in">
+      <div v-show="showError" :key="errorMsg" class="input-error">
+        {{ errorMsg }}
+      </div>
+    </transition>
   </div>
 </template>
 
@@ -36,6 +44,14 @@ export default {
     },
     fieldName: {
       type: String,
+      required: true,
+    },
+    errorMsg: {
+      type: String,
+      required: true,
+    },
+    showError: {
+      type: Boolean,
       required: true,
     },
   },
@@ -67,6 +83,8 @@ export default {
 <style scoped lang="scss">
 $fontSize: 18px;
 .core-input {
+  margin-bottom: 20px;
+
   position: relative;
   display: inline-block;
 
@@ -109,6 +127,17 @@ $fontSize: 18px;
     bottom: 0;
     z-index: 1;
   }
+  .input-error {
+    opacity: 1;
+    color: $errorColor;
+    position: absolute;
+    font-size: 12px;
+    width: 100%;
+    height: 15px;
+    bottom: -4px;
+    transform: translateY(100%);
+    //transition: 0.2s ease-in-out;
+  }
 }
 .compressed {
   .placeholder {
@@ -125,4 +154,18 @@ $fontSize: 18px;
     width: 100%;
   }
 }
+.show-error.compressed {
+  .placeholder {
+    color: $errorColor;
+  }
+}
+.show-error {
+  .border {
+    background-color: $errorColor;
+  }
+  .input-error {
+    opacity: 1;
+  }
+}
+
 </style>

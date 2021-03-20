@@ -5,7 +5,9 @@
     <form class="p2p-form">
       <CoreInput
         :placeholder="form.peers.placeholder"
-        :fieldName="form.peers.fieldName"
+        :field-name="form.peers.fieldName"
+        :error-msg="form.peers.errorMsg"
+        :show-error="!form.peers.valid"
         v-model:value="form.peers.value"
       />
       <CoreButton class="p2p-button" @click.prevent="onConnect">Connect</CoreButton>
@@ -39,9 +41,21 @@ export default {
         fieldName: 'Enter peers',
         placeholder: 'http://yourlink.com:3001',
         validators: {
-          required,
-          validUrl,
-          hasPort,
+          required: {
+            func: required,
+            errorMsg: 'Please, fill the field',
+            priority: 1,
+          },
+          validUrl: {
+            func: validUrl,
+            errorMsg: 'Invalid URL',
+            priority: 2,
+          },
+          hasPort: {
+            func: hasPort,
+            errorMsg: 'Please add port',
+            priority: 3,
+          },
         },
       },
     });
@@ -69,7 +83,7 @@ export default {
     align-items: center;
 
     .p2p-button {
-      margin-top: 20px;
+      margin-top: 10px;
     }
   }
 }
