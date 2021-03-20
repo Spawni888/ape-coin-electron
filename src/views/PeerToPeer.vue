@@ -8,7 +8,7 @@
         :fieldName="form.peers.fieldName"
         v-model:value="form.peers.value"
       />
-      <CoreButton>Connect</CoreButton>
+      <CoreButton class="p2p-button" @click.prevent="onConnect">Connect</CoreButton>
     </form>
   </div>
 </template>
@@ -45,14 +45,15 @@ export default {
         },
       },
     });
-    const onInput = (data) => {
-      form.peers.value = data;
+
+    const onConnect = (event) => {
+      console.log(event.target);
     };
 
     return {
       connected,
       form,
-      onInput,
+      onConnect,
     };
   },
 };
@@ -66,6 +67,10 @@ export default {
     display: flex;
     flex-direction: column;
     align-items: center;
+
+    .p2p-button {
+      margin-top: 20px;
+    }
   }
 }
 </style>
