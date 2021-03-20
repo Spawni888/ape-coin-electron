@@ -1,24 +1,37 @@
 <template>
   <div class="peer-to-peer">
     <div class="status">Status: {{ connected }}</div>
-    {{JSON.stringify(form, undefined, 2)}}
     <form class="p2p-form">
       <CoreInput
-        :placeholder="form.peers.placeholder"
-        :field-name="form.peers.fieldName"
-        :error-msg="form.peers.errorMsg"
-        :show-error="!form.peers.valid"
-        v-model:value="form.peers.value"
+        v-for="input in form"
+        :placeholder="input.placeholder"
+        :field-name="input.fieldName"
+        :key="input.fieldName"
+        :error-msg="input.errorMsg"
+        :show-error="!input.valid && highlightErrors"
+        v-model:value="input.value"
       />
+
+      <div
+        class="switch-box"
+        v-for="item in switches"
+        :key="item.name"
+      >
+        <p>{{ item.name }}</p>
+        <CoreSwitch
+          v-model:checked="item.value"
+        />
+      </div>
       <CoreButton class="p2p-button" @click.prevent="onConnect">Connect</CoreButton>
     </form>
   </div>
 </template>
 
 <script>
-import { ref, computed } from 'vue';
+import { ref, computed, reactive } from 'vue';
 import CoreInput from '@/components/CoreInput';
 import CoreButton from '@/components/CoreButton';
+import CoreSwitch from '@/components/CoreSwitch';
 import useForm from '@/use/form/form';
 
 const required = (val) => !!val;
@@ -30,6 +43,7 @@ export default {
   components: {
     CoreInput,
     CoreButton,
+    CoreSwitch,
   },
   setup() {
     const status = ref(false);
@@ -58,16 +72,73 @@ export default {
           },
         },
       },
+      serverHost: {
+        value: '127.0.0.1',
+        fieldName: 'Host address',
+        placeholder: '127.0.0.1',
+        validators: {
+          required: {
+            func: required,
+            errorMsg: 'Please, fill the field',
+            priority: 1,
+          },
+        },
+      },
+      serverPort: {
+        value: 'auto',
+        fieldName: 'Server Port',
+        placeholder: '3000',
+        validators: {
+          required: {
+            func: required,
+            errorMsg: 'Please, fill the field',
+            priority: 1,
+          },
+        },
+      },
+      ngrokApi: {
+        value: 'Paste your key if ngrok active',
+        fieldName: 'Ngrok API Key',
+        placeholder: 'Paste your key if ngrok active',
+        validators: {
+          required: {
+            func: required,
+            errorMsg: 'Please, fill the field',
+            priority: 1,
+          },
+        },
+      },
     });
 
-    const onConnect = (event) => {
-      console.log(event.target);
+    const switches = reactive({
+      API: {
+        value: true,
+        name: 'API',
+      },
+      ngrok: {
+        value: false,
+        name: 'ngrok',
+      },
+    });
+
+    const highlightErrors = ref(false);
+
+    const onConnect = () => {
+      const formIsValid = !Object.values(form)
+        .map(field => !field.valid)
+        .filter(Boolean).length;
+
+      if (!formIsValid) {
+        highlightErrors.value = true;
+      }
     };
 
     return {
       connected,
       form,
       onConnect,
+      switches,
+      highlightErrors,
     };
   },
 };
@@ -75,12 +146,28 @@ export default {
 
 <style scoped lang="scss">
 .peer-to-peer {
-  .p2p-form {
-    margin-top: 20px;
+  width: 100%;
 
+  .p2p-form {
+    margin: auto;
+
+    width: 40%;
     display: flex;
     flex-direction: column;
     align-items: center;
+
+    .core-input {
+      margin-top: 20px;
+    }
+
+    .switch-box {
+      width: 100%;
+      align-self: flex-start;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      color: $onBgColor;
+    }
 
     .p2p-button {
       margin-top: 10px;

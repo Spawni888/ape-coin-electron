@@ -30,7 +30,7 @@
 </template>
 
 <script>
-import { ref } from 'vue';
+import { ref, onMounted } from 'vue';
 
 export default {
   name: 'CoreInput',
@@ -57,19 +57,20 @@ export default {
   },
   emits: ['update:value'],
   setup() {
-    const compressedPlaceholder = ref(false);
+    const compressedPlaceholder = ref(true);
     const input = ref(null);
 
     const onPlaceholderClick = () => {
       input.value.focus();
       compressedPlaceholder.value = true;
     };
-    const onInputBlur = (e) => {
-      if (!e.target.value) {
+    const onInputBlur = () => {
+      if (!input.value.value) {
         compressedPlaceholder.value = false;
       }
     };
 
+    onMounted(onInputBlur);
     return {
       input,
       onPlaceholderClick,
@@ -84,7 +85,9 @@ export default {
 $fontSize: 18px;
 .core-input {
   margin-bottom: 20px;
+  margin-top: 10px;
 
+  width: 100%;
   position: relative;
   display: inline-block;
 

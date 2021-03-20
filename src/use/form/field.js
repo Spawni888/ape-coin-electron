@@ -8,7 +8,7 @@ export default function useField(field) {
   const valid = ref(true);
   const value = ref(field.value);
   const errors = reactive({});
-  const errorMsg = ref('');
+  const errorMsg = ref('Error');
 
   const reassign = val => {
     valid.value = true;
@@ -16,24 +16,35 @@ export default function useField(field) {
     Object.keys(field.validators ?? {})
       .sort((nameA, nameB) => field.validators[nameB].priority - field.validators[nameA].priority)
       .forEach(name => {
-        const isValid = field.validators[name].func(val);
+        const isValid = typeof field.validators[name] === 'function'
+          ? field.validators[name](val)
+          : field.validators[name].func(val);
+
         errors[name] = !isValid;
 
         if (!isValid) {
           valid.value = false;
-          errorMsg.value = field.validators[name].errorMsg;
+          if (field.validators[name].errorMsg) {
+            errorMsg.value = field.validators[name].errorMsg;
+          }
         }
       });
   };
+  const result = field.validators
+    ? {
+      ...field,
+      value,
+      valid,
+      errors,
+      errorMsg,
+    }
+    : {
+      ...field,
+      value,
+    };
 
   reassign(field.value);
   watch(value, reassign);
 
-  return {
-    ...field,
-    value,
-    valid,
-    errors,
-    errorMsg,
-  };
+  return result;
 }

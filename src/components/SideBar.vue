@@ -86,7 +86,6 @@ export default {
     &__container {
       display: flex;
       justify-content: center;
-
       img {
         display: block;
         width: 100%;
@@ -132,6 +131,7 @@ export default {
           width: 100%;
           height: auto;
           max-width: 30px;
+          transition: .4s;
         }
       }
 
@@ -146,6 +146,11 @@ export default {
       background-color: $primaryColor;
       box-shadow: 0 0 10px rgba(0, 0, 0, 0.8);
 
+      .feature__icon {
+        img {
+          filter: invert(1);
+        }
+      }
       .feature__name {
         color: $onPrimaryColor;
       }
