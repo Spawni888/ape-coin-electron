@@ -1,7 +1,6 @@
 const Websocket = require('ws');
 const { EventEmitter } = require('events');
 const ngrok = require('ngrok');
-const { resolve } = require('path');
 const { MAXIMUM_INBOUNDS, MAXIMUM_OUTBOUNDS } = require('../config');
 
 const MESSAGE_TYPES = {
@@ -54,7 +53,7 @@ class P2pServer extends EventEmitter {
       }
     });
     this.server.on('error', (err) => {
-      this.$emit('error', `Error occurred during P2P-server listening`);
+      this.emit('error', `Error occurred during P2P-server listening...`);
       console.log(err)
     });
     this.connectToPeers();
@@ -65,8 +64,6 @@ class P2pServer extends EventEmitter {
   ngrokConnect(ngrokApiToken) {
     (async () => {
       try {
-
-        // IT NEEDS FOR FIX OF SPAWNING NGROK BINARIES PATH
         this.ngrokAddress = await ngrok.connect({
           proto: 'http', // http|tcp|tls, defaults to http
           addr: `${ this.host }:${ this.port }`, // port or network address, defaults to 80
@@ -81,7 +78,7 @@ class P2pServer extends EventEmitter {
       }
       catch (e) {
         console.log(e);
-        this.emit('error', `Can't connect ngrok. Check your ngrok API key`);
+        this.emit('error', `Can't connect ngrok. Check your ngrok API key.`);
         return;
       }
       console.log(this.ngrokAddress);

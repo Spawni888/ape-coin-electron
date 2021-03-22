@@ -2,6 +2,12 @@
   <div class="main">
     <SideBar/>
     <div class="content">
+      <transition name="scale-fade" mode="out-in">
+        <Alert
+          v-if="alertIsShowing"
+        />
+      </transition>
+
       <router-view v-slot="{Component}">
         <transition name="fade" mode="out-in">
           <component :is="Component"/>
@@ -13,10 +19,20 @@
 
 <script>
 import SideBar from '@/components/SideBar';
+import Alert from '@/components/Alert';
+import { useStore } from 'vuex';
+import { computed } from 'vue';
 
 export default {
   components: {
     SideBar,
+    Alert,
+  },
+  setup() {
+    const store = useStore();
+    return {
+      alertIsShowing: computed(() => store.getters.alertIsShowing),
+    };
   },
 };
 </script>
@@ -32,6 +48,7 @@ export default {
   }
 
   .content {
+    position: relative;
     display: flex;
     justify-content: center;
     align-items: center;
