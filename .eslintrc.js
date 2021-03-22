@@ -17,5 +17,6 @@ module.exports = {
     'arrow-parens': 'off',
     'import/no-extraneous-dependencies': 'off',
     'import/extensions': 'off',
+    'no-param-reassign': 'off',
   },
 };

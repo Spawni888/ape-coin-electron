@@ -67,7 +67,6 @@ app
   .use(router.routes()).use(router.allowedMethods());
 
 const server = app.listen(HTTP_PORT, '127.0.0.1', () => console.log(`API running on port ${ HTTP_PORT }`));
-
-p2pServer.listen({ httpServer: server }, () =>
+p2pServer.listen({ httpServer: server, host: '127.0.0.1', port: HTTP_PORT, ngrokApiKey: '1prGw9xTICzXdUtgFPNYd1k5GPa_2xsehKK86f7qvSnDSJU1W' }, () =>
   console.log(`Listening for peer-to-peer connections on: ${ HTTP_PORT }`)
 );

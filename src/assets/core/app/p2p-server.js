@@ -1,15 +1,16 @@
 const Websocket = require('ws');
+const ngrok = require('ngrok');
 const { MAXIMUM_INBOUNDS, MAXIMUM_OUTBOUNDS } = require('../config');
 
-let peers = process.env.PEERS ? process.env.PEERS.split(',') : [];
 const MESSAGE_TYPES = {
   chain: 'CHAIN',
   transaction: 'TRANSACTION',
   clearTransactions: 'CLEAR_TRANSACTIONS',
   transactionPool: 'TRANSACTION_POOL',
   peers: 'PEERS',
-  serverPortReq: 'SERVER_PORT_REQUEST',
-  serverPortRes: 'SERVER_PORT_RESPONSE'
+  serverAddressReq: 'SERVER_ADDRESS_REQUEST',
+  serverAddressRes: 'SERVER_ADDRESS_RESPONSE',
+  replaceAddressWithNgrok: 'REPLACE_ADDRESS_WITH_NGROK',
 };
 
 
@@ -22,12 +23,23 @@ class P2pServer {
     this.outboundsQuantity = 0;
     this.inboundsQuantity = 0;
     this.server = null;
+    this.host = null;
+    this.port = null;
+    this.ngrokAddress = null;
+    this.peers = [];
   }
 
-  listen({ host = '127.0.0.1', port, httpServer = null }, cb = null) {
+  listen({host, port, httpServer, ngrokApiKey = null, peers: []}, cb = null) {
     const serverOpts = httpServer === null
       ? { host, port }
       : { server: httpServer, noServer: false };
+    this.port = port;
+    this.host = host;
+    this.peers = peers;
+
+    if (ngrokApiKey !== null) {
+      this.ngrokConnect(ngrokApiKey);
+    }
 
     this.server = new Websocket.Server(serverOpts);
     this.server.on('connection', (socket, req) => {
@@ -35,26 +47,51 @@ class P2pServer {
 
       if (this.inboundsQuantity < MAXIMUM_INBOUNDS) {
         this.connectSocket(socket);
-        this.requestServerPort(socket, req);
+        this.requestServerAddress(socket, req);
       }
     });
     this.server.on('error', (err) => console.log(err));
-
     this.connectToPeers();
     this.transactionPool.on('change', transaction => this.broadcastTransaction(transaction))
     if (cb !== null) cb();
   }
 
+  ngrokConnect(ngrokApiToken) {
+    try {
+      (async () => {
+        this.ngrokAddress = await ngrok.connect({
+          proto: 'http', // http|tcp|tls, defaults to http
+          addr: `${ this.host }:${ this.port }`, // port or network address, defaults to 80
+          authtoken: ngrokApiToken, // your authtoken from ngrok.com
+          region: 'us', // one of ngrok regions (us, eu, au, ap, sa, jp, in), defaults to us
+          onStatusChange: status => {
+            if (status === 'closed') {
+              this.ngrokConnect(ngrokApiToken);
+            }
+          }, // 'closed' - connection is lost, 'connected' - reconnected
+        });
+        console.log(this.ngrokAddress);
+        this.ngrokAddress = this.ngrokAddress.replace(/^https?:\/\//g, '');
+      })();
+    } catch (e) {
+      console.log(e);
+    }
+  }
+
   connectToPeers() {
-    while (peers.length && this.outboundsQuantity < MAXIMUM_OUTBOUNDS) {
-      const peer = peers.pop();
+    while (this.peers.length && this.outboundsQuantity < MAXIMUM_OUTBOUNDS) {
+      let peer = this.peers.pop();
+
+      const [, serverAddress, serverPort] =
+        /:\/\/([\d\w.]+?):(.+)$/gi.exec(peer);
+      peer = `http://${ serverAddress }:${ serverPort }`;
 
       // ws://localhost:5001
-      if (!this.outbounds[peer]) {
+      if (!this.outbounds[peer] && !this.inbounds[peer]) {
         const socket = new Websocket(peer);
 
-        [, socket.serverAddress, socket.serverPort] =
-          /:\/\/(.+?):(.+)$/gi.exec(peer);
+        socket.serverAddress = serverAddress;
+        socket.serverPort = serverPort;
 
         socket.on('open', () => {
           this.connectSocket(socket);
@@ -70,13 +107,13 @@ class P2pServer {
         })
       }
     }
-    peers = [];
+    this.peers = [];
   }
 
-  requestServerPort(socket, req) {
+  requestServerAddress(socket, req) {
     socket.send(JSON.stringify({
-      type: MESSAGE_TYPES.serverPortReq,
-      serverAddress: this.getSocketAddress(req),
+      type: MESSAGE_TYPES.serverAddressReq,
+      prevAddress: this.getSocketAddress(req),
     }))
   }
 
@@ -124,17 +161,17 @@ class P2pServer {
           }
           break;
         case MESSAGE_TYPES.peers:
-          peers.push(...data.peers);
+          this.peers.push(...data.peers);
           this.connectToPeers();
           break;
-        case MESSAGE_TYPES.serverPortReq:
+        case MESSAGE_TYPES.serverAddressReq:
           socket.send(JSON.stringify({
-            type: MESSAGE_TYPES.serverPortRes,
-            serverPort: this.server.address().port,
-            serverAddress: data.serverAddress,
+            type: MESSAGE_TYPES.serverAddressRes,
+            serverPort: (this.ngrokAddress === null ? this.port : '80'),
+            serverAddress: (this.ngrokAddress === null ? data.prevAddress : this.ngrokAddress),
           }));
           break;
-        case MESSAGE_TYPES.serverPortRes:
+        case MESSAGE_TYPES.serverAddressRes:
           this.saveInbound(socket, data.serverAddress, data.serverPort);
           break;
       }
@@ -187,7 +224,7 @@ class P2pServer {
     socket.serverPort = serverPort;
 
     let fullAddress = `http://${ serverAddress }:${ serverPort }`;
-    if (!this.inbounds[fullAddress]) {
+    if (!this.inbounds[fullAddress] && !this.outbounds[fullAddress]) {
 
       this.inbounds[fullAddress] = socket;
       this.inboundsQuantity += 1;
@@ -214,6 +251,16 @@ class P2pServer {
 
   broadcastClearTransactions() {
     this.allSockets().forEach(socket => this.sendClearTransactions(socket));
+  }
+
+  myPeerLink() {
+    const serverAddress = (this.ngrokAddress !== null ? this.ngrokAddress : this.host);
+    const port = (this.ngrokAddress !== null ? '80' : this.port);
+    return `http://${ serverAddress }:${ port }`;
+  }
+
+  allPeersLinks() {
+    return [...Object.keys(this.inbounds), ...Object.keys(this.outbounds)];
   }
 }
 

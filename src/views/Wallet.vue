@@ -8,6 +8,10 @@ export default {
 };
 </script>
 
-<style scoped>
-
+<style scoped lang="scss">
+  .wallet {
+    background-color: #fff;
+    width: 50%;
+    height: 50%;
+  }
 </style>

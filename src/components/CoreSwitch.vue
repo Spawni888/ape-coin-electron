@@ -1,5 +1,5 @@
 <template>
-  <div class="checkbox">
+  <div class="checkbox" v-bind="$attrs">
     <input
       ref="input"
       @click="$event.target.value = !$event.target.value"

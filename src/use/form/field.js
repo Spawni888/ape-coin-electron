@@ -40,6 +40,7 @@ export default function useField(field) {
     }
     : {
       ...field,
+      valid: true,
       value,
     };
 

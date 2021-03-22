@@ -1,6 +1,5 @@
 <template>
   <div class="peer-to-peer">
-    <div class="status">Status: {{ connected }}</div>
     <form class="p2p-form">
       <CoreInput
         v-for="input in form"
@@ -11,7 +10,6 @@
         :show-error="!input.valid && highlightErrors"
         v-model:value="input.value"
       />
-
       <div
         class="switch-box"
         v-for="item in switches"
@@ -19,6 +17,7 @@
       >
         <p>{{ item.name }}</p>
         <CoreSwitch
+          :ref="item.name"
           v-model:checked="item.value"
         />
       </div>
@@ -28,15 +27,59 @@
 </template>
 
 <script>
-import { ref, computed, reactive } from 'vue';
+import { cloneDeep } from 'lodash';
+import {
+  ref, reactive, onMounted,
+} from 'vue';
+import { useStore } from 'vuex';
 import CoreInput from '@/components/CoreInput';
 import CoreButton from '@/components/CoreButton';
 import CoreSwitch from '@/components/CoreSwitch';
 import useForm from '@/use/form/form';
+import useTooltip from '@/use/tooltip';
 
 const required = (val) => !!val;
-const validUrl = (val) => /https?:\/\/(www\.)?[-a-zA-Z0-9@:%._+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b([-a-zA-Z0-9()@:%_+.~#?&//=]*)/gi.test(val);
-const hasPort = (val) => /.+:\d+$/gi.test(val);
+const parseUrlsAndTestRegExp = (val, regExp) => {
+  const urls = val.trim().replace(/[,\s;]+/gi, ',')
+    .split(',');
+
+  for (const url of urls) {
+    const isValid = regExp.test(url);
+
+    console.log(isValid);
+
+    if (!isValid) {
+      return false;
+    }
+  }
+  return true;
+};
+const validUrl = (val) => {
+  const urls = val.trim().replace(/[,\s;]+/gi, ',')
+    .split(',');
+
+  for (const url of urls) {
+    const isValid = /https?:\/\/(www\.)?[-a-zA-Z0-9@:%._+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b([-a-zA-Z0-9()@:%_+.~#?&//=]*)/gi.test(url);
+
+    if (!isValid) {
+      return false;
+    }
+  }
+  return true;
+};
+const hasPort = (val) => {
+  const urls = val.trim().replace(/[,\s;]+/gi, ',')
+    .split(',');
+
+  for (const url of urls) {
+    const isValid = /.+:\d+/gi.test(url);
+
+    if (!isValid) {
+      return false;
+    }
+  }
+  return true;
+}
 
 export default {
   name: 'PeerToPeer',
@@ -46,29 +89,21 @@ export default {
     CoreSwitch,
   },
   setup() {
-    const status = ref(false);
-    const connected = computed(() => (status.value ? 'Connected' : 'Disconnected'));
-
     const form = useForm({
       peers: {
         value: '',
         fieldName: 'Enter peers',
         placeholder: 'http://yourlink.com:3001',
         validators: {
-          required: {
-            func: required,
-            errorMsg: 'Please, fill the field',
+          noValOrValidUrl: {
+            func: (val) => !val || validUrl(val),
+            errorMsg: 'Invalid URL',
             priority: 1,
           },
-          validUrl: {
-            func: validUrl,
-            errorMsg: 'Invalid URL',
-            priority: 2,
-          },
-          hasPort: {
-            func: hasPort,
+          noValueOrHasPort: {
+            func: (val) => !val || hasPort(val),
             errorMsg: 'Please add port',
-            priority: 3,
+            priority: 2,
           },
         },
       },
@@ -110,18 +145,38 @@ export default {
       },
     });
 
-    const switches = reactive({
-      API: {
-        value: true,
+    const switches = ref([
+      {
         name: 'API',
+        value: true,
       },
-      ngrok: {
-        value: false,
+      {
         name: 'ngrok',
+        value: false,
       },
+    ]);
+
+    const API = ref(null);
+    const ngrok = ref(null);
+    onMounted(() => {
+      useTooltip({
+        el: API.value,
+        id: 'API',
+        text: 'Turn on HTTP API if active',
+      });
+      useTooltip({
+        el: ngrok.value,
+        id: 'ngrok',
+        maxWidth: 300,
+        text: 'You should port forward to mine faster, because people will be able to'
+          + ' connect to you. You will have as much actual info as connections of your network. '
+          + 'But if you can`t port forward you can use ngrok to expose your network. '
+          + 'Register for free at ngrok.com and pass ngrok Key to the field above.',
+      });
     });
 
     const highlightErrors = ref(false);
+    const store = useStore();
 
     const onConnect = () => {
       const formIsValid = !Object.values(form)
@@ -130,15 +185,28 @@ export default {
 
       if (!formIsValid) {
         highlightErrors.value = true;
+        return;
       }
+
+      const serverOptions = {};
+      Object.keys(form)
+        .forEach(key => {
+          serverOptions[key] = form[key].value;
+        });
+      switches.value.forEach(item => {
+        serverOptions[item.name] = item.value;
+      });
+
+      store.commit('createServer', serverOptions);
     };
 
     return {
-      connected,
       form,
       onConnect,
       switches,
       highlightErrors,
+      API,
+      ngrok,
     };
   },
 };

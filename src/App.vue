@@ -1,8 +1,12 @@
 <template>
   <div class="main">
-    <SideBar />
+    <SideBar/>
     <div class="content">
-      <router-view />
+      <router-view v-slot="{Component}">
+        <transition name="fade" mode="out-in">
+          <component :is="Component"/>
+        </transition>
+      </router-view>
     </div>
   </div>
 </template>
@@ -22,9 +26,11 @@ export default {
   display: flex;
   height: 100%;
   background-color: $bgColor;
+
   > * {
     width: 100%;
   }
+
   .content {
     display: flex;
     justify-content: center;
