@@ -25,8 +25,19 @@ module.exports = {
         './src/main.js',
       ],
     };
+    // eslint-disable-next-line no-unused-expressions
+    config.module.rules = [
+      ...config.module.rules,
+      {
+        test: /node_modules[/\\](iconv-lite)[/\\].+/,
+        resolve: {
+          aliasFields: ['main'],
+        },
+      },
+    ];
     config.resolve = {
       ...config.resolve,
+      mainFields: ['main', 'browser'],
       extensions: [
         '.wasm',
         '.mjs',

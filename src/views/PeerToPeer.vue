@@ -17,6 +17,7 @@
       >
         <p>{{ item.name }}</p>
         <CoreSwitch
+          @click="item.onClick"
           :ref="item.name"
           v-model:checked="item.value"
         />
@@ -27,9 +28,8 @@
 </template>
 
 <script>
-import { cloneDeep } from 'lodash';
 import {
-  ref, reactive, onMounted,
+  ref, onMounted, reactive,
 } from 'vue';
 import { useStore } from 'vuex';
 import CoreInput from '@/components/CoreInput';
@@ -39,6 +39,7 @@ import useForm from '@/use/form/form';
 import useTooltip from '@/use/tooltip';
 
 const required = (val) => !!val;
+const isNumeric = (val) => /^\d+$/.test(val);
 const parseUrlsAndTestRegExp = (val, regExp) => {
   const urls = val.trim().replace(/[,\s;]+/gi, ',')
     .split(',');
@@ -54,32 +55,11 @@ const parseUrlsAndTestRegExp = (val, regExp) => {
   }
   return true;
 };
-const validUrl = (val) => {
-  const urls = val.trim().replace(/[,\s;]+/gi, ',')
-    .split(',');
-
-  for (const url of urls) {
-    const isValid = /https?:\/\/(www\.)?[-a-zA-Z0-9@:%._+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b([-a-zA-Z0-9()@:%_+.~#?&//=]*)/gi.test(url);
-
-    if (!isValid) {
-      return false;
-    }
-  }
-  return true;
-};
-const hasPort = (val) => {
-  const urls = val.trim().replace(/[,\s;]+/gi, ',')
-    .split(',');
-
-  for (const url of urls) {
-    const isValid = /.+:\d+/gi.test(url);
-
-    if (!isValid) {
-      return false;
-    }
-  }
-  return true;
-}
+const validUrl = (val) => parseUrlsAndTestRegExp(
+  val,
+  /https?:\/\/(www\.)?[-a-zA-Z0-9@:%._+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b([-a-zA-Z0-9()@:%_+.~#?&//=]*)/i,
+);
+const hasPort = (val) => parseUrlsAndTestRegExp(val, /.+:\d+/i);
 
 export default {
   name: 'PeerToPeer',
@@ -120,18 +100,18 @@ export default {
         },
       },
       serverPort: {
-        value: 'auto',
+        value: '',
         fieldName: 'Server Port',
-        placeholder: '3000',
+        placeholder: 'auto',
         validators: {
-          required: {
-            func: required,
-            errorMsg: 'Please, fill the field',
+          noValOrIsNumeric: {
+            func: (val) => !val || isNumeric(val),
+            errorMsg: 'Port should be a Number',
             priority: 1,
           },
         },
       },
-      ngrokApi: {
+      ngrokApiKey: {
         value: 'Paste your key if ngrok active',
         fieldName: 'Ngrok API Key',
         placeholder: 'Paste your key if ngrok active',
@@ -145,16 +125,23 @@ export default {
       },
     });
 
-    const switches = ref([
-      {
+    const switches = reactive({
+      API: {
         name: 'API',
         value: true,
       },
-      {
+      ngrok: {
         name: 'ngrok',
         value: false,
+        onClick: () => {
+          if (switches.ngrok.value) {
+            form.ngrokApiKey.value = '';
+          } else {
+            form.ngrokApiKey.value = 'Paste your key if ngrok active';
+          }
+        },
       },
-    ]);
+    });
 
     const API = ref(null);
     const ngrok = ref(null);
@@ -193,11 +180,11 @@ export default {
         .forEach(key => {
           serverOptions[key] = form[key].value;
         });
-      switches.value.forEach(item => {
+      Object.values(switches).forEach(item => {
         serverOptions[item.name] = item.value;
       });
 
-      store.commit('createServer', serverOptions);
+      store.dispatch('createServer', serverOptions);
     };
 
     return {

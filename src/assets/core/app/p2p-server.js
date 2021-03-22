@@ -1,5 +1,7 @@
 const Websocket = require('ws');
+const { EventEmitter } = require('events');
 const ngrok = require('ngrok');
+const { resolve } = require('path');
 const { MAXIMUM_INBOUNDS, MAXIMUM_OUTBOUNDS } = require('../config');
 
 const MESSAGE_TYPES = {
@@ -14,8 +16,9 @@ const MESSAGE_TYPES = {
 };
 
 
-class P2pServer {
+class P2pServer extends EventEmitter {
   constructor(blockchain, transactionPool) {
+    super();
     this.blockchain = blockchain;
     this.transactionPool = transactionPool;
     this.inbounds = {};
@@ -29,7 +32,7 @@ class P2pServer {
     this.peers = [];
   }
 
-  listen({host, port, httpServer, ngrokApiKey = null, peers: []}, cb = null) {
+  listen({host = '127.0.0.1', port, httpServer = null, ngrokApiKey = null, peers}, cb = null) {
     const serverOpts = httpServer === null
       ? { host, port }
       : { server: httpServer, noServer: false };
@@ -50,15 +53,20 @@ class P2pServer {
         this.requestServerAddress(socket, req);
       }
     });
-    this.server.on('error', (err) => console.log(err));
+    this.server.on('error', (err) => {
+      this.$emit('error', `Error occurred during P2P-server listening`);
+      console.log(err)
+    });
     this.connectToPeers();
     this.transactionPool.on('change', transaction => this.broadcastTransaction(transaction))
     if (cb !== null) cb();
   }
 
   ngrokConnect(ngrokApiToken) {
-    try {
-      (async () => {
+    (async () => {
+      try {
+
+        // IT NEEDS FOR FIX OF SPAWNING NGROK BINARIES PATH
         this.ngrokAddress = await ngrok.connect({
           proto: 'http', // http|tcp|tls, defaults to http
           addr: `${ this.host }:${ this.port }`, // port or network address, defaults to 80
@@ -70,12 +78,15 @@ class P2pServer {
             }
           }, // 'closed' - connection is lost, 'connected' - reconnected
         });
-        console.log(this.ngrokAddress);
-        this.ngrokAddress = this.ngrokAddress.replace(/^https?:\/\//g, '');
-      })();
-    } catch (e) {
-      console.log(e);
-    }
+      }
+      catch (e) {
+        console.log(e);
+        this.emit('error', `Can't connect ngrok. Check your ngrok API key`);
+        return;
+      }
+      console.log(this.ngrokAddress);
+      this.ngrokAddress = this.ngrokAddress.replace(/^https?:\/\//g, '');
+    })();
   }
 
   connectToPeers() {

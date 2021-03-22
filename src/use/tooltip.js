@@ -22,6 +22,7 @@ export default function useTooltip({
     tooltip.classList.add('tooltip');
     tooltip.classList.add(`tooltip-${id}`);
     tooltip.innerText = text;
+    tooltip.style.transform = 'scale(0)';
     document.body.append(tooltip);
     if (maxWidth !== null) {
       tooltip.style.maxWidth = `${maxWidth}px`;
@@ -30,6 +31,7 @@ export default function useTooltip({
     tooltip.style.top = `${coords.top - tooltip.clientHeight - 10}px`;
     tooltip.style.left = `${coords.left - tooltip.clientWidth / 2 + el.clientWidth / 2}px`;
     tooltip.style.opacity = '1';
+    tooltip.style.transform = 'scale(1)';
   };
 
   el.onmouseout = () => {
