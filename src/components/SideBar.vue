@@ -23,6 +23,11 @@
         >
           <div class="feature__icon">
             <img :src="feature.imgSrc" :alt="feature.className">
+            <div
+              v-if="feature.indicator"
+              class="feature__indicator"
+              :class="{'serverIsUp': feature.serverIsUp}"
+            />
           </div>
           <div class="feature__name">
             {{ feature.name }}
@@ -34,7 +39,8 @@
 </template>
 
 <script>
-import { ref } from 'vue';
+import { ref, computed } from 'vue';
+import { useStore } from 'vuex';
 import p2pImg from '@/assets/images/sidebar/electricity.png';
 import walletImg from '@/assets/images/sidebar/purse.png';
 import miningImg from '@/assets/images/sidebar/pick.png';
@@ -42,12 +48,15 @@ import miningImg from '@/assets/images/sidebar/pick.png';
 export default {
   name: 'SideBar',
   setup() {
+    const store = useStore();
     const features = ref([
       {
         name: 'Peer-to-peer',
         className: 'p2p',
         imgSrc: p2pImg,
         route: 'p2p',
+        indicator: true,
+        serverIsUp: computed(() => store.getters.serverIsUp),
       },
       {
         name: 'Wallet',
@@ -86,6 +95,7 @@ export default {
     &__container {
       display: flex;
       justify-content: center;
+
       img {
         display: block;
         width: 100%;
@@ -125,6 +135,7 @@ export default {
 
       &__icon {
         margin-right: 20px;
+        position: relative;
 
         img {
           display: block;
@@ -139,6 +150,21 @@ export default {
         font-size: 16px;
         color: $onSurfaceColor;
       }
+
+      &__indicator {
+        position: absolute;
+        right: -3px;
+        bottom: 0;
+        border-radius: 50%;
+        width: 8px;
+        height: 8px;
+        background-color: $errorColor;
+        transition: .4s ease-in-out;
+      }
+
+      .serverIsUp {
+        background-color: $successColor;
+      }
     }
 
     .feature.active {
@@ -151,6 +177,7 @@ export default {
           filter: invert(1);
         }
       }
+
       .feature__name {
         color: $onPrimaryColor;
       }

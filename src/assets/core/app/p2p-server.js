@@ -33,6 +33,12 @@ class P2pServer extends EventEmitter {
     this.peers = [];
   }
 
+  get myPeerLink() {
+    if (this.externalAddress === null) return null;
+
+    return `http://${ this.externalAddress }:${ this.externalPort }`;
+  }
+
   listen({host = '127.0.0.1', port, httpServer = null, ngrokApiKey = null, peers}, cb = null) {
     const serverOpts = httpServer === null
       ? { host, port }
@@ -125,9 +131,9 @@ class P2pServer extends EventEmitter {
             this.outboundsQuantity -= 1;
           }
           if (this.allSockets().length > 0) {
-            emit('info', `Connection with peer ${peer} was broken.`)
+            this.emit('info', `Connection with peer ${peer} was broken.`)
           } else {
-            emit(
+            this.emit(
               'error',
               `Connection with peer ${peer} was broken. Server was closed. It was your last connection`
             );
@@ -137,7 +143,7 @@ class P2pServer extends EventEmitter {
           if (this.outbounds[peer]) {
             delete this.outbounds[peer];
             this.outboundsQuantity -= 1;
-            emit('warning', `Connection with peer ${peer} threw error and was broken`);
+            this.emit('warning', `Connection with peer ${peer} threw error and was broken`);
           }
         })
       }
@@ -154,14 +160,14 @@ class P2pServer extends EventEmitter {
 
   connectSocket(socket) {
     this.addMsgHandler(socket);
-    this.addCloseHandler(socket);
+    this.addCloseAndErrorHandler(socket);
     this.sendChain(socket);
     this.sendTransactionPool(socket);
   }
 
-  addCloseHandler(socket) {
-    socket.on('close', () => {
-      let fullAddress = `http://${ socket.serverAddress }:${ socket.serverPort }`;
+  addCloseAndErrorHandler(socket) {
+    const handler = () => {
+      let fullAddress = `http://${socket.serverAddress}:${socket.serverPort}`;
 
       if (this.inbounds[fullAddress]) {
         delete this.inbounds[fullAddress];
@@ -172,7 +178,9 @@ class P2pServer extends EventEmitter {
         this.outboundsQuantity -= 1;
       }
       console.log(`Socket was disconnected: ${fullAddress}`);
-    });
+    };
+    socket.on('close', handler);
+    socket.on('error', handler);
   }
 
   addMsgHandler(socket) {
@@ -271,8 +279,7 @@ class P2pServer extends EventEmitter {
     socket.serverAddress = serverAddress;
     socket.serverPort = serverPort;
 
-    let fullAddress = `
-          }http://${ serverAddress }:${ serverPort }`;
+    let fullAddress = `http://${ serverAddress }:${ serverPort }`;
     if (!this.inbounds[fullAddress] && !this.outbounds[fullAddress]) {
 
       this.inbounds[fullAddress] = socket;
@@ -300,12 +307,6 @@ class P2pServer extends EventEmitter {
 
   broadcastClearTransactions() {
     this.allSockets().forEach(socket => this.sendClearTransactions(socket));
-  }
-
-  myPeerLink() {
-    const serverAddress = (this.ngrokAddress !== null ? this.ngrokAddress : this.host);
-    const port = (this.ngrokAddress !== null ? '80' : this.port);
-    return `http://${ serverAddress }:${ port }`;
   }
 
   allPeersLinks() {

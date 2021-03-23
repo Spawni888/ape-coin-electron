@@ -10,6 +10,7 @@ export default createStore({
   state: {
     server: null,
     p2pServer: null,
+    p2pInbounds: null,
     blockchain: new Blockchain(),
     transitionPool: new TransitionPool(),
     alertQueue: [],
@@ -29,9 +30,21 @@ export default createStore({
     alertInfo(state) {
       return state.alertInfo;
     },
+    p2pInbounds(state) {
+      return state.p2pServer.inboundsQuantity;
+    },
+    p2pOutbounds(state) {
+      return state.p2pServer.outboundsQuantity;
+    },
+    myPeerLink(state) {
+      return state.p2pServer.myPeerLink;
+    },
+    serverIsUp(state) {
+      return state.serverIsUp;
+    },
   },
   mutations: {
-    destroyServer(state) {
+    closeServer(state) {
       state.server = null;
       state.p2pServer = null;
       state.serverIsUp = false;
@@ -63,7 +76,7 @@ export default createStore({
       // TODO: uncomment it
 
       // if (state.serverIsUp) {
-      //   commit('destroyServer');
+      //   commit('closeServer');
       // }
       let {
         serverPort,
@@ -120,6 +133,7 @@ export default createStore({
           title: 'Error',
           message: err,
         });
+        commit('closeServer');
       });
       state.p2pServer.on('success', (msg) => {
         console.log(msg);

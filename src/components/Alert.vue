@@ -170,6 +170,15 @@ $successIconCol: #5CB65F;
   .alert__icon {
     fill: $warningIconCol;
   }
+
+  .alert__cross:hover {
+    background-color: darken($warningBg, 5%);
+  }
+  .cross {
+    margin: auto;
+    width: 20px;
+    fill: $warningColor;
+  }
 }
 
 .info {
@@ -179,6 +188,14 @@ $successIconCol: #5CB65F;
   .alert__icon {
     fill: $infoIconCol;
   }
+  .alert__cross:hover {
+    background-color: darken($infoBg, 5%);
+  }
+  .cross {
+    margin: auto;
+    width: 20px;
+    fill: $infoColor;
+  }
 }
 
 .success {
@@ -187,6 +204,15 @@ $successIconCol: #5CB65F;
 
   .alert__icon {
     fill: $successIconCol;
+  }
+
+  .alert__cross:hover {
+    background-color: darken($successBg, 5%);
+  }
+  .cross {
+    margin: auto;
+    width: 20px;
+    fill: $successColor;
   }
 }
 </style>
