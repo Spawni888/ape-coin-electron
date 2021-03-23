@@ -12,6 +12,7 @@ export default createStore({
     p2pServer: null,
     blockchain: new Blockchain(),
     transitionPool: new TransitionPool(),
+    alertQueue: [],
     alertIsShowing: false,
     alertTimer: null,
     serverIsUp: false,
@@ -36,27 +37,34 @@ export default createStore({
       state.serverIsUp = false;
       state.transitionPool.clear();
     },
-    closeAlert(state) {
-      state.alertIsShowing = false;
-    },
     showAlert(state, alertInfo = null) {
       if (alertInfo !== null) {
-        state.alertInfo = alertInfo;
+        state.alertQueue.push(alertInfo);
       }
-      if (state.alertTimer) {
-        clearTimeout(state.alertTimer);
-      }
+
+      if (state.alertTimer) return;
+
+      const intervalFunc = () => {
+        if (state.alertQueue.length > 0) {
+          state.alertInfo = state.alertQueue.shift();
+        } else {
+          clearInterval(state.alertTimer);
+          state.alertTimer = null;
+          state.alertIsShowing = false;
+        }
+      };
+      intervalFunc();
       state.alertIsShowing = true;
-      state.alertTimer = setTimeout(() => {
-        state.alertIsShowing = false;
-      }, 5000);
+      state.alertTimer = setInterval(intervalFunc, 5000);
     },
   },
   actions: {
     async createServer({ state, commit }, options) {
-      if (state.serverIsUp) {
-        commit('destroyServer');
-      }
+      // TODO: uncomment it
+
+      // if (state.serverIsUp) {
+      //   commit('destroyServer');
+      // }
       let {
         serverPort,
         peers,
@@ -104,6 +112,7 @@ export default createStore({
 
       // create p2p-server
       state.p2pServer = new P2pServer(state.blockchain, state.transitionPool);
+
       state.p2pServer.on('error', (err) => {
         console.log(err);
         commit('showAlert', {
@@ -112,6 +121,23 @@ export default createStore({
           message: err,
         });
       });
+      state.p2pServer.on('success', (msg) => {
+        console.log(msg);
+        commit('showAlert', {
+          type: 'success',
+          title: 'Success',
+          message: msg,
+        });
+      });
+      state.p2pServer.on('info', (msg) => {
+        console.log(msg);
+        commit('showAlert', {
+          type: 'info',
+          title: 'Info',
+          message: msg,
+        });
+      });
+
       state.p2pServer.listen({
         peers,
         host: serverHost,
@@ -122,6 +148,16 @@ export default createStore({
         state.serverIsUp = true;
         console.log(`Listening for peer-to-peer connections on: ${serverPort}`);
       });
+    },
+    closeAlert({ state, commit }) {
+      clearInterval(state.alertTimer);
+      state.alertTimer = null;
+
+      if (state.alertQueue.length > 0) {
+        commit('showAlert');
+      } else {
+        state.alertIsShowing = false;
+      }
     },
   },
   modules: {

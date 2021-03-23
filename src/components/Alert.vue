@@ -89,7 +89,7 @@ export default {
   setup() {
     const store = useStore();
     return {
-      closeAlert: () => store.commit('closeAlert'),
+      closeAlert: () => store.dispatch('closeAlert'),
       alertInfo: computed(() => store.getters.alertInfo),
     };
   },

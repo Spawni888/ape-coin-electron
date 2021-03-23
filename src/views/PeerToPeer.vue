@@ -47,8 +47,6 @@ const parseUrlsAndTestRegExp = (val, regExp) => {
   for (const url of urls) {
     const isValid = regExp.test(url);
 
-    console.log(isValid);
-
     if (!isValid) {
       return false;
     }
