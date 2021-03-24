@@ -2,6 +2,7 @@ import { createRouter, createWebHistory } from 'vue-router';
 import Login from '@/views/Login.vue';
 import Wallet from '@/views/Wallet';
 import PeerToPeer from '@/views/PeerToPeer';
+import store from '@/store';
 
 const routes = [
   {
@@ -26,4 +27,13 @@ const router = createRouter({
   routes,
 });
 
+router.beforeEach((to, from, next) => {
+  if (to.name === 'p2p') {
+    return next();
+  }
+  if (!store.getters.serverIsUp) {
+    return next('/');
+  }
+  return next();
+});
 export default router;

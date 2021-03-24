@@ -2,6 +2,9 @@ import { createStore } from 'vuex';
 import P2pServer from '@/assets/core/app/p2p-server';
 import Blockchain from '@/assets/core/blockchain';
 import TransitionPool from '@/assets/core/wallet/transactionPool';
+import Wallet from '@/assets/core/wallet';
+import Miner from '@/assets/core/app/miner';
+import ChainUtil from '@/assets/core/chain-util';
 import portfinder from 'portfinder';
 import Koa from 'koa';
 import bodyParser from 'koa-bodyparser';
@@ -13,11 +16,12 @@ export default createStore({
     p2pInbounds: null,
     blockchain: new Blockchain(),
     transitionPool: new TransitionPool(),
-    alertQueue: [],
     wallet: null,
+    miner: null,
+    serverIsUp: false,
+    alertQueue: [],
     alertIsShowing: false,
     alertTimer: null,
-    serverIsUp: false,
     alertInfo: {
       type: 'error',
       title: 'Error',
@@ -48,11 +52,9 @@ export default createStore({
     },
   },
   mutations: {
-    closeServer(state) {
-      state.server = null;
-      state.p2pServer = null;
-      state.serverIsUp = false;
-      state.transitionPool.clear();
+    logOutWallet(state) {
+      state.miner = null;
+      state.wallet = null;
     },
     showAlert(state, alertInfo = null) {
       if (alertInfo !== null) {
@@ -76,7 +78,10 @@ export default createStore({
     },
   },
   actions: {
-    async createServer({ state, commit }, options) {
+    async createServer({
+      state,
+      commit,
+    }, options) {
       // TODO: uncomment it
 
       // if (state.serverIsUp) {
@@ -177,7 +182,44 @@ export default createStore({
         state.alertIsShowing = false;
       }
     },
+    signInWallet({
+      state,
+      commit,
+    }, {
+      privKey,
+      pubKey,
+    }) {
+      const isValid = ChainUtil.verifyKeyPair(privKey, pubKey);
+
+      if (!isValid) {
+        commit('showAlert', {
+          type: 'error',
+          title: 'Error',
+          message: 'Invalid key pair.',
+        });
+        return;
+      }
+      state.wallet = new Wallet(privKey);
+      state.miner = new Miner(
+        state.blockchain,
+        state.transitionPool,
+        state.wallet,
+        state.p2pServer,
+      );
+
+      commit('showAlert', {
+        type: 'success',
+        title: 'Success',
+        message: 'You have been authorized successfully.',
+      });
+    },
+    closeServer({ state, commit }) {
+      state.server = null;
+      state.p2pServer = null;
+      state.transitionPool = null;
+      state.serverIsUp = false;
+      commit('logOutWallet');
+    },
   },
-  modules: {
-  },
+  modules: {},
 });

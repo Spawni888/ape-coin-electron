@@ -184,6 +184,7 @@ export default {
       width: calc(100% + 5px);
       background-color: $primaryColor;
       box-shadow: 0 0 10px rgba(0, 0, 0, 0.8);
+      z-index: 10;
 
       .feature__icon {
         .img {

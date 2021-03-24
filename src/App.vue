@@ -1,7 +1,7 @@
 <template>
   <div class="main">
     <SideBar/>
-    <div class="content">
+    <div id="content" class="content">
       <transition name="scale-fade" mode="out-in">
         <Alert
           v-if="alertIsShowing"

@@ -56,16 +56,23 @@ async function createWindow() {
   ipcMain.on('createWallet', async () => {
     const keyPair = genKeyPair();
     win.webContents.send('newWalletCreated', keyPair);
+  });
+  ipcMain.on('saveNewWallet', async (keyPair) => {
+    const { filePath, canceled } = await dialog.showSaveDialog(win, {
+      defaultPath: path.resolve(app.getPath('desktop'), 'keyPair.txt'),
+    });
 
-//     const { filePath, canceled } = await dialog.showSaveDialog(win, {
-//       defaultPath: path.resolve(app.getPath('desktop'), 'keyPair.txt'),
-//     });
-//
-//     if (!canceled) {
-//       const txtKeyPair = `publicKey(your address): ${keyPair.pub}
-// privateKey(secret key, don't share it): ${keyPair.priv}`;
-//       fs.writeFileSync(filePath, txtKeyPair);
-//     }
+    if (!canceled) {
+      const txtKeyPair = `publicKey(your address): ${keyPair.pub}
+privateKey(secret key, don't share it): ${keyPair.priv}`;
+      fs.writeFile(filePath, txtKeyPair, (err) => {
+        if (err) {
+          win.webContents.send('newWalletSaveError');
+          return;
+        }
+        win.webContents.send('newWalletSaved', filePath);
+      });
+    }
   });
 }
 
@@ -92,8 +99,7 @@ app.on('ready', async () => {
     // Install Vue Devtools
     try {
       await installExtension(VUEJS_DEVTOOLS);
-    }
-    catch (e) {
+    } catch (e) {
       console.error('Vue Devtools failed to install:', e.toString());
     }
   }
