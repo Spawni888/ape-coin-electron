@@ -14,6 +14,7 @@ export default createStore({
     blockchain: new Blockchain(),
     transitionPool: new TransitionPool(),
     alertQueue: [],
+    wallet: null,
     alertIsShowing: false,
     alertTimer: null,
     serverIsUp: false,
@@ -41,6 +42,9 @@ export default createStore({
     },
     serverIsUp(state) {
       return state.serverIsUp;
+    },
+    walletAuthed(state) {
+      return state.wallet !== null;
     },
   },
   mutations: {

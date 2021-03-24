@@ -5,6 +5,14 @@ const uuidV1 = require('uuid').v1;
 const ec = new EC('secp256k1');
 
 class ChainUtil {
+  static verifyKeyPair(privateKey, pubKey) {
+    const actualPubKey = ec.keyFromPrivate(privateKey, 'hex')
+      .getPublic()
+      .encode('hex');
+
+    return actualPubKey === pubKey;
+  }
+
   static genKeyPair(privateKey, pubKey) {
     if (privateKey === null && pubKey === null) {
       return ec.genKeyPair();

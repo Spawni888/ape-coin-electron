@@ -18,11 +18,17 @@
       >
         <div
           class="feature"
-          :class="[{'active': isActive}, feature.className]"
+          :class="[
+            {'active': isActive, 'deactive': feature.deactiveCondition},
+            feature.className
+          ]"
           @click="navigate"
         >
           <div class="feature__icon">
-            <img :src="feature.imgSrc" :alt="feature.className">
+            <div
+              class="img"
+              :style="{'maskImage': `url(${feature.imgSrc})`}"
+            />
             <div
               v-if="feature.indicator"
               class="feature__indicator"
@@ -41,14 +47,16 @@
 <script>
 import { ref, computed } from 'vue';
 import { useStore } from 'vuex';
-import p2pImg from '@/assets/images/sidebar/electricity.png';
-import walletImg from '@/assets/images/sidebar/purse.png';
-import miningImg from '@/assets/images/sidebar/pick.png';
+import p2pImg from '@/assets/images/sidebar/electricity.svg';
+import walletImg from '@/assets/images/sidebar/wallet2.svg';
+import miningImg from '@/assets/images/sidebar/pick.svg';
 
 export default {
   name: 'SideBar',
   setup() {
     const store = useStore();
+    const walletAuthed = computed(() => store.getters.walletAuthed);
+    const serverIsUp = computed(() => store.getters.serverIsUp);
     const features = ref([
       {
         name: 'Peer-to-peer',
@@ -56,19 +64,21 @@ export default {
         imgSrc: p2pImg,
         route: 'p2p',
         indicator: true,
-        serverIsUp: computed(() => store.getters.serverIsUp),
+        serverIsUp,
       },
       {
         name: 'Wallet',
         className: 'wallet',
         imgSrc: walletImg,
         route: 'wallet',
+        deactiveCondition: computed(() => !serverIsUp.value),
       },
       {
         name: 'Mining',
         className: 'mining',
         imgSrc: miningImg,
         route: 'mining',
+        deactiveCondition: computed(() => !serverIsUp.value || !walletAuthed.value),
       },
     ]);
 
@@ -136,28 +146,31 @@ export default {
       &__icon {
         margin-right: 20px;
         position: relative;
-
-        img {
+        .img {
+          background-color: $onSurfaceColor;
+          mask-repeat: no-repeat;
+          mask-size: contain;
           display: block;
-          width: 100%;
-          height: auto;
-          max-width: 30px;
-          transition: .4s;
+          width: 32px;
+          height: 32px;
+          transition: .4s ease-in-out;
         }
       }
 
       &__name {
         font-size: 16px;
+        transition: .4s ease-in-out;
         color: $onSurfaceColor;
       }
 
       &__indicator {
         position: absolute;
+        border: 1px solid $bgColor;
         right: -3px;
         bottom: 0;
         border-radius: 50%;
-        width: 8px;
-        height: 8px;
+        width: 9px;
+        height: 9px;
         background-color: $errorColor;
         transition: .4s ease-in-out;
       }
@@ -173,13 +186,27 @@ export default {
       box-shadow: 0 0 10px rgba(0, 0, 0, 0.8);
 
       .feature__icon {
-        img {
-          filter: invert(1);
+        .img {
+          background-color: $onPrimaryColor;
         }
       }
 
       .feature__name {
         color: $onPrimaryColor;
+      }
+    }
+  }
+  .feature.deactive {
+    pointer-events: none;
+    &:hover {
+      cursor: default;
+    }
+    .feature__name {
+      color: darken($onSurfaceColor, 60%);
+    }
+    .feature__icon {
+      .img {
+        background-color: darken($onSurfaceColor, 60%);
       }
     }
   }

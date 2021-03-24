@@ -1,13 +1,16 @@
 <template>
   <form class="p2p-form">
+    <div class="p2p-title">
+      Distribution Network
+    </div>
     <CoreInput
-      v-for="input in form"
-      :placeholder="input.placeholder"
-      :field-name="input.fieldName"
-      :key="input.fieldName"
-      :error-msg="input.errorMsg"
-      :show-error="!input.valid && highlightErrors"
-      v-model:value="input.value"
+      v-for="field in form"
+      :placeholder="field.placeholder"
+      :field-name="field.fieldName"
+      :key="field.fieldName"
+      :error-msg="field.errorMsg"
+      :show-error="!field.valid && highlightErrors"
+      v-model:value="field.value"
     />
     <div
       class="switch-box"
@@ -163,8 +166,7 @@ export default {
 
     const onConnect = () => {
       const formIsValid = !Object.values(form)
-        .map(field => !field.valid)
-        .filter(Boolean).length;
+        .filter(field => !field.valid).length;
 
       if (!formIsValid) {
         highlightErrors.value = true;
@@ -199,11 +201,18 @@ export default {
 .p2p-form {
   margin: auto;
 
-  width: 40%;
+  width: 50%;
   display: flex;
   flex-direction: column;
   align-items: center;
 
+  .p2p-title {
+    margin-bottom: 10px;
+
+    font-size: 40px;
+    color: $onBgColor;
+    text-align: center;
+  }
   .core-input {
     margin-top: 20px;
   }
