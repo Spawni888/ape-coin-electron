@@ -111,6 +111,7 @@ $successColor: #1E4640;
 $successIconCol: #5CB65F;
 
 .alert {
+  z-index: 8;
   background-color: $errorBg;
   color: $errorColor;
 

@@ -2,7 +2,7 @@
   <div class="checkbox" v-bind="$attrs">
     <input
       ref="input"
-      @click="$event.target.value = !$event.target.value"
+      @click.stop="$event.target.value = !$event.target.value"
       type="checkbox"
       name="set-name"
       class="switch-input"

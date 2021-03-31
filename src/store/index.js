@@ -14,8 +14,8 @@ export default createStore({
     server: null,
     p2pServer: null,
     p2pInbounds: null,
-    blockchain: new Blockchain(),
-    transitionPool: new TransitionPool(),
+    blockchain: null,
+    transitionPool: null,
     wallet: null,
     miner: null,
     serverIsUp: false,
@@ -81,11 +81,12 @@ export default createStore({
     async createServer({
       state,
       commit,
+      dispatch,
     }, options) {
       // TODO: uncomment it
 
       // if (state.serverIsUp) {
-      //   commit('closeServer');
+      //   dispatch('closeServer');
       // }
       let {
         serverPort,
@@ -133,6 +134,8 @@ export default createStore({
       }
 
       // create p2p-server
+      state.transitionPool = new TransitionPool();
+      state.blockchain = new Blockchain();
       state.p2pServer = new P2pServer(state.blockchain, state.transitionPool);
 
       state.p2pServer.on('error', (err) => {
@@ -142,7 +145,7 @@ export default createStore({
           title: 'Error',
           message: err,
         });
-        commit('closeServer');
+        dispatch('closeServer');
       });
       state.p2pServer.on('success', (msg) => {
         console.log(msg);
@@ -188,15 +191,18 @@ export default createStore({
     }, {
       privKey,
       pubKey,
+      silentMode = false,
     }) {
       const isValid = ChainUtil.verifyKeyPair(privKey, pubKey);
 
       if (!isValid) {
-        commit('showAlert', {
-          type: 'error',
-          title: 'Error',
-          message: 'Invalid key pair.',
-        });
+        if (!silentMode) {
+          commit('showAlert', {
+            type: 'error',
+            title: 'Error',
+            message: 'Invalid key pair.',
+          });
+        }
         return;
       }
       state.wallet = new Wallet(privKey);
@@ -207,11 +213,13 @@ export default createStore({
         state.p2pServer,
       );
 
-      commit('showAlert', {
-        type: 'success',
-        title: 'Success',
-        message: 'You have been authorized successfully.',
-      });
+      if (!silentMode) {
+        commit('showAlert', {
+          type: 'success',
+          title: 'Success',
+          message: 'You have been authorized successfully.',
+        });
+      }
     },
     closeServer({ state, commit }) {
       state.server = null;

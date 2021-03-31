@@ -21,7 +21,8 @@
 import SideBar from '@/components/SideBar';
 import Alert from '@/components/Alert';
 import { useStore } from 'vuex';
-import { computed } from 'vue';
+import { computed, onBeforeMount } from 'vue';
+import { ipcRenderer } from 'electron';
 
 export default {
   components: {
@@ -30,6 +31,17 @@ export default {
   },
   setup() {
     const store = useStore();
+
+    onBeforeMount(() => {
+      ipcRenderer.send('checkAuth');
+      ipcRenderer.on('signInWallet', (event, keyPair) => {
+        store.dispatch('signInWallet', {
+          ...keyPair,
+          silentMode: true,
+        });
+      });
+    });
+
     return {
       alertIsShowing: computed(() => store.getters.alertIsShowing),
     };

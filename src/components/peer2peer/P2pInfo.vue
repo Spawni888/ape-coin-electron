@@ -43,7 +43,7 @@ export default {
       p2pInbounds: computed(() => store.getters.p2pInbounds),
       p2pOutbounds: computed(() => store.getters.p2pOutbounds),
       myPeerLink: computed(() => store.getters.myPeerLink),
-      disconnect: () => store.commit('closeServer'),
+      disconnect: () => store.dispatch('closeServer'),
     };
   },
 };

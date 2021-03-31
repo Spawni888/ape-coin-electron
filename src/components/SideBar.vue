@@ -41,12 +41,27 @@
         </div>
       </router-link>
     </div>
+    <transition name="fade" mode="out-in">
+      <div
+        v-if="walletAuthed"
+        class="logout feature"
+        @click="logOutWallet"
+      >
+        <div class="feature__icon">
+          <div class="img"
+               :style="{'maskImage': `url(${require('@/assets/images/sidebar/logout.svg')})`}"
+          />
+        </div>
+        <div class="feature__name">Log Out</div>
+      </div>
+    </transition>
   </nav>
 </template>
 
 <script>
 import { ref, computed } from 'vue';
 import { useStore } from 'vuex';
+import { ipcRenderer } from 'electron';
 import p2pImg from '@/assets/images/sidebar/electricity.svg';
 import walletImg from '@/assets/images/sidebar/wallet2.svg';
 import miningImg from '@/assets/images/sidebar/pick.svg';
@@ -82,8 +97,15 @@ export default {
       },
     ]);
 
+    const logOutWallet = () => {
+      ipcRenderer.send('deleteAuth');
+      store.commit('logOutWallet');
+    };
+
     return {
       features,
+      walletAuthed: computed(() => store.getters.walletAuthed),
+      logOutWallet,
     };
   },
 };
@@ -93,6 +115,7 @@ export default {
 .sidebar {
   padding: 20px 0;
 
+  position: relative;
   flex: 1 0 260px;
   box-shadow: 0 0 5px rgba(0, 0, 0, 0.5);
   background-color: $surfaceColor;
@@ -125,76 +148,75 @@ export default {
 
   .features {
     margin-top: 40px;
+  }
+  .feature {
+    padding: 20px 20px;
 
-    .feature {
-      padding: 20px 20px;
+    overflow: hidden;
+    position: relative;
 
-      overflow: hidden;
+    width: 100%;
+    transition: .4s ease;
+    cursor: pointer;
+    display: flex;
+    justify-content: left;
+    align-items: center;
+
+    &:hover {
+      background-color: lighten($surfaceColor, 20%);
+    }
+
+    &__icon {
+      margin-right: 20px;
       position: relative;
-
-      width: 100%;
-      transition: .4s ease;
-      cursor: pointer;
-      display: flex;
-      justify-content: left;
-      align-items: center;
-
-      &:hover {
-        background-color: lighten($surfaceColor, 20%);
-      }
-
-      &__icon {
-        margin-right: 20px;
-        position: relative;
-        .img {
-          background-color: $onSurfaceColor;
-          mask-repeat: no-repeat;
-          mask-size: contain;
-          display: block;
-          width: 32px;
-          height: 32px;
-          transition: .4s ease-in-out;
-        }
-      }
-
-      &__name {
-        font-size: 16px;
+      .img {
+        background-color: $onSurfaceColor;
+        mask-repeat: no-repeat;
+        mask-size: contain;
+        display: block;
+        width: 32px;
+        height: 32px;
         transition: .4s ease-in-out;
-        color: $onSurfaceColor;
-      }
-
-      &__indicator {
-        position: absolute;
-        border: 1px solid $bgColor;
-        right: -3px;
-        bottom: 0;
-        border-radius: 50%;
-        width: 9px;
-        height: 9px;
-        background-color: $errorColor;
-        transition: .4s ease-in-out;
-      }
-
-      .serverIsUp {
-        background-color: $successColor;
       }
     }
 
-    .feature.active {
-      width: calc(100% + 5px);
-      background-color: $primaryColor;
-      box-shadow: 0 0 10px rgba(0, 0, 0, 0.8);
-      z-index: 10;
+    &__name {
+      font-size: 16px;
+      transition: .4s ease-in-out;
+      color: $onSurfaceColor;
+    }
 
-      .feature__icon {
-        .img {
-          background-color: $onPrimaryColor;
-        }
-      }
+    &__indicator {
+      position: absolute;
+      border: 1px solid $bgColor;
+      right: -3px;
+      bottom: 0;
+      border-radius: 50%;
+      width: 9px;
+      height: 9px;
+      background-color: $errorColor;
+      transition: .4s ease-in-out;
+    }
 
-      .feature__name {
-        color: $onPrimaryColor;
+    .serverIsUp {
+      background-color: $successColor;
+    }
+  }
+
+  .feature.active {
+    width: calc(100% + 5px);
+    background-color: $primaryColor;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.8);
+    z-index: 10;
+
+    .feature__icon {
+      .img {
+        background-color: $onPrimaryColor;
       }
+    }
+
+    .feature__name {
+      color: $onPrimaryColor;
     }
   }
   .feature.deactive {
@@ -210,6 +232,16 @@ export default {
         background-color: darken($onSurfaceColor, 60%);
       }
     }
+  }
+  .logout {
+    position: absolute;
+    bottom: 0;
+    &__icon {
+      .img {
+
+      }
+    }
+    &__name {}
   }
 }
 

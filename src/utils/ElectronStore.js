@@ -42,6 +42,14 @@ class ElectronStore {
     // we might lose that data. Note that in a real app, we would try/catch this.
     fs.writeFileSync(this.path, JSON.stringify(this.data));
   }
+
+  delete(key) {
+    if (this.data[key]) {
+      delete this.data[key];
+      return true;
+    }
+    return false;
+  }
 }
 
 // expose the class

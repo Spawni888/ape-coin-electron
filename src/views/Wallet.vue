@@ -4,22 +4,28 @@
       <WalletAuth
         v-if="!walletAuthed"
       />
+      <WalletInner
+        v-else
+      />
     </transition>
   </div>
 </template>
 
 <script>
 import WalletAuth from '@/components/wallet/WalletAuth';
+import WalletInner from '@/components/wallet/WalletInner';
 import { useStore } from 'vuex';
 import { computed } from 'vue';
 
 export default {
   name: 'Wallet',
   components: {
+    WalletInner,
     WalletAuth,
   },
   setup() {
     const store = useStore();
+
     return {
       walletAuthed: computed(() => store.getters.walletAuthed),
     };

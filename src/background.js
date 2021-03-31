@@ -8,14 +8,15 @@ import {
 
 import { createProtocol } from 'vue-cli-plugin-electron-builder/lib';
 import installExtension, { VUEJS_DEVTOOLS } from 'electron-devtools-installer';
-import Store from '@/utils/ElectronStore';
+import ElectronStore from '@/utils/ElectronStore';
 import path from 'path';
 import fs from 'fs';
 import { genKeyPair } from '@/utils/elliptic';
 
 const isDevelopment = process.env.NODE_ENV !== 'production';
-const store = new Store({
-  configName: 'user-preferences',
+const electronStore = new ElectronStore({
+  configName: 'apecoin-preferences',
+  defaults: {},
 });
 
 // Scheme must be registered before the app is ready
@@ -53,11 +54,19 @@ async function createWindow() {
     win.loadURL('app://./index.html');
   }
 
+  ipcMain.on('checkAuth', async () => {
+    const keyPair = electronStore.get('walletAuth');
+
+    if (keyPair) {
+      win.webContents.send('signInWallet', keyPair);
+    }
+  });
+
   ipcMain.on('createWallet', async () => {
     const keyPair = genKeyPair();
     win.webContents.send('newWalletCreated', keyPair);
   });
-  ipcMain.on('saveNewWallet', async (keyPair) => {
+  ipcMain.on('saveNewWallet', async (event, keyPair) => {
     const { filePath, canceled } = await dialog.showSaveDialog(win, {
       defaultPath: path.resolve(app.getPath('desktop'), 'keyPair.txt'),
     });
@@ -73,6 +82,14 @@ privateKey(secret key, don't share it): ${keyPair.priv}`;
         win.webContents.send('newWalletSaved', filePath);
       });
     }
+  });
+
+  ipcMain.on('saveAuth', async (event, keyPair) => {
+    electronStore.set('walletAuth', keyPair);
+  });
+
+  ipcMain.on('deleteAuth', async () => {
+    electronStore.delete('walletAuth');
   });
 }
 

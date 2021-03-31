@@ -13,6 +13,14 @@
         :error-msg="field.errorMsg"
         v-model:value="field.value"
       />
+      <div
+        class="switch-box"
+      >
+        <p>Stay Logged In</p>
+        <CoreSwitch
+          v-model:checked="keepLoggedIn"
+        />
+      </div>
       <CoreButton @click.prevent="signIn">Sign In</CoreButton>
     </form>
     <div class="create-wallet">
@@ -36,12 +44,14 @@ import useForm from '@/use/form/form';
 import { ref, reactive } from 'vue';
 import { useStore } from 'vuex';
 import { ipcRenderer } from 'electron';
+import CoreSwitch from '@/components/CoreSwitch';
 
 const required = (val) => !!val;
 
 export default {
   name: 'WalletAuth',
   components: {
+    CoreSwitch,
     CoreInput,
     CoreButton,
     Modal,
@@ -71,9 +81,10 @@ export default {
         },
       },
     });
-    const highlightErrors = ref(false);
     const store = useStore();
-    const logInWallet = (pubKey, privKey) => store.dispatch('signInWallet', {
+    const highlightErrors = ref(false);
+    const keepLoggedIn = ref(false);
+    const signInWallet = (pubKey, privKey) => store.dispatch('signInWallet', {
       pubKey,
       privKey,
     });
@@ -86,7 +97,14 @@ export default {
         highlightErrors.value = true;
         return;
       }
-      logInWallet(form.pubKey.value, form.privKey.value);
+      if (keepLoggedIn.value) {
+        ipcRenderer.send('saveAuth', {
+          privKey: form.privKey.value,
+          pubKey: form.pubKey.value,
+        });
+      }
+
+      signInWallet(form.pubKey.value, form.privKey.value);
     };
 
     const modalIsShowing = ref(false);
@@ -152,6 +170,7 @@ export default {
     return {
       form,
       highlightErrors,
+      keepLoggedIn,
       signIn,
       modalIsShowing,
       modalInfo,
@@ -200,5 +219,12 @@ export default {
     right: 20px;
   }
 }
-
+.switch-box {
+  width: 100%;
+  align-self: flex-start;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  color: $onBgColor;
+}
 </style>
