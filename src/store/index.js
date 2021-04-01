@@ -1,13 +1,14 @@
 import { createStore } from 'vuex';
 import P2pServer from '@/assets/core/app/p2p-server';
 import Blockchain from '@/assets/core/blockchain';
-import TransitionPool from '@/assets/core/wallet/transactionPool';
+import TransactionPool from '@/assets/core/wallet/transactionPool';
 import Wallet from '@/assets/core/wallet';
 import Miner from '@/assets/core/app/miner';
 import ChainUtil from '@/assets/core/chain-util';
 import portfinder from 'portfinder';
 import Koa from 'koa';
 import bodyParser from 'koa-bodyparser';
+import { ipcRenderer } from 'electron';
 
 export default createStore({
   state: {
@@ -15,7 +16,7 @@ export default createStore({
     p2pServer: null,
     p2pInbounds: null,
     blockchain: null,
-    transitionPool: null,
+    transactionPool: null,
     wallet: null,
     miner: null,
     serverIsUp: false,
@@ -27,6 +28,7 @@ export default createStore({
       title: 'Error',
       message: 'Try again later...',
     },
+    transactionPending: false,
   },
   getters: {
     alertIsShowing(state) {
@@ -49,6 +51,15 @@ export default createStore({
     },
     walletAuthed(state) {
       return state.wallet !== null;
+    },
+    walletPublicKey(state) {
+      return state.wallet.publicKey;
+    },
+    walletBalance(state) {
+      return state.wallet.balance;
+    },
+    transactionPending(state) {
+      return state.transactionPending;
     },
   },
   mutations: {
@@ -134,9 +145,9 @@ export default createStore({
       }
 
       // create p2p-server
-      state.transitionPool = new TransitionPool();
+      state.transactionPool = new TransactionPool();
       state.blockchain = new Blockchain();
-      state.p2pServer = new P2pServer(state.blockchain, state.transitionPool);
+      state.p2pServer = new P2pServer(state.blockchain, state.transactionPool);
 
       state.p2pServer.on('error', (err) => {
         console.log(err);
@@ -174,6 +185,49 @@ export default createStore({
         state.serverIsUp = true;
         console.log(`Listening for peer-to-peer connections on: ${serverPort}`);
       });
+
+      // if keepLoggedIn was turned on
+      ipcRenderer.send('checkAuth');
+      ipcRenderer.on('signInWallet', (event, keyPair) => {
+        dispatch('signInWallet', {
+          ...keyPair,
+          silentMode: true,
+        });
+      });
+    },
+    createTransaction({ state, commit }, transactionInfo) {
+      if (state.transactionPending) return;
+
+      state.transactionPending = true;
+
+      const {
+        recipient,
+        amount,
+        fee,
+      } = transactionInfo;
+      const transaction = state.wallet.createTransaction(
+        recipient,
+        amount,
+        state.blockchain,
+        state.transactionPool,
+        fee,
+      );
+
+      if (transaction.res === null) {
+        commit('showAlert', {
+          type: 'error',
+          title: 'Error',
+          message: transaction.msg,
+        });
+      } else {
+        commit('showAlert', {
+          type: 'success',
+          title: 'Success',
+          message: 'Transaction has been created successfully!',
+        });
+      }
+      console.log(state.transactionPool);
+      state.transactionPending = false;
     },
     closeAlert({ state, commit }) {
       clearInterval(state.alertTimer);
@@ -208,7 +262,7 @@ export default createStore({
       state.wallet = new Wallet(privKey);
       state.miner = new Miner(
         state.blockchain,
-        state.transitionPool,
+        state.transactionPool,
         state.wallet,
         state.p2pServer,
       );
@@ -224,7 +278,7 @@ export default createStore({
     closeServer({ state, commit }) {
       state.server = null;
       state.p2pServer = null;
-      state.transitionPool = null;
+      state.transactionPool = null;
       state.serverIsUp = false;
       commit('logOutWallet');
     },

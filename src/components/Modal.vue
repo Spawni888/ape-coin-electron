@@ -56,7 +56,7 @@ export default {
   height: 100%;
   width: 100%;
   background-color: rgba(0, 0, 0, 0.6);
-  z-index: 0;
+  z-index: 6;
   .modal-inner {
     padding: 16px 24px;
     position: absolute;
