@@ -15,7 +15,6 @@ export default createStore({
   state: {
     server: null,
     p2pServer: null,
-    p2pInbounds: null,
     blockchain: null,
     transactionPool: null,
     wallet: null,
@@ -39,11 +38,17 @@ export default createStore({
     alertInfo(state) {
       return state.alertInfo;
     },
-    p2pInbounds(state) {
+    p2pInboundsQuantity(state) {
       return state.p2pServer.inboundsQuantity;
     },
-    p2pOutbounds(state) {
+    p2pOutboundsQuantity(state) {
       return state.p2pServer.outboundsQuantity;
+    },
+    p2pInboundsList(state) {
+      return state.p2pServer.inboundsList;
+    },
+    p2pOutboundsList(state) {
+      return state.p2pServer.outboundsList;
     },
     myPeerLink(state) {
       return state.p2pServer.myPeerLink;
@@ -114,10 +119,12 @@ export default createStore({
       } = options;
       const {
         serverHost,
-        ngrokApiKey,
+        ngrokAuthToken,
         API,
         ngrok,
       } = options;
+
+      console.log(ngrokAuthToken);
 
       // find free port if doesn't set manually
       if (!serverPort) {
@@ -189,7 +196,7 @@ export default createStore({
         host: serverHost,
         port: serverPort,
         httpServer: API ? state.server : null,
-        ngrokApiKey: ngrok ? ngrokApiKey : null,
+        ngrokAuthToken: ngrok ? ngrokAuthToken : null,
       }, () => {
         state.serverIsUp = true;
         console.log(`Listening for peer-to-peer connections on: ${serverPort}`);

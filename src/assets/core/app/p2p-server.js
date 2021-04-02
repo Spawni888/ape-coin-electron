@@ -39,7 +39,15 @@ class P2pServer extends EventEmitter {
     return `http://${ this.externalAddress }:${ this.externalPort }`;
   }
 
-  listen({host = '127.0.0.1', port, httpServer = null, ngrokApiKey = null, peers}, cb = null) {
+  get inboundsList() {
+    return Object.keys(this.inbounds);
+  }
+
+  get outboundsList() {
+    return Object.keys(this.outbounds);
+  }
+
+  listen({host = '127.0.0.1', port, httpServer = null, ngrokAuthToken = null, peers}, cb = null) {
     const serverOpts = httpServer === null
       ? { host, port }
       : { server: httpServer, noServer: false };
@@ -47,8 +55,8 @@ class P2pServer extends EventEmitter {
     this.host = host;
     this.peers = peers;
 
-    if (ngrokApiKey !== null) {
-      this.ngrokConnect(ngrokApiKey);
+    if (ngrokAuthToken !== null) {
+      this.ngrokConnect(ngrokAuthToken);
     }
 
     this.server = new Websocket.Server(serverOpts);
@@ -74,17 +82,17 @@ class P2pServer extends EventEmitter {
     );
   }
 
-  ngrokConnect(ngrokApiToken) {
+  ngrokConnect(ngrokAuthToken) {
     (async () => {
       try {
         this.ngrokAddress = await ngrok.connect({
           proto: 'http', // http|tcp|tls, defaults to http
           addr: `${ this.host }:${ this.port }`, // port or network address, defaults to 80
-          authtoken: ngrokApiToken, // your authtoken from ngrok.com
+          authtoken: ngrokAuthToken, // your authtoken from ngrok.com
           region: 'us', // one of ngrok regions (us, eu, au, ap, sa, jp, in), defaults to us
           onStatusChange: status => {
             if (status === 'closed') {
-              this.ngrokConnect(ngrokApiToken);
+              this.ngrokConnect(ngrokAuthToken);
             }
           }, // 'closed' - connection is lost, 'connected' - reconnected
         });
@@ -95,6 +103,8 @@ class P2pServer extends EventEmitter {
         return;
       }
       this.ngrokAddress = this.ngrokAddress.replace(/^https?:\/\//g, '');
+      this.externalAddress = this.ngrokAddress;
+      this.externalPort = '80';
 
       this.emit(
         'info',
@@ -216,9 +226,6 @@ class P2pServer extends EventEmitter {
               'info',
               `Your external address: http://${this.externalAddress}:${this.externalPort}`
             );
-          } else {
-            this.externalAddress = this.ngrokAddress;
-            this.externalPort = '80';
           }
 
           socket.send(JSON.stringify({

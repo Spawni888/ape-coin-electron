@@ -110,10 +110,10 @@ export default {
           },
         },
       },
-      ngrokApiKey: {
-        value: 'Paste your key if ngrok active',
-        fieldName: 'Ngrok API Key',
-        placeholder: 'Paste your key if ngrok active',
+      ngrokAuthToken: {
+        value: 'Paste your auth key if ngrok active',
+        fieldName: 'Ngrok Auth Token',
+        placeholder: 'Paste your auth key if ngrok active',
         validators: {
           required: {
             func: required,
@@ -134,9 +134,9 @@ export default {
         value: false,
         onClick: () => {
           if (switches.ngrok.value) {
-            form.ngrokApiKey.value = '';
+            form.ngrokAuthToken.value = '';
           } else {
-            form.ngrokApiKey.value = 'Paste your key if ngrok active';
+            form.ngrokAuthToken.value = 'Paste your auth key if ngrok active';
           }
         },
       },
@@ -157,7 +157,7 @@ export default {
         text: 'You should port forward to mine faster, because people will be able to'
           + ' connect to you. You will have as much actual info as connections of your network. '
           + 'But if you can`t port forward you can use ngrok to expose your network. '
-          + 'Register for free at ngrok.com and pass ngrok Key to the field above.',
+          + 'Register for free at ngrok.com and pass ngrok AuthToken to the field above.',
       });
     });
 
