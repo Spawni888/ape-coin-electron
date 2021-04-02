@@ -8,7 +8,11 @@ module.exports = {
       nodeIntegration: true,
       builderOptions: {
         win: {
-          icon: path.resolve(__dirname, './src/assets/gorilla1.png'),
+          icon: path.resolve(__dirname, './src/assets/icon.png'),
+        },
+        mac: {
+          icon: path.resolve(__dirname, './src/assets/icon.icns'),
+          type: 'distribution',
         },
       },
     },
