@@ -6,6 +6,11 @@ module.exports = {
   pluginOptions: {
     electronBuilder: {
       nodeIntegration: true,
+      builderOptions: {
+        win: {
+          icon: path.resolve(__dirname, './src/assets/gorilla1.png'),
+        },
+      },
     },
   },
   lintOnSave: process.env.NODE_ENV !== 'production',
