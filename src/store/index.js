@@ -188,6 +188,14 @@ export default createStore({
           message: msg,
         });
       });
+      state.p2pServer.on('warning', (msg) => {
+        console.log(msg);
+        commit('showAlert', {
+          type: 'warning',
+          title: 'Warning',
+          message: msg,
+        });
+      });
 
       state.p2pServer.listen({
         peers,

@@ -144,8 +144,8 @@ class P2pServer extends EventEmitter {
             this.emit('info', `Connection with peer ${peer} was broken.`)
           } else {
             this.emit(
-              'error',
-              `Connection with peer ${peer} was broken. Server was closed. It was your last connection`
+              'warning',
+              `Connection with peer ${peer} was broken. It was your last connection`
             );
           }
         });
