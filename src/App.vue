@@ -1,5 +1,7 @@
 <template>
   <div class="main">
+    <Header />
+
     <SideBar/>
     <div id="content" class="content">
 
@@ -34,9 +36,11 @@ import SideBar from '@/components/SideBar';
 import Alert from '@/components/Alert';
 import { useStore } from 'vuex';
 import { computed } from 'vue';
+import Header from '@/components/Header';
 
 export default {
   components: {
+    Header,
     SideBar,
     Alert,
   },
@@ -57,16 +61,22 @@ export default {
   display: flex;
   height: 100%;
   background-color: $bgColor;
+  flex-wrap: wrap;
 
-  > * {
-    width: 100%;
+  .header {
+    flex: 1 1 100%;
   }
-
+  .sidebar {
+    height: calc(100% - 30px);
+    width: 260px;
+  }
   .content {
+    height: calc(100% - 30px);
     position: relative;
     display: flex;
     justify-content: center;
     align-items: center;
+    flex-grow: 1;
 
     .balance {
       color: $bgColor;

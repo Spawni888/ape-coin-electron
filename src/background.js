@@ -40,8 +40,10 @@ async function createWindow() {
   // Create the browser window.
   const win = new BrowserWindow({
     width: 1000,
-    height: 700,
+    height: 650,
     icon: path.resolve(__dirname, './assets/icon.ico'),
+    titleBarStyle: 'hiddenInset',
+    frame: false,
     webPreferences: {
       enableRemoteModule: true,
       contextIsolation: false,
@@ -67,8 +69,14 @@ async function createWindow() {
       event.preventDefault();
       win.hide();
     }
-
     return false;
+  });
+
+  ipcMain.on('close-window', () => {
+    win.close();
+  });
+  ipcMain.on('hide-window', () => {
+    win.minimize();
   });
 
   ipcMain.on('checkAuth', async () => {

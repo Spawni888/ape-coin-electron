@@ -125,7 +125,6 @@ export default {
   padding: 20px 0;
 
   position: relative;
-  flex: 1 0 260px;
   box-shadow: 0 0 5px rgba(0, 0, 0, 0.5);
   background-color: $surfaceColor;
 
