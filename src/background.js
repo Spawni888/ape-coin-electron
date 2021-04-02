@@ -4,9 +4,12 @@ import {
   BrowserWindow,
   ipcMain,
   dialog,
+  Tray,
+  Menu,
 } from 'electron';
 
 import { createProtocol } from 'vue-cli-plugin-electron-builder/lib';
+// eslint-disable-next-line no-unused-vars
 import installExtension, { VUEJS_DEVTOOLS } from 'electron-devtools-installer';
 import ElectronStore from '@/utils/ElectronStore';
 import path from 'path';
@@ -18,6 +21,7 @@ const electronStore = new ElectronStore({
   configName: 'apecoin-preferences',
   defaults: {},
 });
+let isQuiting = false;
 
 // Scheme must be registered before the app is ready
 protocol.registerSchemesAsPrivileged([
@@ -30,6 +34,8 @@ protocol.registerSchemesAsPrivileged([
   },
 ]);
 
+let tray = null;
+
 async function createWindow() {
   // Create the browser window.
   const win = new BrowserWindow({
@@ -38,6 +44,7 @@ async function createWindow() {
     icon: path.resolve(__dirname, './assets/icon.ico'),
     webPreferences: {
       enableRemoteModule: true,
+      contextIsolation: false,
       // Use pluginOptions.nodeIntegration, leave this alone
       // See nklayman.github.io/vue-cli-plugin-electron-builder/guide/security.html#node-integration
       // for more info
@@ -52,8 +59,17 @@ async function createWindow() {
   } else {
     createProtocol('app');
     // Load the index.html when not in development
-    win.loadURL('app://./index.html');
+    await win.loadURL('app://./index.html');
   }
+
+  win.on('close', (event) => {
+    if (!isQuiting) {
+      event.preventDefault();
+      win.hide();
+    }
+
+    return false;
+  });
 
   ipcMain.on('checkAuth', async () => {
     const keyPair = electronStore.get('walletAuth');
@@ -68,7 +84,10 @@ async function createWindow() {
     win.webContents.send('newWalletCreated', keyPair);
   });
   ipcMain.on('saveNewWallet', async (event, keyPair) => {
-    const { filePath, canceled } = await dialog.showSaveDialog(win, {
+    const {
+      filePath,
+      canceled,
+    } = await dialog.showSaveDialog(win, {
       defaultPath: path.resolve(app.getPath('desktop'), 'keyPair.txt'),
     });
 
@@ -92,7 +111,36 @@ privateKey(secret key, don't share it): ${keyPair.priv}`;
   ipcMain.on('deleteAuth', async () => {
     electronStore.delete('walletAuth');
   });
+
+  // eslint-disable-next-line no-undef
+  tray = new Tray(path.resolve(__static, './tray-icon.png'));
+
+  tray.setContextMenu(Menu.buildFromTemplate([
+    {
+      label: 'Show App',
+      click: () => {
+        win.show();
+      },
+    },
+    {
+      label: 'Quit',
+      click: () => {
+        isQuiting = true;
+        app.quit();
+      },
+    },
+  ]));
+
+  tray.setToolTip('Ape-coin application');
+  tray.on('double-click', () => {
+    win.show();
+  });
+  // tray.setContextMenu(contextMenu);
 }
+
+app.on('before-quit', () => {
+  isQuiting = true;
+});
 
 // Quit when all windows are closed.
 app.on('window-all-closed', () => {
@@ -116,7 +164,12 @@ app.on('ready', async () => {
   if (isDevelopment && !process.env.IS_TEST) {
     // Install Vue Devtools
     try {
-      await installExtension(VUEJS_DEVTOOLS);
+      // demo vue-devtools for vue3 in electron
+      await installExtension({
+        id: 'ljjemllljcmogpfapbkkighbhhppjdbg',
+        electron: '>=1.2.1',
+      });
+      // await installExtension(VUEJS_DEVTOOLS);
     } catch (e) {
       console.error('Vue Devtools failed to install:', e.toString());
     }
