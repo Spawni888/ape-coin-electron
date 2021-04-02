@@ -33,10 +33,6 @@ class Miner {
     this.p2pServer.syncChains();
     this.transactionPool.clear();
 
-    // update balance after reward
-    this.wallet.balance = this.wallet.calculateBalance(this.blockchain);
-    this.wallet.calculateBalanceWithTpIncluded(this.transactionPool);
-
     return block;
   }
 }

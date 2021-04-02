@@ -92,6 +92,10 @@ export default createStore({
       state.alertIsShowing = true;
       state.alertTimer = setInterval(intervalFunc, 5000);
     },
+    recalculateBalance(state) {
+      state.wallet.balance = state.wallet.calculateBalance(state.blockchain);
+      state.wallet.calculateBalanceWithTpIncluded(state.transactionPool);
+    },
   },
   actions: {
     async createServer({
@@ -270,6 +274,7 @@ export default createStore({
         state.wallet,
         state.p2pServer,
       );
+      state.transactionPool.on('clear', () => commit('recalculateBalance'));
 
       if (!silentMode) {
         commit('showAlert', {

@@ -81,7 +81,8 @@ class TransactionPool extends EventEmitter {
   }
 
   clear() {
-    this.transactions = [];
+    this.transactions = []
+    this.emit('clear');
   }
 }
 
