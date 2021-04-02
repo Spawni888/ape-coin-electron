@@ -1,6 +1,7 @@
 const ChainUtil = require('../chain-util');
 const Transaction = require('../wallet/transaction');
 const { DIFFICULTY, MINE_RATE } = require('../config');
+const { MINING_MODES } = require('../constants');
 
 class Block {
   constructor(timestamp, lastHash, hash, data, nonce, difficulty) {
@@ -26,7 +27,9 @@ class Block {
     return new this('Genesis time', '------', 'f1r57-h45h', [], 0, DIFFICULTY);
   }
 
-  static async mineBlock(lastBlock, data, tp) {
+  static async mineBlock(bc, data, tp) {
+    const lastBlock = bc.chain[bc.chain.length - 1];
+
     const lastHash = lastBlock.hash;
     const dataSizeInMb = ChainUtil.sizeOfObjectInMb(data);
     let timestamp = 0;
@@ -34,11 +37,22 @@ class Block {
     let { difficulty } = lastBlock;
     let nonce = 0;
     let tpChanged = false;
+    let stopMining = false;
     tp.on('changed', () => tpChanged = true);
+    bc.on('stop-mining', () => stopMining = true);
 
     do {
+      if (stopMining) {
+        return {
+          block: null,
+          mode: MINING_MODES.STOP_MINING,
+        };
+      }
       if (tpChanged && dataSizeInMb < 1) {
-        return null;
+        return {
+          block: null,
+          mode: MINING_MODES.REPEAT_MINING,
+        };
       }
 
       await new Promise(((resolve) => {
@@ -52,7 +66,11 @@ class Block {
       }));
 
     } while (hash.substring(0, difficulty) !== '0'.repeat(difficulty))
-    return new this(timestamp, lastHash, hash, data, nonce, difficulty);
+
+    return {
+      block: new this(timestamp, lastHash, hash, data, nonce, difficulty),
+      mode: MINING_MODES.ADD_BLOCK,
+    }
   }
 
   static createHash(timestamp, lastHash, data, nonce, difficulty) {

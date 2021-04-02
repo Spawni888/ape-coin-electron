@@ -14,6 +14,7 @@
       />
       <CoreInput
         v-for="field in formFee"
+        ref="feeNode"
         :placeholder="field.placeholder"
         :field-name="field.fieldName"
         :key="field.fieldName"
@@ -40,11 +41,14 @@
 
 <script>
 import { useStore } from 'vuex';
-import { computed, reactive, ref } from 'vue';
+import {
+  computed, onMounted, reactive, ref,
+} from 'vue';
 import CoreInput from '@/components/CoreInput';
 import useForm from '@/use/form/form';
 import CoreButton from '@/components/CoreButton';
 import Modal from '@/components/Modal';
+import useTooltip from '@/use/tooltip';
 
 const required = (val) => !!val;
 const shouldBeLength = (length) => (val) => val.length === length;
@@ -155,7 +159,19 @@ export default {
         fee: formFee.fee.value.length !== 0 ? formFee.fee.value : 0,
       });
     };
-    // TODO: fix balance calculation
+
+    const feeNode = ref(null);
+    onMounted(() => {
+      useTooltip({
+        el: feeNode.value,
+        id: 'feeNode',
+        maxWidth: 500,
+        text: 'Transaction fee is a reward for miners. \n\n'
+          + 'Miners prioritize transactions with higher fee. \n'
+          + 'So, if you want to transact coins faster add some fee.',
+      });
+    });
+
     return {
       myBalance,
       form,
@@ -164,6 +180,7 @@ export default {
       modalInfo,
       highlightErrors,
       createTransaction,
+      feeNode,
     };
   },
 };
@@ -183,13 +200,13 @@ export default {
 
   .transaction-form {
     display: flex;
-    width: 40%;
+    width: 50%;
     flex-direction: column;
     align-items: center;
     .form-title {
-      margin-bottom: 10px;
+      margin-bottom: 40px;
 
-      font-size: 30px;
+      font-size: 40px;
     }
     .core-input {
       margin-top: 20px;

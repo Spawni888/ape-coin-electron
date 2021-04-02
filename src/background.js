@@ -35,8 +35,9 @@ async function createWindow() {
   const win = new BrowserWindow({
     width: 1000,
     height: 700,
+    icon: path.resolve(__dirname, './assets/icon.ico'),
     webPreferences: {
-
+      enableRemoteModule: true,
       // Use pluginOptions.nodeIntegration, leave this alone
       // See nklayman.github.io/vue-cli-plugin-electron-builder/guide/security.html#node-integration
       // for more info

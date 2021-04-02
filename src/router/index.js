@@ -1,7 +1,7 @@
 import { createRouter, createWebHistory } from 'vue-router';
-import Login from '@/views/Login.vue';
 import Wallet from '@/views/Wallet';
 import PeerToPeer from '@/views/PeerToPeer';
+import Mining from '@/views/Mining';
 import store from '@/store';
 
 const routes = [
@@ -18,7 +18,7 @@ const routes = [
   {
     path: '/mining',
     name: 'mining',
-    component: Login,
+    component: Mining,
   },
 ];
 

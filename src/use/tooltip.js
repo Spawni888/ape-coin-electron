@@ -28,13 +28,13 @@ export default function useTooltip({
       tooltip.style.maxWidth = `${maxWidth}px`;
     }
     tooltip.style.transition = `${duration}ms ease-in-out`;
-    tooltip.style.top = `${coords.top - tooltip.clientHeight - 10}px`;
+    tooltip.style.top = `${coords.top - tooltip.clientHeight - 12}px`;
     tooltip.style.left = `${coords.left - tooltip.clientWidth / 2 + el.clientWidth / 2}px`;
     tooltip.style.opacity = '1';
     tooltip.style.transform = 'scale(1)';
   };
 
-  el.onmouseout = () => {
+  const removeTooltip = () => {
     const tooltip = document.getElementsByClassName(`tooltip-${id}`)[0];
 
     if (!tooltip) return;
@@ -44,4 +44,18 @@ export default function useTooltip({
       tooltip.remove();
     }, duration);
   };
+
+  el.onmouseout = removeTooltip;
+
+  let wasInDom = document.body.contains(el);
+  const observer = new MutationObserver(() => {
+    if (document.body.contains(el)) {
+      wasInDom = true;
+    } else if (wasInDom) {
+      wasInDom = false;
+
+      removeTooltip();
+    }
+  });
+  observer.observe(document.body, { childList: true, subtree: true });
 }

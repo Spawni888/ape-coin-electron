@@ -9,6 +9,7 @@ import portfinder from 'portfinder';
 import Koa from 'koa';
 import bodyParser from 'koa-bodyparser';
 import { ipcRenderer } from 'electron';
+import { BLOCKCHAIN_WALLET } from '@/assets/core/config';
 
 export default createStore({
   state: {
@@ -29,6 +30,7 @@ export default createStore({
       message: 'Try again later...',
     },
     transactionPending: false,
+    miningIsUp: false,
   },
   getters: {
     alertIsShowing(state) {
@@ -56,10 +58,13 @@ export default createStore({
       return state.wallet.publicKey;
     },
     walletBalance(state) {
-      return state.wallet.balance;
+      return state.wallet.balanceWithTpIncluded;
     },
     transactionPending(state) {
       return state.transactionPending;
+    },
+    miningIsUp(state) {
+      return state.miningIsUp;
     },
   },
   mutations: {
@@ -226,7 +231,6 @@ export default createStore({
           message: 'Transaction has been created successfully!',
         });
       }
-      console.log(state.transactionPool);
       state.transactionPending = false;
     },
     closeAlert({ state, commit }) {
@@ -275,12 +279,55 @@ export default createStore({
         });
       }
     },
-    closeServer({ state, commit }) {
+    async startMining({ state, commit }) {
+      state.miningIsUp = true;
+
+      try {
+        while (state.miningIsUp) {
+          // eslint-disable-next-line no-await-in-loop
+          const block = await state.miner.mine();
+
+          if (block !== null) {
+            const reward = block.data
+              .find(transaction => transaction.input.address === BLOCKCHAIN_WALLET)
+              .outputs
+              .find(output => output.address === state.wallet.publicKey)
+              .amount;
+
+            commit('showAlert', {
+              type: 'success',
+              title: 'Success',
+              message: `You have mine block with difficulty: ${block.difficulty} and earn ${reward} coins!`,
+            });
+          }
+        }
+      } catch (e) {
+        console.log(e);
+        state.miningIsUp = false;
+
+        commit('showAlert', {
+          type: 'error',
+          title: 'Error',
+          message: 'Something went wrong...',
+        });
+      }
+    },
+    stopMining({ state, commit }) {
+      state.blockchain.emit('stop-mining');
+      state.miningIsUp = false;
+      commit('showAlert', {
+        type: 'info',
+        title: 'Info',
+        message: 'Mining have been stopped.',
+      });
+    },
+    closeServer({ state, commit, dispatch }) {
       state.server = null;
       state.p2pServer = null;
       state.transactionPool = null;
       state.serverIsUp = false;
       commit('logOutWallet');
+      dispatch('stopMining');
     },
   },
   modules: {},

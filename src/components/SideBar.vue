@@ -24,15 +24,18 @@
           ]"
           @click="navigate"
         >
-          <div class="feature__icon">
+          <div
+            class="feature__icon"
+          >
             <div
               class="img"
+              :class="{'is-mining': feature.animation && miningIsUp}"
               :style="{'maskImage': `url(${feature.imgSrc})`}"
             />
             <div
               v-if="feature.indicator"
               class="feature__indicator"
-              :class="{'serverIsUp': feature.serverIsUp}"
+              :class="{'serverIsUp': feature.indicatorCondition}"
             />
           </div>
           <div class="feature__name">
@@ -72,6 +75,8 @@ export default {
     const store = useStore();
     const walletAuthed = computed(() => store.getters.walletAuthed);
     const serverIsUp = computed(() => store.getters.serverIsUp);
+    const miningIsUp = computed(() => store.getters.miningIsUp);
+
     const features = ref([
       {
         name: 'Peer-to-peer',
@@ -79,7 +84,7 @@ export default {
         imgSrc: p2pImg,
         route: 'p2p',
         indicator: true,
-        serverIsUp,
+        indicatorCondition: serverIsUp,
       },
       {
         name: 'Wallet',
@@ -93,7 +98,10 @@ export default {
         className: 'mining',
         imgSrc: miningImg,
         route: 'mining',
+        animation: true,
         deactiveCondition: computed(() => !serverIsUp.value || !walletAuthed.value),
+        indicator: true,
+        indicatorCondition: miningIsUp,
       },
     ]);
 
@@ -106,12 +114,13 @@ export default {
       features,
       walletAuthed: computed(() => store.getters.walletAuthed),
       logOutWallet,
+      miningIsUp,
     };
   },
 };
 </script>
 
-<style scoped lang="scss">
+<style lang="scss">
 .sidebar {
   padding: 20px 0;
 
@@ -149,6 +158,7 @@ export default {
   .features {
     margin-top: 40px;
   }
+
   .feature {
     padding: 20px 20px;
 
@@ -169,6 +179,7 @@ export default {
     &__icon {
       margin-right: 20px;
       position: relative;
+
       .img {
         background-color: $onSurfaceColor;
         mask-repeat: no-repeat;
@@ -219,30 +230,68 @@ export default {
       color: $onPrimaryColor;
     }
   }
+
   .feature.deactive {
     pointer-events: none;
+
     &:hover {
       cursor: default;
     }
+
     .feature__name {
       color: darken($onSurfaceColor, 60%);
     }
+
     .feature__icon {
       .img {
         background-color: darken($onSurfaceColor, 60%);
       }
     }
+    .feature__indicator {
+      background-color: darken($onSurfaceColor, 60%) !important;
+    }
   }
+
+  .mining {
+    .feature__icon {
+      .img {
+      }
+    }
+    .feature__indicator {
+      right: -7px;
+      bottom: -3px;
+      width: 9px;
+      height: 9px;
+    }
+  }
+
   .logout {
     position: absolute;
     bottom: 0;
+
     &__icon {
       .img {
 
       }
     }
-    &__name {}
+
+    &__name {
+    }
   }
 }
+.is-mining {
+  animation: mine 2s linear infinite alternate both;
+}
 
+@keyframes mine {
+  from {
+    transform: rotate(0deg);
+  }
+  50% {
+    transform: rotate(-10deg);
+  }
+  to {
+    transform: rotate(10deg);
+  }
+}
 </style>

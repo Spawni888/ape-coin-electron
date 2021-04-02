@@ -3,9 +3,10 @@
     <SideBar/>
     <div id="content" class="content">
 
-      <transition name="fade"  mode="out-in">
+      <transition name="scale-fade"  mode="out-in">
         <div
           v-if="walletAuthed"
+          :key="'balance: ' + myBalance"
           class="balance"
         >
           <div class="balance__title">Balance:</div>

@@ -1,18 +1,20 @@
 const Block = require('./block');
+const { EventEmitter } = require('events');
 
-class Blockchain {
+class Blockchain extends EventEmitter {
   constructor() {
+    super();
     this.chain = [Block.genesis()];
   }
 
   async addBlock(data, tp) {
-    const block = await Block.mineBlock(this.chain[this.chain.length - 1], data, tp);
+    const miningInfo = await Block.mineBlock(this, data, tp);
 
-    if (block !== null) {
-      this.chain.push(block);
+    if (miningInfo.block !== null) {
+      this.chain.push(miningInfo.block);
     }
 
-    return block;
+    return miningInfo;
   }
 
   isValidChain(chain) {
@@ -33,7 +35,7 @@ class Blockchain {
     return true;
   }
 
-  replaceChain(newChain) {
+  replaceChain(newChain, tp) {
     if (newChain.length <= this.chain.length) {
       console.log('Received chain is not longer than the current chain');
       return;
@@ -44,6 +46,7 @@ class Blockchain {
 
     console.log('Replacing blockchain with the new chain');
     this.chain = newChain;
+    tp.clear();
   }
 }
 

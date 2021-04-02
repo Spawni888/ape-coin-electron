@@ -189,7 +189,7 @@ class P2pServer extends EventEmitter {
 
       switch (data.type) {
         case MESSAGE_TYPES.chain:
-          this.blockchain.replaceChain(data.chain);
+          this.blockchain.replaceChain(data.chain, this.transactionPool);
           break;
         case MESSAGE_TYPES.transaction:
           this.transactionPool.updateOrAddTransaction(data.transaction);
@@ -303,10 +303,6 @@ class P2pServer extends EventEmitter {
 
   broadcastTransaction(transaction) {
     this.allSockets().forEach(socket => this.sendTransaction(socket, transaction));
-  }
-
-  broadcastClearTransactions() {
-    this.allSockets().forEach(socket => this.sendClearTransactions(socket));
   }
 
   allPeersLinks() {

@@ -7,6 +7,9 @@ class Wallet {
     this.balance = INITIAL_BALANCE;
     this.keyPair = ChainUtil.genKeyPair(privKey, pubKey);
     this.publicKey = this.keyPair.getPublic().encode('hex');
+
+    // balance calculated with transactions from transaction pool;
+    this.balanceWithTpIncluded = this.balance;
   }
 
   toString() {
@@ -42,13 +45,10 @@ class Wallet {
 
     if (transaction) {
       let totalTransactionAmount = 0;
-      transactionPool.transactions.forEach(transaction => {
-        if (transaction.input.address === this.publicKey) {
-          transaction.outputs.forEach(output => {
-            if (output.address !== this.publicKey) {
-              totalTransactionAmount += output.amount;
-            }
-          })
+
+      transaction.outputs.forEach(output => {
+        if (output.address !== this.publicKey) {
+          totalTransactionAmount += output.amount;
         }
       })
 
@@ -68,6 +68,8 @@ class Wallet {
       transactionPool.updateOrAddTransaction(transaction);
     }
     transactionPool.emit('changed', transaction);
+
+    this.calculateBalanceWithTpIncluded(transactionPool);
 
     return { res: transaction };
   }
@@ -105,7 +107,23 @@ class Wallet {
         })
       }
     })
+
     return balance;
+  }
+
+  calculateBalanceWithTpIncluded(transactionPool) {
+    this.balanceWithTpIncluded = this.balance;
+
+    transactionPool.transactions
+      .forEach(transaction => {
+        if (transaction.input.address === this.publicKey) {
+          transaction.outputs.forEach(output => {
+            if (output.address !== this.publicKey) {
+              this.balanceWithTpIncluded -= output.amount;
+            }
+          })
+        }
+      });
   }
 
   static blockchainWallet() {
