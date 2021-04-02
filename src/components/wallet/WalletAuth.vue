@@ -83,7 +83,7 @@ export default {
     });
     const store = useStore();
     const highlightErrors = ref(false);
-    const keepLoggedIn = ref(false);
+    const keepLoggedIn = ref(true);
     const signInWallet = (pubKey, privKey) => store.dispatch('signInWallet', {
       pubKey,
       privKey,

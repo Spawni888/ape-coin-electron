@@ -134,6 +134,7 @@ privateKey(secret key, don't share it): ${keyPair.priv}`;
       label: 'Quit',
       click: () => {
         isQuiting = true;
+        win.close();
         app.quit();
       },
     },

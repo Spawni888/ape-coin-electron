@@ -1,6 +1,6 @@
-const DIFFICULTY = 1;
-const MINE_RATE = 10000;
-const INITIAL_BALANCE = 100;
+const DIFFICULTY = 4;
+const MINE_RATE = 60000;
+const INITIAL_BALANCE = 10;
 const FIRST_MINING_REWARD = 50;
 const BLOCKCHAIN_WALLET = 'Blockchain wallet';
 const MINER_WALLET = 'Miner';

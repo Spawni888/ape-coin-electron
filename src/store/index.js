@@ -124,8 +124,6 @@ export default createStore({
         ngrok,
       } = options;
 
-      console.log(ngrokAuthToken);
-
       // find free port if doesn't set manually
       if (!serverPort) {
         try {

@@ -10,7 +10,6 @@ import useRipple from '@/use/button/ripple';
 export default {
   name: 'CoreButton',
   setup() {
-    // TODO: fix ripple effect. Now it doesn't work
     return {
       useRipple,
     };
