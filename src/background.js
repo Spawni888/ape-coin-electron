@@ -22,6 +22,7 @@ const electronStore = new ElectronStore({
   defaults: {},
 });
 let isQuiting = false;
+const gotTheLock = app.requestSingleInstanceLock();
 
 // Scheme must be registered before the app is ready
 protocol.registerSchemesAsPrivileged([
@@ -35,10 +36,11 @@ protocol.registerSchemesAsPrivileged([
 ]);
 
 let tray = null;
+let win = null;
 
 async function createWindow() {
   // Create the browser window.
-  const win = new BrowserWindow({
+  win = new BrowserWindow({
     width: 1000,
     height: 650,
     icon: path.resolve(__dirname, './assets/icon.ico'),
@@ -169,22 +171,36 @@ app.on('activate', () => {
 // This method will be called when Electron has finished
 // initialization and is ready to create browser windows.
 // Some APIs can only be used after this event occurs.
-app.on('ready', async () => {
-  if (isDevelopment && !process.env.IS_TEST) {
-    // Install Vue Devtools
-    try {
-      // demo vue-devtools for vue3 in electron
-      await installExtension({
-        id: 'ljjemllljcmogpfapbkkighbhhppjdbg',
-        electron: '>=1.2.1',
-      });
-      // await installExtension(VUEJS_DEVTOOLS);
-    } catch (e) {
-      console.error('Vue Devtools failed to install:', e.toString());
+
+if (!gotTheLock) {
+  app.quit();
+} else {
+  app.on('second-instance', () => {
+    // Someone tried to run a second instance, we should focus our window.
+    if (win) {
+      if (win.isMinimized()) win.restore();
+      if (!win.isVisible()) win.show();
+      win.focus();
     }
-  }
-  await createWindow();
-});
+  });
+
+  app.on('ready', async () => {
+    if (isDevelopment && !process.env.IS_TEST) {
+      // Install Vue Devtools
+      try {
+        // demo vue-devtools for vue3 in electron
+        await installExtension({
+          id: 'ljjemllljcmogpfapbkkighbhhppjdbg',
+          electron: '>=1.2.1',
+        });
+        // await installExtension(VUEJS_DEVTOOLS);
+      } catch (e) {
+        console.error('Vue Devtools failed to install:', e.toString());
+      }
+    }
+    await createWindow();
+  });
+}
 
 // Exit cleanly on request from parent process in development mode.
 if (isDevelopment) {
