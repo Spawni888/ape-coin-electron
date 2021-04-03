@@ -81,6 +81,17 @@ async function createWindow() {
     win.minimize();
   });
 
+  ipcMain.on('save-p2pForm', (event, form) => {
+    electronStore.set('p2pForm', form);
+  });
+
+  ipcMain.on('check-p2pForm', () => {
+    const form = electronStore.get('p2pForm');
+    if (form) {
+      win.webContents.send('load-p2pForm', form);
+    }
+  });
+
   ipcMain.on('checkAuth', async () => {
     const keyPair = electronStore.get('walletAuth');
 

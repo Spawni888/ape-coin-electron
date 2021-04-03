@@ -24,7 +24,7 @@
         v-model:checked="item.value"
       />
     </div>
-    <CoreButton class="p2p-button" @click.prevent="onConnect">Connect</CoreButton>
+    <CoreButton class="p2p-button" @click.prevent="connect">Connect</CoreButton>
   </form>
 </template>
 
@@ -38,11 +38,13 @@ import CoreButton from '@/components/CoreButton';
 import CoreSwitch from '@/components/CoreSwitch';
 import useForm from '@/use/form/form';
 import useTooltip from '@/use/tooltip';
+import { ipcRenderer } from 'electron';
 
 const required = (val) => !!val;
 const isNumeric = (val) => /^\d+$/.test(val);
 const parseUrlsAndTestRegExp = (val, regExp) => {
-  const urls = val.trim().replace(/[,\s;]+/gi, ',')
+  const urls = val.trim()
+    .replace(/[,\s;]+/gi, ',')
     .split(',');
 
   for (const url of urls) {
@@ -124,11 +126,12 @@ export default {
       },
     });
 
+    // TODO: add API later maybe
     const switches = reactive({
-      API: {
-        name: 'API',
-        value: true,
-      },
+      // API: {
+      //   name: 'API',
+      //   value: false,
+      // },
       ngrok: {
         name: 'ngrok',
         value: false,
@@ -142,14 +145,14 @@ export default {
       },
     });
 
-    const API = ref(null);
+    // const API = ref(null);
     const ngrok = ref(null);
     onMounted(() => {
-      useTooltip({
-        el: API.value,
-        id: 'API',
-        text: 'Turn on HTTP API if active',
-      });
+      // useTooltip({
+      //   el: API.value,
+      //   id: 'API',
+      //   text: 'Turn on HTTP API if active',
+      // });
       useTooltip({
         el: ngrok.value,
         id: 'ngrok',
@@ -159,12 +162,24 @@ export default {
           + 'But if you can`t port forward you can use ngrok to expose your network. '
           + 'Register for free at ngrok.com and pass ngrok AuthToken to the field above.',
       });
+
+      ipcRenderer.send('check-p2pForm');
+      ipcRenderer.on('load-p2pForm', (event, savedForm) => {
+        Object.keys(form)
+          .forEach(key => {
+            form[key].value = savedForm.inputs[key];
+          });
+        Object.keys(switches)
+          .forEach(key => {
+            switches[key].value = savedForm.switches[key];
+          });
+      });
     });
 
     const highlightErrors = ref(false);
     const store = useStore();
 
-    const onConnect = () => {
+    const connect = () => {
       const formIsValid = !Object.values(form)
         .filter(field => !field.valid).length;
 
@@ -178,20 +193,36 @@ export default {
         .forEach(key => {
           serverOptions[key] = form[key].value;
         });
-      Object.values(switches).forEach(item => {
-        serverOptions[item.name] = item.value;
-      });
+      Object.values(switches)
+        .forEach(item => {
+          serverOptions[item.name] = item.value;
+        });
 
       store.dispatch('createServer', serverOptions);
+
+      const formattedInputs = {};
+      const formattedSwitches = {};
+      Object.keys(form)
+        .forEach(key => {
+          formattedInputs[key] = form[key].value;
+        });
+      Object.keys(switches)
+        .forEach(key => {
+          formattedSwitches[key] = switches[key].value;
+        });
+      ipcRenderer.send('save-p2pForm', {
+        inputs: formattedInputs,
+        switches: formattedSwitches,
+      });
     };
 
     return {
       form,
       switches,
-      API,
+      // API,
       ngrok,
       highlightErrors,
-      onConnect,
+      connect,
     };
   },
 };
@@ -213,6 +244,7 @@ export default {
     color: $onBgColor;
     text-align: center;
   }
+
   .core-input {
     margin-top: 20px;
   }

@@ -340,12 +340,17 @@ export default createStore({
       });
     },
     closeServer({ state, commit, dispatch }) {
-      state.server = null;
+      if (state.server) {
+        state.server.close();
+        state.server = null;
+      }
       state.p2pServer = null;
       state.transactionPool = null;
       state.serverIsUp = false;
       commit('logOutWallet');
-      dispatch('stopMining');
+      if (state.miningIsUp) {
+        dispatch('stopMining');
+      }
     },
   },
   modules: {},

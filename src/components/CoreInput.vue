@@ -21,7 +21,7 @@
       :placeholder="placeholder"
       @blur="onInputBlur"
     >
-    <span class="border" />
+    <span class="border"/>
     <transition name="fade" mode="out-in">
       <div v-show="showError" :key="errorMsg" class="input-error">
         {{ errorMsg }}
@@ -31,7 +31,9 @@
 </template>
 
 <script>
-import { ref, onMounted } from 'vue';
+import {
+  ref, onMounted, watch, toRefs,
+} from 'vue';
 
 export default {
   name: 'CoreInput',
@@ -57,7 +59,8 @@ export default {
     },
   },
   emits: ['update:value'],
-  setup() {
+  setup(props) {
+    const { value } = toRefs(props);
     const compressedPlaceholder = ref(true);
     const input = ref(null);
 
@@ -71,7 +74,16 @@ export default {
       }
     };
 
-    onMounted(onInputBlur);
+    onMounted(() => {
+      compressedPlaceholder.value = true;
+      onInputBlur();
+    });
+
+    watch(value, () => {
+      if (value || !compressedPlaceholder.value) {
+        compressedPlaceholder.value = true;
+      }
+    });
     return {
       input,
       onPlaceholderClick,
@@ -116,6 +128,7 @@ $fontSize: 18px;
     color: $onBgColor;
     font-weight: 500;
   }
+
   input::-webkit-input-placeholder {
     transition: .3s;
     opacity: 0;
@@ -131,6 +144,7 @@ $fontSize: 18px;
     bottom: 0;
     z-index: 1;
   }
+
   .input-error {
     opacity: 1;
     color: $errorColor;
@@ -143,6 +157,7 @@ $fontSize: 18px;
     //transition: 0.2s ease-in-out;
   }
 }
+
 .compressed {
   .placeholder {
     cursor: default;
@@ -151,22 +166,27 @@ $fontSize: 18px;
     top: -16px;
     color: $secondaryColor;
   }
+
   input::-webkit-input-placeholder {
     opacity: .4;
   }
+
   .border {
     width: 100%;
   }
 }
+
 .show-error.compressed {
   .placeholder {
     color: $errorColor;
   }
 }
+
 .show-error {
   .border {
     background-color: $errorColor;
   }
+
   .input-error {
     opacity: 1;
   }
