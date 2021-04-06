@@ -3,12 +3,18 @@ import Wallet from '@/views/Wallet';
 import PeerToPeer from '@/views/PeerToPeer';
 import Mining from '@/views/Mining';
 import store from '@/store';
+import Blockchain from '@/views/Blockchain';
 
 const routes = [
   {
     path: '/',
     name: 'p2p',
     component: PeerToPeer,
+  },
+  {
+    path: '/blockchain',
+    name: 'blockchain',
+    component: Blockchain,
   },
   {
     path: '/wallet',

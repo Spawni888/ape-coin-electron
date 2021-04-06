@@ -71,6 +71,7 @@ export default {
     width: 260px;
   }
   .content {
+    width: calc(100% - 260px);
     height: calc(100% - 30px);
     position: relative;
     display: flex;
