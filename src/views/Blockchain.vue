@@ -12,34 +12,49 @@
         ref="chain"
         class="blockchain__chain"
       >
-        <div
-          class="block"
-          v-for="(block, i) in 10"
-          :key="'block' + i"
-        ></div>
+       <BlockchainTransition>
+         <Block
+           v-for="(block, index) in blocks"
+           :block="block"
+           :block-position="blockPosition(index, blocks.length, 100)"
+           :isFirst="index === 0"
+           :key="block.hash.slice(0, 10) + index"
+         />
+         <div class="timer-block" key="time-block">
+           <div class="timer">
+             <div class="time"></div>
+           </div>
+         </div>
+       </BlockchainTransition>
       </div>
       <div class="progress">
-        <div class="progress__percents" ref="progressPercents" />
+        <div class="progress__percents" ref="progressPercents"/>
         <div class="progress__bar">
           <div class="fill" ref="progressBar"/>
         </div>
       </div>
     </div>
+    <CoreButton @click="addBlock">Add block</CoreButton>
   </div>
 </template>
 
 <script>
-import { ref, onMounted, onUpdated } from 'vue';
+import { ref, onMounted, nextTick } from 'vue';
 import gsap from 'gsap';
+import Block from '@/components/blockchain/Block';
+import CoreButton from '@/components/CoreButton';
+import BlockchainTransition from '@/components/blockchain/BlockchainTransition';
 
 export default {
   name: 'Blockchain',
+  components: { BlockchainTransition, CoreButton, Block },
   setup() {
     const chain = ref(null);
     const progressPercents = ref(null);
     const progressBar = ref(null);
 
     const speed = 0.04;
+    const blockWidth = 340;
     let diffX = 0;
     let x = 0;
     let maxX = 0;
@@ -63,8 +78,16 @@ export default {
       if (progress < 0) progress = 0;
 
       progressPercents.value.innerText = `${progress}%`;
-      gsap.to(progressPercents.value, { left: `${progress}%`, duration: 0.15, ease: 'power2.out' });
-      gsap.to(progressBar.value, { width: `${progress}%`, duration: 0.15, ease: 'power2.out' });
+      gsap.to(progressPercents.value, {
+        left: `${progress}%`,
+        duration: 0.15,
+        ease: 'power2.out',
+      });
+      gsap.to(progressBar.value, {
+        width: `${progress}%`,
+        duration: 0.15,
+        ease: 'power2.out',
+      });
 
       requestAnimationFrame(animateScroll);
     };
@@ -73,12 +96,126 @@ export default {
       initValues();
       animateScroll();
     });
-    onUpdated(initValues);
 
     const onWheel = (event) => {
       const { deltaY } = event;
-
       x += deltaY;
+    };
+
+    const blocks = ref([
+      {
+        timestamp: Date.now(),
+        hash: '3032fjfdg8s9f9ghhtq304gnwufoghsidufhg899',
+        nonce: '3004',
+        difficulty: '5',
+        data: [
+          { transaction: 1 },
+          { transaction: 2 },
+        ],
+      },
+      {
+        timestamp: Date.now(),
+        hash: '3032fjfdg8s9f9ghhtq304gnwufoghsidufhg899',
+        nonce: '3004',
+        difficulty: '5',
+        data: [
+          { transaction: 1 },
+          { transaction: 2 },
+        ],
+      },
+      {
+        timestamp: Date.now(),
+        hash: '3032fjfdg8s9f9ghhtq304gnwufoghsidufhg899',
+        nonce: '3004',
+        difficulty: '5',
+        data: [
+          { transaction: 1 },
+          { transaction: 2 },
+        ],
+      },
+      {
+        timestamp: Date.now(),
+        hash: '3032fjfdg8s9f9ghhtq304gnwufoghsidufhg899',
+        nonce: '3004',
+        difficulty: '5',
+        data: [
+          { transaction: 1 },
+          { transaction: 2 },
+        ],
+      },
+      {
+        timestamp: Date.now(),
+        hash: '3032fjfdg8s9f9ghhtq304gnwufoghsidufhg899',
+        nonce: '3004',
+        difficulty: '5',
+        data: [
+          { transaction: 1 },
+          { transaction: 2 },
+        ],
+      },
+      {
+        timestamp: Date.now(),
+        hash: '3032fjfdg8s9f9ghhtq304gnwufoghsidufhg899',
+        nonce: '3004',
+        difficulty: '5',
+        data: [
+          { transaction: 1 },
+          { transaction: 2 },
+        ],
+      },
+      {
+        timestamp: Date.now(),
+        hash: '3032fjfdg8s9f9ghhtq304gnwufoghsidufhg899',
+        nonce: '3004',
+        difficulty: '5',
+        data: [
+          { transaction: 1 },
+          { transaction: 2 },
+        ],
+      },
+      {
+        timestamp: Date.now(),
+        hash: '3032fjfdg8s9f9ghhtq304gnwufoghsidufhg899',
+        nonce: '3004',
+        difficulty: '5',
+        data: [
+          { transaction: 1 },
+          { transaction: 2 },
+        ],
+      },
+      {
+        timestamp: Date.now(),
+        hash: '3032fjfdg8s9f9ghhtq304gnwufoghsidufhg899',
+        nonce: '3004',
+        difficulty: '5',
+        data: [
+          { transaction: 1 },
+          { transaction: 2 },
+        ],
+      },
+    ]);
+
+    const blockPosition = (positionInSlice, sliceLength, blockchainLength) => (
+      blockchainLength - sliceLength
+    ) + positionInSlice;
+
+    const addBlock = () => {
+      blocks.value.push({
+        timestamp: Date.now(),
+        hash: '30basdfdsfs9f9ghhtq304gnwufoghsidufhg899',
+        nonce: '30asdfasd4',
+        difficulty: '7',
+        data: [
+          { transaction: 1 },
+          { transaction: 2 },
+          { transaction: 3 },
+        ],
+      });
+
+      nextTick(() => {
+        maxX += blockWidth;
+        x = -maxX;
+      });
     };
 
     return {
@@ -87,6 +224,9 @@ export default {
       progressBar,
       onWheel,
       initValues,
+      blocks,
+      blockPosition,
+      addBlock,
     };
   },
 };
@@ -95,16 +235,17 @@ export default {
 <style scoped lang="scss">
 .blockchain {
   position: relative;
-  height: 100%;
-  width: 100%;
   display: flex;
+  width: 100%;
   flex-direction: column;
   align-items: center;
+
   &__title {
     padding: 20px;
     font-size: 40px;
     color: $onBgColor;
   }
+
   &__chain-wrapper {
     padding-bottom: 80px;
 
@@ -126,13 +267,22 @@ export default {
       height: 200px;
       background-color: #fff;
     }
+
+    .timer-block {
+      border-radius: 50%;
+
+      .timer {
+        .time {
+        }
+      }
+    }
   }
+
   .progress {
     width: 60%;
-    position: absolute;
-    left: 50%;
-    transform: translateX(-50%);
-    bottom: 170px;
+    margin: 30px auto 0;
+    position: relative;
+
     &__percents {
       position: absolute;
       transform: translateX(-50%) translateY(-130%);
@@ -141,11 +291,13 @@ export default {
       font-weight: lighter;
       color: white !important;
     }
+
     &__bar {
       position: relative;
       background: rgba(255, 255, 255, 0.2);
       height: 1px;
       width: 100%;
+
       .fill {
         position: absolute;
         left: 0;
