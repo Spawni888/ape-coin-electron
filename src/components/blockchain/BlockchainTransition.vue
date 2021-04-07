@@ -22,8 +22,6 @@ export default {
 
       gsap.set(blocksConnection, { width: 0 });
       gsap.set(block, {
-        // opacity: 0,
-        // scale: 0.01,
         width: 0,
       });
       gsap.set(blockInfo, { height: 0 });
@@ -48,13 +46,6 @@ export default {
           opacity: 1,
           scale: 1,
         })
-        // .to(block, {
-        //   // width: 300,
-        //   delay: 0.5,
-        //   duration: 1,
-        //   opacity: 1,
-        //   scale: 1,
-        // })
         .to(blocksConnection, {
           ease: 'expo.out',
           width: 40,

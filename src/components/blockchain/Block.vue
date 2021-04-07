@@ -63,6 +63,7 @@ $blockBgColor: rgba(255, 255, 255, 0.8);
 $blockConnectionColor: rgba(255, 255, 255, 0.6);
 .block-container {
   padding: 20px;
+  width: 340px;
 
   position: relative;
   .block-connection {
@@ -76,7 +77,7 @@ $blockConnectionColor: rgba(255, 255, 255, 0.6);
     z-index: -1;
   }
   .compressed-connection {
-    width: 0;
+    width: 0 !important;
   }
   .block {
     $blockSize: 300px;

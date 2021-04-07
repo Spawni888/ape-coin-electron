@@ -9,23 +9,23 @@
       @resize="initValues"
     >
       <div
-        ref="chain"
+        ref="chainNode"
         class="blockchain__chain"
       >
-       <BlockchainTransition>
-         <Block
-           v-for="(block, index) in blocks"
-           :block="block"
-           :block-position="blockPosition(index, blocks.length, 100)"
-           :isFirst="index === 0"
-           :key="block.hash.slice(0, 10) + index"
-         />
-         <div class="timer-block" key="time-block">
-           <div class="timer">
-             <div class="time"></div>
-           </div>
-         </div>
-       </BlockchainTransition>
+        <BlockchainTransition>
+          <Block
+            v-for="(block, index) in chainSlice"
+            :block="block"
+            :block-position="blockPosition(index, chainSlice.length, chain.length)"
+            :isFirst="index === 0"
+            :key="block.hash.slice(0, 10) + 'hash'"
+          />
+          <div class="timer-block" key="time-block">
+            <div class="timer">
+              <div class="time"></div>
+            </div>
+          </div>
+        </BlockchainTransition>
       </div>
       <div class="progress">
         <div class="progress__percents" ref="progressPercents"/>
@@ -39,39 +39,71 @@
 </template>
 
 <script>
-import { ref, onMounted, nextTick } from 'vue';
+import {
+  ref,
+  onMounted,
+  onBeforeUnmount,
+  nextTick,
+} from 'vue';
 import gsap from 'gsap';
 import Block from '@/components/blockchain/Block';
 import CoreButton from '@/components/CoreButton';
 import BlockchainTransition from '@/components/blockchain/BlockchainTransition';
+import testBlocks from '@/assets/testBlocks';
 
 export default {
   name: 'Blockchain',
-  components: { BlockchainTransition, CoreButton, Block },
+  components: {
+    BlockchainTransition,
+    CoreButton,
+    Block,
+  },
   setup() {
-    const chain = ref(null);
+    const chainNode = ref(null);
     const progressPercents = ref(null);
     const progressBar = ref(null);
 
     const speed = 0.04;
     const blockWidth = 340;
+    const chainSliceLength = 10;
     let diffX = 0;
     let x = 0;
     let maxX = 0;
 
+    const chain = ref(testBlocks);
+    const chainSlice = ref(chain.value.slice(-chainSliceLength));
+
     const initValues = () => {
-      maxX = gsap.getProperty(chain.value, 'width') - gsap.getProperty(chain.value.parentNode, 'width');
-      gsap.set(chain.value, { x: -maxX });
+      maxX = gsap.getProperty(chainNode.value, 'width') - gsap.getProperty(chainNode.value.parentNode, 'width');
+      gsap.set(chainNode.value, { x: -maxX });
       diffX = -maxX;
       x = -maxX;
     };
 
+    const increaseChainSlice = () => {
+      if (diffX < -(blockWidth)) return;
+      if (chainSlice.value.length === chain.value.length) return;
+
+      let start = chainSlice.value.length + chainSliceLength;
+      const end = -(chainSlice.value.length);
+      start = start < 0 ? 0 : -start;
+
+      chainSlice.value.unshift(...chain.value.slice(start, end));
+
+      maxX += blockWidth * (end - start);
+      diffX -= blockWidth * (end - start);
+      x -= blockWidth * (end - start);
+    };
+
+    let animationRequest;
     const animateScroll = () => {
+      increaseChainSlice();
+
       diffX += (x - diffX) * speed;
 
       if (x > 0) x = 0;
       if (x < -maxX) x = -maxX;
-      gsap.set(chain.value, { x: diffX });
+      gsap.set(chainNode.value, { x: diffX });
 
       let progress = -Math.round(((diffX / maxX) * 100));
       if (progress > 100) progress = 100;
@@ -89,118 +121,26 @@ export default {
         ease: 'power2.out',
       });
 
-      requestAnimationFrame(animateScroll);
+      animationRequest = requestAnimationFrame(animateScroll);
     };
 
     onMounted(() => {
       initValues();
       animateScroll();
     });
+    onBeforeUnmount(() => cancelAnimationFrame(animationRequest));
 
     const onWheel = (event) => {
       const { deltaY } = event;
       x += deltaY;
     };
 
-    const blocks = ref([
-      {
-        timestamp: Date.now(),
-        hash: '3032fjfdg8s9f9ghhtq304gnwufoghsidufhg899',
-        nonce: '3004',
-        difficulty: '5',
-        data: [
-          { transaction: 1 },
-          { transaction: 2 },
-        ],
-      },
-      {
-        timestamp: Date.now(),
-        hash: '3032fjfdg8s9f9ghhtq304gnwufoghsidufhg899',
-        nonce: '3004',
-        difficulty: '5',
-        data: [
-          { transaction: 1 },
-          { transaction: 2 },
-        ],
-      },
-      {
-        timestamp: Date.now(),
-        hash: '3032fjfdg8s9f9ghhtq304gnwufoghsidufhg899',
-        nonce: '3004',
-        difficulty: '5',
-        data: [
-          { transaction: 1 },
-          { transaction: 2 },
-        ],
-      },
-      {
-        timestamp: Date.now(),
-        hash: '3032fjfdg8s9f9ghhtq304gnwufoghsidufhg899',
-        nonce: '3004',
-        difficulty: '5',
-        data: [
-          { transaction: 1 },
-          { transaction: 2 },
-        ],
-      },
-      {
-        timestamp: Date.now(),
-        hash: '3032fjfdg8s9f9ghhtq304gnwufoghsidufhg899',
-        nonce: '3004',
-        difficulty: '5',
-        data: [
-          { transaction: 1 },
-          { transaction: 2 },
-        ],
-      },
-      {
-        timestamp: Date.now(),
-        hash: '3032fjfdg8s9f9ghhtq304gnwufoghsidufhg899',
-        nonce: '3004',
-        difficulty: '5',
-        data: [
-          { transaction: 1 },
-          { transaction: 2 },
-        ],
-      },
-      {
-        timestamp: Date.now(),
-        hash: '3032fjfdg8s9f9ghhtq304gnwufoghsidufhg899',
-        nonce: '3004',
-        difficulty: '5',
-        data: [
-          { transaction: 1 },
-          { transaction: 2 },
-        ],
-      },
-      {
-        timestamp: Date.now(),
-        hash: '3032fjfdg8s9f9ghhtq304gnwufoghsidufhg899',
-        nonce: '3004',
-        difficulty: '5',
-        data: [
-          { transaction: 1 },
-          { transaction: 2 },
-        ],
-      },
-      {
-        timestamp: Date.now(),
-        hash: '3032fjfdg8s9f9ghhtq304gnwufoghsidufhg899',
-        nonce: '3004',
-        difficulty: '5',
-        data: [
-          { transaction: 1 },
-          { transaction: 2 },
-        ],
-      },
-    ]);
-
     const blockPosition = (positionInSlice, sliceLength, blockchainLength) => (
       blockchainLength - sliceLength
     ) + positionInSlice;
 
     const addBlock = () => {
-      blocks.value.push({
+      chainSlice.value.push({
         timestamp: Date.now(),
         hash: '30basdfdsfs9f9ghhtq304gnwufoghsidufhg899',
         nonce: '30asdfasd4',
@@ -219,14 +159,15 @@ export default {
     };
 
     return {
-      chain,
+      chainNode,
       progressPercents,
       progressBar,
       onWheel,
       initValues,
-      blocks,
+      chainSlice,
       blockPosition,
       addBlock,
+      chain,
     };
   },
 };
