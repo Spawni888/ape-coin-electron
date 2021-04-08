@@ -1,5 +1,10 @@
 <template>
-  <div class="blockchain">
+  <div
+    class="blockchain"
+    @mousemove="onProgressMove"
+    @mouseup="progressMouseDown = false"
+    @mouseleave="progressMouseDown = false"
+  >
     <div class="blockchain__title">
       Blockchain
     </div>
@@ -16,7 +21,7 @@
           <Block
             v-for="(block, index) in chainSlice"
             :block="block"
-            :block-position="blockPosition(index, chainSlice.length, chain.length)"
+            :block-position="getBlockPosition(index, chainSlice.length, chain.length)"
             :isFirst="index === 0"
             :key="block.hash.slice(0, 10) + 'hash'"
           />
@@ -27,7 +32,7 @@
           </div>
         </BlockchainTransition>
       </div>
-      <div class="progress" @click="scrollToClicked">
+      <div class="progress" @mousedown="scrollToClicked">
         <div class="progress__percents" ref="progressPercents"/>
         <div class="progress__bar" ref="progressBar">
           <div class="fill" ref="progressBarFill"/>
@@ -138,7 +143,7 @@ export default {
       x += deltaY;
     };
 
-    const blockPosition = (positionInSlice, sliceLength, blockchainLength) => (
+    const getBlockPosition = (positionInSlice, sliceLength, blockchainLength) => (
       blockchainLength - sliceLength
     ) + positionInSlice;
 
@@ -161,7 +166,9 @@ export default {
       });
     };
 
+    const progressMouseDown = ref(false);
     const scrollToClicked = (e) => {
+      progressMouseDown.value = true;
       const progressClickedX = Math.round(
         e.clientX - progressBar.value.getBoundingClientRect().left,
       );
@@ -169,6 +176,11 @@ export default {
       const progressRate = progressClickedX / progressBarWidth;
 
       x = -maxX * progressRate;
+    };
+
+    const onProgressMove = (e) => {
+      if (!progressMouseDown.value) return;
+      scrollToClicked(e);
     };
 
     return {
@@ -180,9 +192,11 @@ export default {
       initValues,
       chain,
       chainSlice,
-      blockPosition,
+      getBlockPosition,
       addBlock,
+      progressMouseDown,
       scrollToClicked,
+      onProgressMove,
     };
   },
 };
