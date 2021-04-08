@@ -86,6 +86,23 @@ export default {
       x = -maxX;
     };
 
+    const progressMouseDown = ref(false);
+    const scrollToClicked = (e) => {
+      progressMouseDown.value = true;
+      const progressClickedX = Math.round(
+        e.clientX - progressBar.value.getBoundingClientRect().left,
+      );
+      const progressBarWidth = parseInt(gsap.getProperty(progressBar.value, 'width', 'px'), 10);
+      const progressRate = progressClickedX / progressBarWidth;
+
+      x = -maxX * progressRate;
+    };
+
+    const onProgressMove = (e) => {
+      if (!progressMouseDown.value) return;
+      scrollToClicked(e);
+    };
+
     const increaseChainSlice = () => {
       if (diffX < -(blockWidth)) return;
       if (chainSlice.value.length === chain.value.length) return;
@@ -98,6 +115,7 @@ export default {
         : -start;
 
       chainSlice.value.unshift(...chain.value.slice(start, end));
+
       maxX += blockWidth * (end - start);
       diffX -= blockWidth * (end - start);
       x -= blockWidth * (end - start);
@@ -132,16 +150,16 @@ export default {
       animationRequest = requestAnimationFrame(animateScroll);
     };
 
+    const onWheel = (event) => {
+      const { deltaY } = event;
+      x += deltaY;
+    };
+
     onMounted(() => {
       initValues();
       animateScroll();
     });
     onBeforeUnmount(() => cancelAnimationFrame(animationRequest));
-
-    const onWheel = (event) => {
-      const { deltaY } = event;
-      x += deltaY;
-    };
 
     const getBlockPosition = (positionInSlice, sliceLength, blockchainLength) => (
       blockchainLength - sliceLength
@@ -166,37 +184,20 @@ export default {
       });
     };
 
-    const progressMouseDown = ref(false);
-    const scrollToClicked = (e) => {
-      progressMouseDown.value = true;
-      const progressClickedX = Math.round(
-        e.clientX - progressBar.value.getBoundingClientRect().left,
-      );
-      const progressBarWidth = parseInt(gsap.getProperty(progressBar.value, 'width', 'px'), 10);
-      const progressRate = progressClickedX / progressBarWidth;
-
-      x = -maxX * progressRate;
-    };
-
-    const onProgressMove = (e) => {
-      if (!progressMouseDown.value) return;
-      scrollToClicked(e);
-    };
-
     return {
       chainNode,
       progressPercents,
       progressBar,
       progressBarFill,
-      onWheel,
-      initValues,
       chain,
       chainSlice,
-      getBlockPosition,
-      addBlock,
+      onWheel,
+      initValues,
       progressMouseDown,
       scrollToClicked,
       onProgressMove,
+      getBlockPosition,
+      addBlock,
     };
   },
 };

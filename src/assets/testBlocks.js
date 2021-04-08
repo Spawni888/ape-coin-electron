@@ -1,7 +1,7 @@
 const chain = [];
 
 // eslint-disable-next-line no-plusplus
-for (let i = 0; i < 14; i++) {
+for (let i = 0; i < 88; i++) {
   chain.push({
     timestamp: Date.now(),
     hash: i + '3'.repeat(i),
