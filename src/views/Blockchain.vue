@@ -87,10 +87,12 @@ export default {
 
       let start = chainSlice.value.length + chainSliceLength;
       const end = -(chainSlice.value.length);
-      start = start < 0 ? 0 : -start;
+
+      start = chain.value.length < start
+        ? -(chain.value.length)
+        : -start;
 
       chainSlice.value.unshift(...chain.value.slice(start, end));
-
       maxX += blockWidth * (end - start);
       diffX -= blockWidth * (end - start);
       x -= blockWidth * (end - start);
