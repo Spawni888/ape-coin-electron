@@ -27,10 +27,10 @@
           </div>
         </BlockchainTransition>
       </div>
-      <div class="progress">
+      <div class="progress" @click="scrollToClicked">
         <div class="progress__percents" ref="progressPercents"/>
-        <div class="progress__bar">
-          <div class="fill" ref="progressBar"/>
+        <div class="progress__bar" ref="progressBar">
+          <div class="fill" ref="progressBarFill"/>
         </div>
       </div>
     </div>
@@ -61,6 +61,7 @@ export default {
   setup() {
     const chainNode = ref(null);
     const progressPercents = ref(null);
+    const progressBarFill = ref(null);
     const progressBar = ref(null);
 
     const speed = 0.04;
@@ -115,7 +116,7 @@ export default {
         duration: 0.15,
         ease: 'power2.out',
       });
-      gsap.to(progressBar.value, {
+      gsap.to(progressBarFill.value, {
         width: `${progress}%`,
         duration: 0.15,
         ease: 'power2.out',
@@ -158,16 +159,28 @@ export default {
       });
     };
 
+    const scrollToClicked = (e) => {
+      const progressClickedX = Math.round(
+        e.clientX - progressBar.value.getBoundingClientRect().left,
+      );
+      const progressBarWidth = parseInt(gsap.getProperty(progressBar.value, 'width', 'px'), 10);
+      const progressRate = progressClickedX / progressBarWidth;
+
+      x = -maxX * progressRate;
+    };
+
     return {
       chainNode,
       progressPercents,
       progressBar,
+      progressBarFill,
       onWheel,
       initValues,
+      chain,
       chainSlice,
       blockPosition,
       addBlock,
-      chain,
+      scrollToClicked,
     };
   },
 };
@@ -220,8 +233,11 @@ export default {
   }
 
   .progress {
+    margin: 25px auto 0;
+
+    cursor: pointer;
+    padding: 5px 0;
     width: 60%;
-    margin: 30px auto 0;
     position: relative;
 
     &__percents {

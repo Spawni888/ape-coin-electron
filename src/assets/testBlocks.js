@@ -13,6 +13,5 @@ for (let i = 0; i < 88; i++) {
     ],
   });
 }
-console.log(chain);
 
 export default chain;
