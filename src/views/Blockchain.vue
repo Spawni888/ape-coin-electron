@@ -22,15 +22,15 @@
             v-for="(block, index) in chainSlice"
             :block="block"
             :block-position="getBlockPosition(index, chainSlice.length, chain.length)"
-            :isFirst="index === 0"
+            :chain-length="chain.length"
+            :is-first="index === 0"
             :key="block.hash.slice(0, 10) + 'hash'"
           />
-          <div class="timer-block" key="time-block">
-            <div class="timer">
-              <div class="time"></div>
-            </div>
-          </div>
         </BlockchainTransition>
+        <Stopwatch
+          ref="stopwatch"
+          key="bc-stopwatch"
+        />
       </div>
       <div class="progress" @mousedown="scrollToClicked">
         <div class="progress__percents" ref="progressPercents"/>
@@ -55,10 +55,12 @@ import Block from '@/components/blockchain/Block';
 import CoreButton from '@/components/CoreButton';
 import BlockchainTransition from '@/components/blockchain/BlockchainTransition';
 import testBlocks from '@/assets/testBlocks';
+import Stopwatch from '@/components/blockchain/Stopwatch';
 
 export default {
   name: 'Blockchain',
   components: {
+    Stopwatch,
     BlockchainTransition,
     CoreButton,
     Block,
@@ -66,8 +68,9 @@ export default {
   setup() {
     const chainNode = ref(null);
     const progressPercents = ref(null);
-    const progressBarFill = ref(null);
     const progressBar = ref(null);
+    const progressBarFill = ref(null);
+    const stopwatch = ref(null);
 
     const speed = 0.04;
     const blockWidth = 340;
@@ -103,6 +106,31 @@ export default {
       scrollToClicked(e);
     };
 
+    let animationRequest;
+    const animateScroll = () => {
+      x = gsap.utils.clamp(-maxX, 0, x);
+      gsap.set(chainNode.value, { x: diffX });
+
+      diffX += (x - diffX) * speed;
+
+      let progress = -Math.round(((diffX / maxX) * 100));
+      progress = gsap.utils.clamp(0, 100, progress);
+
+      progressPercents.value.innerText = `${progress}%`;
+      gsap.to(progressPercents.value, {
+        left: `${progress}%`,
+        duration: 0.15,
+        ease: 'power2.out',
+      });
+      gsap.to(progressBarFill.value, {
+        width: `${progress}%`,
+        duration: 0.15,
+        ease: 'power2.out',
+      });
+
+      animationRequest = requestAnimationFrame(animateScroll);
+    };
+
     const increaseChainSlice = () => {
       if (diffX < -(blockWidth)) return;
       if (chainSlice.value.length === chain.value.length) return;
@@ -121,38 +149,38 @@ export default {
       x -= blockWidth * (end - start);
     };
 
-    let animationRequest;
-    const animateScroll = () => {
-      increaseChainSlice();
-
-      diffX += (x - diffX) * speed;
-
-      if (x > 0) x = 0;
-      if (x < -maxX) x = -maxX;
-      gsap.set(chainNode.value, { x: diffX });
-
-      let progress = -Math.round(((diffX / maxX) * 100));
-      if (progress > 100) progress = 100;
-      if (progress < 0) progress = 0;
-
-      progressPercents.value.innerText = `${progress}%`;
-      gsap.to(progressPercents.value, {
-        left: `${progress}%`,
-        duration: 0.15,
-        ease: 'power2.out',
-      });
-      gsap.to(progressBarFill.value, {
-        width: `${progress}%`,
-        duration: 0.15,
-        ease: 'power2.out',
-      });
-
-      animationRequest = requestAnimationFrame(animateScroll);
-    };
-
     const onWheel = (event) => {
       const { deltaY } = event;
       x += deltaY;
+
+      increaseChainSlice();
+    };
+
+    const getBlockPosition = (positionInSlice, sliceLength, blockchainLength) => (
+      blockchainLength - sliceLength
+    ) + positionInSlice;
+
+    const addBlock = () => {
+      const block = {
+        timestamp: Date.now(),
+        hash: gsap.utils.random(0, 6000)
+          .toString(),
+        nonce: '30asdfasd4',
+        difficulty: '7',
+        data: [
+          { transaction: 1 },
+          { transaction: 2 },
+          { transaction: 3 },
+        ],
+      };
+
+      chainSlice.value.push(block);
+      chain.value.push(block);
+
+      nextTick(() => {
+        maxX += blockWidth;
+        x = -maxX;
+      });
     };
 
     onMounted(() => {
@@ -161,34 +189,12 @@ export default {
     });
     onBeforeUnmount(() => cancelAnimationFrame(animationRequest));
 
-    const getBlockPosition = (positionInSlice, sliceLength, blockchainLength) => (
-      blockchainLength - sliceLength
-    ) + positionInSlice;
-
-    const addBlock = () => {
-      chainSlice.value.push({
-        timestamp: Date.now(),
-        hash: '30basdfdsfs9f9ghhtq304gnwufoghsidufhg899',
-        nonce: '30asdfasd4',
-        difficulty: '7',
-        data: [
-          { transaction: 1 },
-          { transaction: 2 },
-          { transaction: 3 },
-        ],
-      });
-
-      nextTick(() => {
-        maxX += blockWidth;
-        x = -maxX;
-      });
-    };
-
     return {
       chainNode,
       progressPercents,
       progressBar,
       progressBarFill,
+      stopwatch,
       chain,
       chainSlice,
       onWheel,
@@ -205,7 +211,6 @@ export default {
 
 <style scoped lang="scss">
 .blockchain {
-  position: relative;
   display: flex;
   width: 100%;
   flex-direction: column;
@@ -221,7 +226,6 @@ export default {
     padding-bottom: 80px;
 
     overflow-x: hidden;
-    position: relative;
     flex-grow: 1;
     width: 100%;
   }
@@ -231,25 +235,10 @@ export default {
     height: 100%;
     display: flex;
     align-items: center;
-
-    .block {
-      margin: 10px;
-      width: 200px;
-      height: 200px;
-      background-color: #fff;
-    }
-
-    .timer-block {
-      border-radius: 50%;
-
-      .timer {
-        .time {
-        }
-      }
-    }
   }
 
   .progress {
+    user-select: none;
     margin: 25px auto 0;
 
     cursor: pointer;

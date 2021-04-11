@@ -65,11 +65,11 @@ export default createStore({
     walletBalance(state) {
       return state.wallet.balanceWithTpIncluded;
     },
-    transactionPending(state) {
-      return state.transactionPending;
-    },
     miningIsUp(state) {
       return state.miningIsUp;
+    },
+    blockchain(state) {
+      return state.blockchain.chain;
     },
   },
   mutations: {

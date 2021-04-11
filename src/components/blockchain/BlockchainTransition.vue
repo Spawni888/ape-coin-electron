@@ -19,17 +19,23 @@ export default {
       const blocksConnection = el.querySelector('.block-connection');
       const block = el.querySelector('.block');
       const blockInfo = el.querySelectorAll('.block__info');
+      const blockIsLast = block.classList.contains('block-is-last');
 
       gsap.set(blocksConnection, { width: 0 });
       gsap.set(block, {
         width: 0,
       });
       gsap.set(blockInfo, { height: 0 });
+
+      if (blockIsLast) {
+        gsap.set(el, { width: 0, padding: 0 });
+      }
     };
     const blockEnter = (el, done) => {
       const blocksConnection = el.querySelector('.block-connection');
       const block = el.querySelector('.block');
       const blockInfo = el.querySelectorAll('.block__info');
+      const blockIsLast = block.classList.contains('block-is-last');
 
       const tl = gsap.timeline({
         defaults: {
@@ -39,13 +45,22 @@ export default {
         onComplete: done,
       });
 
+      if (blockIsLast) {
+        tl.to(el, {
+          width: 340,
+          padding: 20,
+          ease: 'power2.out',
+        });
+      }
+
       tl
         .to(block, {
           width: 300,
-          delay: 0.5,
           opacity: 1,
+          delay: blockIsLast ? 0 : 0.5,
           scale: 1,
-        })
+          ease: 'power2.out',
+        }, '-=0.5')
         .to(blocksConnection, {
           ease: 'expo.out',
           width: 40,
@@ -53,6 +68,7 @@ export default {
         .to(blockInfo, {
           stagger: 0.2,
           height: 'auto',
+          ease: 'elastic.out(1, 0.5)',
         }, '-=0.8');
     };
     const blockLeave = () => {

@@ -24,7 +24,7 @@ class Block {
   }
 
   static genesis() {
-    return new this('Genesis time', '------', 'f1r57-h45h', [], 0, DIFFICULTY);
+    return new this(Date.now(), '------', 'f1r57-h45h', [], 0, DIFFICULTY);
   }
 
   static async mineBlock(bc, data, tp) {

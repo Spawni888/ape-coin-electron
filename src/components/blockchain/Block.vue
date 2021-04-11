@@ -1,7 +1,10 @@
 <template>
   <div class="block-container">
     <div :class="{'compressed-connection': isFirst}" class="block-connection" />
-    <div class="block">
+    <div
+      class="block"
+      :class="{'block-is-last': (blockPosition === chainLength - 1)}"
+    >
       <div class="block__position">{{blockPosition + 1}}</div>
       <div class="block__hash block__info">
         <span class="title">Hash:</span>
@@ -39,6 +42,10 @@ export default {
       required: true,
     },
     blockPosition: {
+      type: Number,
+      required: true,
+    },
+    chainLength: {
       type: Number,
       required: true,
     },
