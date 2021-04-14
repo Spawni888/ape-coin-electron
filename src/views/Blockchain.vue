@@ -11,7 +11,6 @@
     <div
       class="blockchain__chain-wrapper"
       @wheel="onWheel"
-      @resize="initValues"
     >
       <div
         ref="chainNode"
@@ -25,6 +24,7 @@
             :chain-length="chain.length"
             :is-first="index === 0"
             :key="block.hash.slice(0, 10) + 'hash'"
+            @click="showBlockInfo(block, getBlockPosition(index, chainSlice.length, chain.length))"
           />
         </BlockchainTransition>
         <Stopwatch
@@ -39,7 +39,15 @@
         </div>
       </div>
     </div>
-    <CoreButton @click="addBlock">Add block</CoreButton>
+    <CoreButton class="add-block" @click="addBlock">Add block</CoreButton>
+    <transition name="fade" mode="out-in">
+      <BlockInfo
+        v-if="blockInfo.show"
+        :block="blockInfo.block"
+        :block-position="blockInfo.blockPosition"
+        @close="blockInfo.show = false"
+      />
+    </transition>
   </div>
 </template>
 
@@ -48,22 +56,24 @@ import {
   ref,
   onMounted,
   onBeforeUnmount,
-  nextTick,
+  nextTick, reactive, computed, watch,
 } from 'vue';
 import gsap from 'gsap';
 import Block from '@/components/blockchain/Block';
 import CoreButton from '@/components/CoreButton';
 import BlockchainTransition from '@/components/blockchain/BlockchainTransition';
-import testBlocks from '@/assets/testBlocks';
 import Stopwatch from '@/components/blockchain/Stopwatch';
+import BlockInfo from '@/components/blockchain/BlockInfo';
+import { useStore } from 'vuex';
 
 export default {
   name: 'Blockchain',
   components: {
-    Stopwatch,
-    BlockchainTransition,
-    CoreButton,
     Block,
+    CoreButton,
+    BlockchainTransition,
+    Stopwatch,
+    BlockInfo,
   },
   setup() {
     const chainNode = ref(null);
@@ -79,7 +89,8 @@ export default {
     let x = 0;
     let maxX = 0;
 
-    const chain = ref(testBlocks);
+    const store = useStore();
+    const chain = computed(() => store.getters.blockchain);
     const chainSlice = ref(chain.value.slice(-chainSliceLength));
 
     const initValues = () => {
@@ -106,10 +117,34 @@ export default {
       scrollToClicked(e);
     };
 
+    const increaseChainSlice = () => {
+      if (chain.value.length < chainSliceLength) return;
+      if (diffX < -(2 * blockWidth)) return;
+      if (chainSlice.value.length === chain.value.length) return;
+
+      let start = chainSlice.value.length + chainSliceLength;
+      const end = -(chainSlice.value.length);
+
+      start = chain.value.length < start
+        ? -(chain.value.length)
+        : -start;
+
+      chainSlice.value.unshift(...chain.value.slice(start, end));
+
+      maxX += blockWidth * (end - start);
+      diffX -= blockWidth * (end - start);
+      x -= blockWidth * (end - start);
+    };
+
     let animationRequest;
     const animateScroll = () => {
+      increaseChainSlice();
+
       x = gsap.utils.clamp(-maxX, 0, x);
       gsap.set(chainNode.value, { x: diffX });
+
+      // this is for situation when chain width less than content width
+      if (x > 0) x = -maxX / 2;
 
       diffX += (x - diffX) * speed;
 
@@ -131,57 +166,69 @@ export default {
       animationRequest = requestAnimationFrame(animateScroll);
     };
 
-    const increaseChainSlice = () => {
-      if (diffX < -(blockWidth)) return;
-      if (chainSlice.value.length === chain.value.length) return;
-
-      let start = chainSlice.value.length + chainSliceLength;
-      const end = -(chainSlice.value.length);
-
-      start = chain.value.length < start
-        ? -(chain.value.length)
-        : -start;
-
-      chainSlice.value.unshift(...chain.value.slice(start, end));
-
-      maxX += blockWidth * (end - start);
-      diffX -= blockWidth * (end - start);
-      x -= blockWidth * (end - start);
-    };
-
     const onWheel = (event) => {
       const { deltaY } = event;
       x += deltaY;
-
-      increaseChainSlice();
     };
 
     const getBlockPosition = (positionInSlice, sliceLength, blockchainLength) => (
       blockchainLength - sliceLength
     ) + positionInSlice;
 
-    const addBlock = () => {
-      const block = {
-        timestamp: Date.now(),
-        hash: gsap.utils.random(0, 6000)
-          .toString(),
-        nonce: '30asdfasd4',
-        difficulty: '7',
-        data: [
-          { transaction: 1 },
-          { transaction: 2 },
-          { transaction: 3 },
-        ],
-      };
+    const blockInfo = reactive({
+      show: false,
+      block: null,
+      blockPosition: null,
+    });
+    const showBlockInfo = (block, blockPosition) => {
+      blockInfo.block = block;
+      blockInfo.blockPosition = blockPosition;
+      blockInfo.show = true;
+    };
+
+    const addBlock = (block) => {
+      // const block = {
+      //   timestamp: Date.now(),
+      //   hash: gsap.utils.random(0, 6000)
+      //     .toString(),
+      //   nonce: '30asdfasd4',
+      //   difficulty: '7',
+      //   data: [
+      //     { transaction: 1 },
+      //     { transaction: 2 },
+      //     { transaction: 3 },
+      //     { transaction: 3 },
+      //     { transaction: 3 },
+      //     { transaction: 3 },
+      //     { transaction: 3 },
+      //     { transaction: 3 },
+      //     { transaction: 3 },
+      //     { transaction: 3 },
+      //     { transaction: 3 },
+      //     { transaction: 3 },
+      //     { transaction: 3 },
+      //     { transaction: 3 },
+      //     { transaction: 3 },
+      //     { transaction: 3 },
+      //     { transaction: 3 },
+      //     { transaction: 3 },
+      //     { transaction: 3 },
+      //     { transaction: 3 },
+      //     { transaction: 3 },
+      //   ],
+      // };
 
       chainSlice.value.push(block);
-      chain.value.push(block);
 
       nextTick(() => {
         maxX += blockWidth;
         x = -maxX;
       });
     };
+
+    watch(chain.value, (bc) => {
+      addBlock(bc[bc.length - 1]);
+    });
 
     onMounted(() => {
       initValues();
@@ -203,6 +250,8 @@ export default {
       scrollToClicked,
       onProgressMove,
       getBlockPosition,
+      blockInfo,
+      showBlockInfo,
       addBlock,
     };
   },
@@ -213,33 +262,38 @@ export default {
 .blockchain {
   display: flex;
   width: 100%;
+  height: 100%;
   flex-direction: column;
   align-items: center;
 
   &__title {
+    margin-top: 30px;
+    margin-bottom: 30px;
+
     padding: 20px;
     font-size: 40px;
     color: $onBgColor;
   }
 
   &__chain-wrapper {
-    padding-bottom: 80px;
-
+    padding-top: 10px;
+    //padding-bottom: 80px;
     overflow-x: hidden;
-    flex-grow: 1;
+    flex-basis: 60%;
     width: 100%;
   }
 
   &__chain {
     width: fit-content;
-    height: 100%;
+    height: 80%;
     display: flex;
     align-items: center;
+    justify-content: center;
   }
 
   .progress {
     user-select: none;
-    margin: 25px auto 0;
+    margin: 50px auto 0;
 
     cursor: pointer;
     padding: 5px 0;
@@ -271,5 +325,11 @@ export default {
       }
     }
   }
+}
+.add-block {
+  position: absolute;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%);
 }
 </style>

@@ -24,7 +24,7 @@
       </div>
       <div class="block__transactions block__info">
         <span class="title">Transactions:</span>
-        {{block.data.length}}
+        {{blockTransactionsLength}}
       </div>
     </div>
   </div>
@@ -32,7 +32,8 @@
 
 <script>
 import { toRefs, computed } from 'vue';
-import { DateTime } from 'luxon';
+import useFormattedTimestamp from '@/use/formattedTimestamp';
+import { BLOCKCHAIN_WALLET, MINER_WALLET } from '@/assets/core/config';
 
 export default {
   name: 'Block',
@@ -55,11 +56,29 @@ export default {
   },
   setup(props) {
     const { block } = toRefs(props);
+    const blockTransactionsLength = computed(() => {
+      try {
+        const transactions = block.value.data.filter(
+          transaction => transaction.input.address !== BLOCKCHAIN_WALLET,
+        );
+        return transactions.reduce((length, transaction) => {
+          transaction.outputs.forEach(output => {
+            if (output.address === transaction.input.address) return;
+            if (output.address === MINER_WALLET) return;
+
+            length += 1;
+          });
+          return length;
+        }, 0);
+      } catch (err) {
+        return 0;
+      }
+    });
+
     return {
       formattedBlockHash: computed(() => `${block.value.hash.slice(0, 10)}...`),
-      date: computed(() => DateTime.fromMillis(block.value.timestamp)
-        .setLocale('en-US')
-        .toFormat('dd.LL.yyyy t')),
+      date: useFormattedTimestamp(block.value.timestamp),
+      blockTransactionsLength,
     };
   },
 };
