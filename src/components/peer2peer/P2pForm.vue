@@ -162,7 +162,6 @@ export default {
           + 'But if you can`t port forward you can use ngrok to expose your network. '
           + 'Register for free at ngrok.com and pass ngrok AuthToken to the field above.',
       });
-
       ipcRenderer.send('check-p2pForm');
       ipcRenderer.on('load-p2pForm', (event, savedForm) => {
         Object.keys(form)

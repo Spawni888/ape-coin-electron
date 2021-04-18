@@ -113,6 +113,46 @@ class P2pServer extends EventEmitter {
     })();
   }
 
+  connectToPeer(peer, serverAddress, serverPort, retries = 10) {
+    if (this.outbounds[peer] || this.inbounds[peer]) return;
+    if (retries === 0) return;
+    const reconnectInterval = 5000;
+    const socket = new Websocket(peer);
+
+    socket.serverAddress = serverAddress;
+    socket.serverPort = serverPort;
+
+    socket.on('open', () => {
+      this.connectSocket(socket);
+      this.sendPeers(socket);
+      this.outbounds[peer] = socket;
+      this.outboundsQuantity += 1;
+      console.log(`Connected to peer: ${ peer }`);
+    });
+
+    socket.on('error', (err) => {
+      console.log(err);
+    })
+
+    socket.on('close', () => {
+      if (this.outbounds[peer]) {
+        delete this.outbounds[peer];
+        this.outboundsQuantity -= 1;
+      }
+      if (this.allSockets().length > 0) {
+        this.emit('info', `Connection with peer ${peer} was broken.`)
+      } else {
+        this.emit(
+          'warning',
+          `Connection with peer ${peer} was broken. It was your last connection`
+        );
+      }
+      setImmediate(
+        () => this.connectToPeer(peer, serverAddress, serverPort, retries - 1), reconnectInterval
+      );
+    });
+  }
+
   connectToPeers() {
     while (this.peers.length && this.outboundsQuantity < MAXIMUM_OUTBOUNDS) {
       let peer = this.peers.pop();
@@ -121,42 +161,8 @@ class P2pServer extends EventEmitter {
         /:\/\/([\d\w.]+?):(.+)$/gi.exec(peer);
       peer = `http://${ serverAddress }:${ serverPort }`;
 
-      // ws://localhost:5001
-      if (!this.outbounds[peer] && !this.inbounds[peer]) {
-        const socket = new Websocket(peer);
-
-        socket.serverAddress = serverAddress;
-        socket.serverPort = serverPort;
-
-        socket.on('open', () => {
-          this.connectSocket(socket);
-          this.sendPeers(socket);
-          this.outbounds[peer] = socket;
-          this.outboundsQuantity += 1;
-          console.log(`Connected to peer: ${ peer }`);
-        });
-        socket.on('close', () => {
-          if (this.outbounds[peer]) {
-            delete this.outbounds[peer];
-            this.outboundsQuantity -= 1;
-          }
-          if (this.allSockets().length > 0) {
-            this.emit('info', `Connection with peer ${peer} was broken.`)
-          } else {
-            this.emit(
-              'warning',
-              `Connection with peer ${peer} was broken. It was your last connection`
-            );
-          }
-        });
-        socket.on('error', () => {
-          if (this.outbounds[peer]) {
-            delete this.outbounds[peer];
-            this.outboundsQuantity -= 1;
-            this.emit('warning', `Connection with peer ${peer} threw error and was broken`);
-          }
-        })
-      }
+      // EXAMPLE: http://localhost:5001 || ws://localhost:5001
+      this.connectToPeer(peer, serverAddress, serverPort);
     }
     this.peers = [];
   }

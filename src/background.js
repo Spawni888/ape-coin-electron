@@ -37,6 +37,12 @@ protocol.registerSchemesAsPrivileged([
 
 let tray = null;
 let win = null;
+const sendP2pForm = () => {
+  const form = electronStore.get('p2pForm');
+  if (form) {
+    win.webContents.send('load-p2pForm', form);
+  }
+};
 
 async function createWindow() {
   // Create the browser window.
@@ -85,12 +91,7 @@ async function createWindow() {
     electronStore.set('p2pForm', form);
   });
 
-  ipcMain.on('check-p2pForm', () => {
-    const form = electronStore.get('p2pForm');
-    if (form) {
-      win.webContents.send('load-p2pForm', form);
-    }
-  });
+  ipcMain.on('check-p2pForm', sendP2pForm);
 
   ipcMain.on('checkAuth', async () => {
     const keyPair = electronStore.get('walletAuth');
@@ -210,6 +211,7 @@ if (!gotTheLock) {
       }
     }
     await createWindow();
+    sendP2pForm();
   });
 }
 
