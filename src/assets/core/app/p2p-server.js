@@ -114,8 +114,8 @@ class P2pServer extends EventEmitter {
   }
 
   connectToPeer(peer, serverAddress, serverPort, retries = 10) {
-    if (this.outbounds[peer] || this.inbounds[peer]) return;
     if (retries === 0) return;
+    if (this.outbounds[peer] || this.inbounds[peer]) return;
     const reconnectInterval = 5000;
     const socket = new Websocket(peer);
 
