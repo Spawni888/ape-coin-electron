@@ -2,6 +2,9 @@ const Websocket = require('ws');
 const { EventEmitter } = require('events');
 const ngrok = require('ngrok');
 const { MAXIMUM_INBOUNDS, MAXIMUM_OUTBOUNDS } = require('../config');
+const { WSS_TYPES } = require('../constants');
+const { fork } = require('child_process');
+const path = require('path');
 
 const MESSAGE_TYPES = {
   chain: 'CHAIN',
@@ -24,7 +27,7 @@ class P2pServer extends EventEmitter {
     this.outbounds = {};
     this.outboundsQuantity = 0;
     this.inboundsQuantity = 0;
-    this.server = null;
+    this.serverProcess = null;
     this.host = null;
     this.port = null;
     this.externalAddress = null;
@@ -47,6 +50,10 @@ class P2pServer extends EventEmitter {
     return Object.keys(this.outbounds);
   }
 
+  close() {
+    this.serverProcess.kill();
+  }
+
   listen({host = '127.0.0.1', port, httpServer = null, ngrokAuthToken = null, peers}, cb = null) {
     const serverOpts = httpServer === null
       ? { host, port }
@@ -59,19 +66,31 @@ class P2pServer extends EventEmitter {
       this.ngrokConnect(ngrokAuthToken);
     }
 
-    this.server = new Websocket.Server(serverOpts);
-    this.server.on('connection', (socket, req) => {
-      this.sendPeers(socket);
+    this.serverProcess = fork(path.resolve(__dirname, 'wss-process.js'));
+    this.serverProcess.send({
+      type: WSS_TYPES.START_SERVER,
+      data: serverOpts,
+    });
 
-      if (this.inboundsQuantity < MAXIMUM_INBOUNDS) {
-        this.connectSocket(socket);
-        this.requestServerAddress(socket, req);
+    this.serverProcess.on('message', ({type, data}) => {
+      switch (type) {
+        case WSS_TYPES.CONNECTION:
+          const { socket, req } = data;
+
+          this.sendPeers(socket);
+          if (this.inboundsQuantity < MAXIMUM_INBOUNDS) {
+            this.connectSocket(socket);
+            this.requestServerAddress(socket, req);
+          }
+          break;
+
+        case WSS_TYPES.ERROR:
+          this.emit('error', `Error occurred during P2P-server listening...`);
+          console.log(data.error);
+          break;
       }
-    });
-    this.server.on('error', (err) => {
-      this.emit('error', `Error occurred during P2P-server listening...`);
-      console.log(err)
-    });
+    })
+
     this.connectToPeers();
     this.transactionPool.on('change', transaction => this.broadcastTransaction(transaction))
     this.emit(

@@ -2,9 +2,11 @@
   <div class="peer-to-peer">
     <transition name="fade" mode="out-in">
       <P2pForm
+        key="p2pForm"
         v-if="!serverIsUp"
       />
       <P2pInfo
+        key="p2pInfo"
         v-else
       />
     </transition>
