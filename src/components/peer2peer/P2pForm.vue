@@ -116,13 +116,7 @@ export default {
         value: 'Paste your auth key if ngrok active',
         fieldName: 'Ngrok Auth Token',
         placeholder: 'Paste your auth key if ngrok active',
-        validators: {
-          required: {
-            func: required,
-            errorMsg: 'Please, fill the field',
-            priority: 1,
-          },
-        },
+        validators: {},
       },
     });
 
@@ -135,18 +129,12 @@ export default {
       ngrok: {
         name: 'ngrok',
         value: false,
-        onClick: () => {
-          if (switches.ngrok.value) {
-            form.ngrokAuthToken.value = '';
-          } else {
-            form.ngrokAuthToken.value = 'Paste your auth key if ngrok active';
-          }
-        },
       },
     });
 
     // const API = ref(null);
     const ngrok = ref(null);
+    let loadedForm;
     onMounted(() => {
       // useTooltip({
       //   el: API.value,
@@ -164,6 +152,8 @@ export default {
       });
       ipcRenderer.send('check-p2pForm');
       ipcRenderer.on('load-p2pForm', (event, savedForm) => {
+        loadedForm = savedForm;
+
         Object.keys(form)
           .forEach(key => {
             form[key].value = savedForm.inputs[key];
@@ -174,6 +164,22 @@ export default {
           });
       });
     });
+
+    switches.ngrok.onClick = () => {
+      if (form.ngrokAuthToken.value) return;
+
+      if (switches.ngrok.value) {
+        form.ngrokAuthToken.value = '';
+      } else {
+        form.ngrokAuthToken.value = loadedForm?.form?.ngrokAuthToken?.value
+          ?? 'Paste your auth key if ngrok active';
+      }
+    };
+    form.ngrokAuthToken.validators.requiredIfOn = {
+      func: (val) => !switches.ngrok.value || required(val),
+      errorMsg: 'Please, fill the field',
+      priority: 1,
+    };
 
     const highlightErrors = ref(false);
     const store = useStore();
