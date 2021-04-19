@@ -39,7 +39,6 @@
         </div>
       </div>
     </div>
-    <CoreButton class="add-block" @click="addBlock">Add block</CoreButton>
     <transition name="fade" mode="out-in">
       <BlockInfo
         v-if="blockInfo.show"
@@ -60,7 +59,6 @@ import {
 } from 'vue';
 import gsap from 'gsap';
 import Block from '@/components/blockchain/Block';
-import CoreButton from '@/components/CoreButton';
 import BlockchainTransition from '@/components/blockchain/BlockchainTransition';
 import Stopwatch from '@/components/blockchain/Stopwatch';
 import BlockInfo from '@/components/blockchain/BlockInfo';
@@ -70,7 +68,6 @@ export default {
   name: 'Blockchain',
   components: {
     Block,
-    CoreButton,
     BlockchainTransition,
     Stopwatch,
     BlockInfo,
@@ -187,37 +184,6 @@ export default {
     };
 
     const addBlock = (block) => {
-      // const block = {
-      //   timestamp: Date.now(),
-      //   hash: gsap.utils.random(0, 6000)
-      //     .toString(),
-      //   nonce: '30asdfasd4',
-      //   difficulty: '7',
-      //   data: [
-      //     { transaction: 1 },
-      //     { transaction: 2 },
-      //     { transaction: 3 },
-      //     { transaction: 3 },
-      //     { transaction: 3 },
-      //     { transaction: 3 },
-      //     { transaction: 3 },
-      //     { transaction: 3 },
-      //     { transaction: 3 },
-      //     { transaction: 3 },
-      //     { transaction: 3 },
-      //     { transaction: 3 },
-      //     { transaction: 3 },
-      //     { transaction: 3 },
-      //     { transaction: 3 },
-      //     { transaction: 3 },
-      //     { transaction: 3 },
-      //     { transaction: 3 },
-      //     { transaction: 3 },
-      //     { transaction: 3 },
-      //     { transaction: 3 },
-      //   ],
-      // };
-
       chainSlice.value.push(block);
 
       nextTick(() => {
@@ -252,7 +218,6 @@ export default {
       getBlockPosition,
       blockInfo,
       showBlockInfo,
-      addBlock,
     };
   },
 };

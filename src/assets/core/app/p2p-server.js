@@ -74,12 +74,12 @@ class P2pServer extends EventEmitter {
     });
     this.connectToPeers();
     this.transactionPool.on('change', transaction => this.broadcastTransaction(transaction))
-    if (cb !== null) cb();
     this.emit(
       'success',
       `Your server was creates successfully. Your internal address:
       http://${this.host}:${this.port}`
     );
+    if (cb !== null) cb();
   }
 
   ngrokConnect(ngrokAuthToken) {
