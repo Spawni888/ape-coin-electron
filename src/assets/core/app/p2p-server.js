@@ -2,9 +2,7 @@ const Websocket = require('ws');
 const { EventEmitter } = require('events');
 const ngrok = require('ngrok');
 const { MAXIMUM_INBOUNDS, MAXIMUM_OUTBOUNDS } = require('../config');
-const { WSS_TYPES } = require('../constants');
-const { fork } = require('child_process');
-const path = require('path');
+const { ipcRenderer } = require('electron');
 
 const MESSAGE_TYPES = {
   chain: 'CHAIN',
@@ -16,7 +14,6 @@ const MESSAGE_TYPES = {
   serverAddressRes: 'SERVER_ADDRESS_RESPONSE',
   replaceAddressWithNgrok: 'REPLACE_ADDRESS_WITH_NGROK',
 };
-
 
 class P2pServer extends EventEmitter {
   constructor(blockchain, transactionPool) {
@@ -51,7 +48,7 @@ class P2pServer extends EventEmitter {
   }
 
   close() {
-    this.serverProcess.kill();
+    ipcRenderer.send('close-p2p-server');
   }
 
   listen({host = '127.0.0.1', port, httpServer = null, ngrokAuthToken = null, peers}, cb = null) {
@@ -66,29 +63,19 @@ class P2pServer extends EventEmitter {
       this.ngrokConnect(ngrokAuthToken);
     }
 
-    this.serverProcess = fork(path.resolve(__dirname, 'wss-process.js'));
-    this.serverProcess.send({
-      type: WSS_TYPES.START_SERVER,
-      data: serverOpts,
-    });
+    ipcRenderer.send('start-p2p-server', serverOpts);
+    ipcRenderer.on('p2p-connection', (event, data) => {
+      const { socket, req } = data;
 
-    this.serverProcess.on('message', ({type, data}) => {
-      switch (type) {
-        case WSS_TYPES.CONNECTION:
-          const { socket, req } = data;
-
-          this.sendPeers(socket);
-          if (this.inboundsQuantity < MAXIMUM_INBOUNDS) {
-            this.connectSocket(socket);
-            this.requestServerAddress(socket, req);
-          }
-          break;
-
-        case WSS_TYPES.ERROR:
-          this.emit('error', `Error occurred during P2P-server listening...`);
-          console.log(data.error);
-          break;
+      this.sendPeers(socket);
+      if (this.inboundsQuantity < MAXIMUM_INBOUNDS) {
+        this.connectSocket(socket);
+        this.requestServerAddress(socket, req);
       }
+    })
+    ipcRenderer.on('p2p-error', (event, data) => {
+      console.log(data.error);
+      this.emit('error', `Error occurred during P2P-server listening...`);
     })
 
     this.connectToPeers();

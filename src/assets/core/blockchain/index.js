@@ -1,20 +1,12 @@
 const Block = require('./block');
-const { EventEmitter } = require('events');
 
-class Blockchain extends EventEmitter {
+class Blockchain {
   constructor() {
-    super();
     this.chain = [Block.genesis()];
   }
 
-  async addBlock(data, tp) {
-    const miningInfo = await Block.mineBlock(this, data, tp);
-
-    if (miningInfo.block !== null) {
-      this.chain.push(miningInfo.block);
-    }
-
-    return miningInfo;
+  addBlock(data) {
+    return Block.mineBlock(this, data);
   }
 
   isValidChain(chain) {

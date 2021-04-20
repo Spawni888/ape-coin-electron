@@ -13,6 +13,11 @@ module.exports = {
             to: 'resources/ngrok/bin',
             filter: ['**/*'],
           },
+          {
+            from: 'src/resources',
+            to: 'resources',
+            filter: ['**/*'],
+          },
         ],
         win: {
           icon: path.resolve(__dirname, './src/assets/icon.png'),

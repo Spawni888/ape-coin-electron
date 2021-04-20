@@ -1,39 +1,57 @@
+const { fork } = require('child_process');
+const { EventEmitter } = require('events');
+const { MINE_TYPES, RESOURCES_PATH } = require('@/resources/constants');
 const Transaction = require('../wallet/transaction');
-const Block = require('../blockchain/block');
-const { MINING_MODES } = require('../constants');
+const path = require('path');
 
-class Miner {
+class Miner extends EventEmitter {
   constructor(blockchain, transactionPool, wallet, p2pServer) {
+    super();
     this.blockchain = blockchain;
     this.transactionPool = transactionPool;
     this.wallet = wallet;
     this.p2pServer = p2pServer;
+    this.miningProcess = null;
   }
 
-  async mine() {
-    let miningMode = MINING_MODES.REPEAT_MINING;
-    let block = null;
+  mine() {
+    let pickedTransactions = this.transactionPool.pickTransactions();
+    let rewardTransaction = Transaction.rewardTransaction(this.wallet, pickedTransactions, this.blockchain);
+    pickedTransactions.push(rewardTransaction);
 
-    while (miningMode === MINING_MODES.REPEAT_MINING) {
-      let pickedTransactions = this.transactionPool.pickTransactions();
-
-      let rewardTransaction = Transaction.rewardTransaction(this.wallet, pickedTransactions, this.blockchain);
-      pickedTransactions.push(rewardTransaction);
-
-      const miningInfo = await this.blockchain.addBlock(pickedTransactions, this.transactionPool);
-
-      miningMode = miningInfo.mode;
-      if (miningMode === MINING_MODES.STOP_MINING) {
-        return null;
+    this.miningProcess = fork(path.join(RESOURCES_PATH, '/childProcesses/miningProcess.js'), {
+      env: {
+        pickedTransactions,
+        blockchain: this.blockchain,
       }
-      if (miningMode === MINING_MODES.ADD_BLOCK) {
-        block = miningInfo.block;
-      }
-    }
-    this.p2pServer.syncChains();
-    this.transactionPool.clear();
+    });
 
-    return block;
+    this.miningProcess.on('message', ({
+      type,
+      data
+    }) => {
+      console.log(type, data);
+      switch (type) {
+        case MINE_TYPES.BLOCK_HAS_CALCULATED:
+          this.emit('newBlock', data.block);
+          this.p2pServer.syncChains();
+          this.transactionPool.clear();
+          break;
+        case MINE_TYPES.ERROR:
+          this.emit('error', data.error);
+          break;
+        case 'test':
+          console.log(data);
+          break;
+      }
+    });
+
+    return this.miningProcess;
+  }
+
+  stopMining() {
+    this.miningProcess.kill();
+    this.miningProcess = null;
   }
 }
 

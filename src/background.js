@@ -15,6 +15,7 @@ import ElectronStore from '@/utils/ElectronStore';
 import path from 'path';
 import fs from 'fs';
 import { genKeyPair } from '@/utils/elliptic';
+import bgHandlers from '@/utils/backgroundHandlers';
 
 const isDevelopment = process.env.NODE_ENV !== 'production';
 const electronStore = new ElectronStore({
@@ -87,6 +88,8 @@ async function createWindow() {
     win.minimize();
   });
 
+  bgHandlers.p2pServerHandler(win);
+
   ipcMain.on('save-p2pForm', (event, form) => {
     electronStore.set('p2pForm', form);
   });
@@ -105,6 +108,7 @@ async function createWindow() {
     const keyPair = genKeyPair();
     win.webContents.send('newWalletCreated', keyPair);
   });
+
   ipcMain.on('saveNewWallet', async (event, keyPair) => {
     const {
       filePath,
