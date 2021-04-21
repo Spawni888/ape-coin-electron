@@ -89,6 +89,7 @@ async function createWindow() {
   });
 
   bgHandlers.p2pServerHandler(win);
+  bgHandlers.miningHandler(win);
 
   ipcMain.on('save-p2pForm', (event, form) => {
     electronStore.set('p2pForm', form);

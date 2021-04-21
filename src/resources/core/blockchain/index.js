@@ -5,8 +5,8 @@ class Blockchain {
     this.chain = [Block.genesis()];
   }
 
-  addBlock(data) {
-    return Block.mineBlock(this, data);
+  static addBlock(bc, data) {
+    return Block.mineBlock(bc, data);
   }
 
   isValidChain(chain) {
@@ -31,7 +31,8 @@ class Blockchain {
     if (newChain.length <= this.chain.length) {
       console.log('Received chain is not longer than the current chain');
       return;
-    } else if (!this.isValidChain(newChain)) {
+    }
+    if (!this.isValidChain(newChain)) {
       console.log('The received chain is not valid');
       return;
     }

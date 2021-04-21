@@ -1,7 +1,6 @@
 const ChainUtil = require('../chain-util');
 const Transaction = require('../wallet/transaction');
 const { DIFFICULTY, MINE_RATE } = require('../config');
-const { MINING_MODES } = require('../../../resources/constants');
 
 class Block {
   constructor(timestamp, lastHash, hash, data, nonce, difficulty) {
@@ -15,12 +14,12 @@ class Block {
 
   toString() {
     return `Block —
-      Timestamp : ${ this.timestamp }
-      Last Hash : ${ this.lastHash.substring(0, 10) }
-      Hash      : ${ this.hash.substring(0, 10) }
-      Nonce     : ${ this.nonce }
-      Difficulty: ${ this.difficulty }
-      Data      : ${ this.data }`;
+      Timestamp : ${this.timestamp}
+      Last Hash : ${this.lastHash.substring(0, 10)}
+      Hash      : ${this.hash.substring(0, 10)}
+      Nonce     : ${this.nonce}
+      Difficulty: ${this.difficulty}
+      Data      : ${this.data}`;
   }
 
   static genesis() {
@@ -41,18 +40,20 @@ class Block {
       timestamp = Date.now();
       difficulty = Block.adjustDifficulty(lastBlock, timestamp);
       hash = this.createHash(timestamp, lastHash, data, nonce, difficulty);
-    } while (hash.substring(0, difficulty) !== '0'.repeat(difficulty))
+    } while (hash.substring(0, difficulty) !== '0'.repeat(difficulty));
 
     return new this(timestamp, lastHash, hash, data, nonce, difficulty);
   }
 
   static createHash(timestamp, lastHash, data, nonce, difficulty) {
     return ChainUtil
-      .createHash(`${ timestamp }${ lastHash }${ data }${ nonce }${ difficulty }`);
+      .createHash(`${timestamp}${lastHash}${data}${nonce}${difficulty}`);
   }
 
   static blockHash(block) {
-    const { timestamp, lastHash, data, nonce, difficulty } = block;
+    const {
+      timestamp, lastHash, data, nonce, difficulty,
+    } = block;
     return this.createHash(timestamp, lastHash, data, nonce, difficulty);
   }
 
@@ -76,17 +77,19 @@ class Block {
     const usersTransactions = block.data.filter(transaction => {
       if (transaction.input.signature) {
         return Transaction.verifyTransaction(transaction);
-      } else {
-        rewardTransaction = transaction;
-        return false;
       }
+      rewardTransaction = transaction;
+      return false;
     });
 
     if (usersTransactions.length + 1 !== block.data.length) {
-      console.log('There are should be only one Reward Transaction!')
+      console.log('There are should be only one Reward Transaction!');
       return false;
     }
-    if (rewardTransaction && Transaction.verifyRewardTransaction(rewardTransaction, usersTransactions, bc)) {
+    if (
+      rewardTransaction
+      && Transaction.verifyRewardTransaction(rewardTransaction, usersTransactions, bc)
+    ) {
       return true;
     }
     console.log('Wrong reward transaction. Block is corrupted!');

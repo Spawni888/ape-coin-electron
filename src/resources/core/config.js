@@ -1,4 +1,4 @@
-const DIFFICULTY = 3;
+const DIFFICULTY = 2;
 const MINE_RATE = 60000;
 const INITIAL_BALANCE = 10;
 const FIRST_MINING_REWARD = 50;
@@ -6,7 +6,6 @@ const BLOCKCHAIN_WALLET = 'Blockchain wallet';
 const MINER_WALLET = 'Miner';
 const MAXIMUM_INBOUNDS = 40;
 const MAXIMUM_OUTBOUNDS = 8;
-
 
 module.exports = {
   DIFFICULTY,
@@ -16,5 +15,5 @@ module.exports = {
   BLOCKCHAIN_WALLET,
   MINER_WALLET,
   MAXIMUM_INBOUNDS,
-  MAXIMUM_OUTBOUNDS
+  MAXIMUM_OUTBOUNDS,
 };

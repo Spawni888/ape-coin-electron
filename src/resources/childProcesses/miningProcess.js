@@ -1,20 +1,29 @@
-const { MINE_TYPES } = require('../constants');
+const { MINING_TYPES } = require('../constants');
+const Blockchain = require('../core/blockchain/index');
 
 try {
-  process.send({
-    type: 'test',
-    data: 'test',
-  });
-  const { pickedTransactions, blockchain } = process.env;
+  process.on('message', ({
+    type,
+    data,
+  }) => {
+    switch (type) {
+      case MINING_TYPES.START_MINING: {
+        const { pickedTransactions, blockchain } = data;
+        const block = Blockchain.addBlock(blockchain, pickedTransactions);
 
-  const block = blockchain.addBlock(pickedTransactions);
-  process.send({
-    type: MINE_TYPES.BLOCK_HAS_CALCULATED,
-    data: { block },
+        process.send({
+          type: MINING_TYPES.BLOCK_HAS_CALCULATED,
+          data: { block },
+        });
+        break;
+      }
+      default:
+        break;
+    }
   });
 } catch (error) {
   process.send({
-    type: MINE_TYPES.ERROR,
+    type: MINING_TYPES.ERROR,
     data: {
       error,
     },

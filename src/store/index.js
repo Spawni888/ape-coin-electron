@@ -1,15 +1,15 @@
 import { createStore } from 'vuex';
-import P2pServer from '@/assets/core/app/p2p-server';
-import Blockchain from '@/assets/core/blockchain';
-import TransactionPool from '@/assets/core/wallet/transactionPool';
-import Wallet from '@/assets/core/wallet';
-import Miner from '@/assets/core/app/miner';
-import ChainUtil from '@/assets/core/chain-util';
+import P2pServer from '@/resources/core/app/p2p-server';
+import Blockchain from '@/resources/core/blockchain';
+import TransactionPool from '@/resources/core/wallet/transactionPool';
+import Wallet from '@/resources/core/wallet';
+import Miner from '@/resources/core/app/miner';
+import ChainUtil from '@/resources/core/chain-util';
 import portfinder from 'portfinder';
 import Koa from 'koa';
 import bodyParser from 'koa-bodyparser';
 import { ipcRenderer } from 'electron';
-import { BLOCKCHAIN_WALLET } from '@/assets/core/config';
+import { BLOCKCHAIN_WALLET } from '@/resources/core/config';
 
 export default createStore({
   state: {
@@ -98,6 +98,7 @@ export default createStore({
     },
     recalculateBalance(state) {
       state.wallet.balance = state.wallet.calculateBalance(state.blockchain);
+      console.log(state.wallet.balance);
       state.wallet.calculateBalanceWithTpIncluded(state.transactionPool);
     },
   },
@@ -286,7 +287,9 @@ export default createStore({
         state.wallet,
         state.p2pServer,
       );
-      state.transactionPool.on('clear', () => commit('recalculateBalance'));
+      state.transactionPool.on('clear', () => {
+        commit('recalculateBalance');
+      });
 
       if (!silentMode) {
         commit('showAlert', {
@@ -303,6 +306,8 @@ export default createStore({
 
       state.miner.on('newBlock', (block) => {
         console.log(block);
+        state.blockchain.chain.push(block);
+
         const reward = block.data
           .find(transaction => transaction.input.address === BLOCKCHAIN_WALLET)
           .outputs

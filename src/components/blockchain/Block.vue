@@ -33,7 +33,7 @@
 <script>
 import { toRefs, computed } from 'vue';
 import useFormattedTimestamp from '@/use/formattedTimestamp';
-import { BLOCKCHAIN_WALLET, MINER_WALLET } from '@/assets/core/config';
+import { BLOCKCHAIN_WALLET, MINER_WALLET } from '@/resources/core/config';
 
 export default {
   name: 'Block',

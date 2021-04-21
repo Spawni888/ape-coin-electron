@@ -1,8 +1,8 @@
 const Websocket = require('ws');
 const { EventEmitter } = require('events');
 const ngrok = require('ngrok');
-const { MAXIMUM_INBOUNDS, MAXIMUM_OUTBOUNDS } = require('../config');
 const { ipcRenderer } = require('electron');
+const { MAXIMUM_INBOUNDS, MAXIMUM_OUTBOUNDS } = require('../config');
 
 const MESSAGE_TYPES = {
   chain: 'CHAIN',
@@ -36,7 +36,7 @@ class P2pServer extends EventEmitter {
   get myPeerLink() {
     if (this.externalAddress === null) return null;
 
-    return `http://${ this.externalAddress }:${ this.externalPort }`;
+    return `http://${this.externalAddress}:${this.externalPort}`;
   }
 
   get inboundsList() {
@@ -51,7 +51,9 @@ class P2pServer extends EventEmitter {
     ipcRenderer.send('close-p2p-server');
   }
 
-  listen({host = '127.0.0.1', port, httpServer = null, ngrokAuthToken = null, peers}, cb = null) {
+  listen({
+    host = '127.0.0.1', port, httpServer = null, ngrokAuthToken = null, peers,
+  }, cb = null) {
     const serverOpts = httpServer === null
       ? { host, port }
       : { server: httpServer, noServer: false };
@@ -72,18 +74,18 @@ class P2pServer extends EventEmitter {
         this.connectSocket(socket);
         this.requestServerAddress(socket, req);
       }
-    })
+    });
     ipcRenderer.on('p2p-error', (event, data) => {
       console.log(data.error);
-      this.emit('error', `Error occurred during P2P-server listening...`);
-    })
+      this.emit('error', 'Error occurred during P2P-server listening...');
+    });
 
     this.connectToPeers();
-    this.transactionPool.on('change', transaction => this.broadcastTransaction(transaction))
+    this.transactionPool.on('change', transaction => this.broadcastTransaction(transaction));
     this.emit(
       'success',
       `Your server was creates successfully. Your internal address:
-      http://${this.host}:${this.port}`
+      http://${this.host}:${this.port}`,
     );
     if (cb !== null) cb();
   }
@@ -93,7 +95,7 @@ class P2pServer extends EventEmitter {
       try {
         this.ngrokAddress = await ngrok.connect({
           proto: 'http', // http|tcp|tls, defaults to http
-          addr: `${ this.host }:${ this.port }`, // port or network address, defaults to 80
+          addr: `${this.host}:${this.port}`, // port or network address, defaults to 80
           authtoken: ngrokAuthToken, // your authtoken from ngrok.com
           region: 'us', // one of ngrok regions (us, eu, au, ap, sa, jp, in), defaults to us
           onStatusChange: status => {
@@ -102,10 +104,9 @@ class P2pServer extends EventEmitter {
             }
           }, // 'closed' - connection is lost, 'connected' - reconnected
         });
-      }
-      catch (e) {
+      } catch (e) {
         console.log(e);
-        this.emit('error', `Can't connect ngrok. Check your ngrok API key.`);
+        this.emit('error', 'Can\'t connect ngrok. Check your ngrok API key.');
         return;
       }
       this.ngrokAddress = this.ngrokAddress.replace(/^https?:\/\//g, '');
@@ -133,12 +134,12 @@ class P2pServer extends EventEmitter {
       this.sendPeers(socket);
       this.outbounds[peer] = socket;
       this.outboundsQuantity += 1;
-      console.log(`Connected to peer: ${ peer }`);
+      console.log(`Connected to peer: ${peer}`);
     });
 
     socket.on('error', (err) => {
       console.log(err);
-    })
+    });
 
     socket.on('close', () => {
       if (this.outbounds[peer]) {
@@ -146,15 +147,15 @@ class P2pServer extends EventEmitter {
         this.outboundsQuantity -= 1;
       }
       if (this.allSockets().length > 0) {
-        this.emit('info', `Connection with peer ${peer} was broken.`)
+        this.emit('info', `Connection with peer ${peer} was broken.`);
       } else {
         this.emit(
           'warning',
-          `Connection with peer ${peer} was broken. It was your last connection`
+          `Connection with peer ${peer} was broken. It was your last connection`,
         );
       }
       setImmediate(
-        () => this.connectToPeer(peer, serverAddress, serverPort, retries - 1), reconnectInterval
+        () => this.connectToPeer(peer, serverAddress, serverPort, retries - 1), reconnectInterval,
       );
     });
   }
@@ -163,9 +164,8 @@ class P2pServer extends EventEmitter {
     while (this.peers.length && this.outboundsQuantity < MAXIMUM_OUTBOUNDS) {
       let peer = this.peers.pop();
 
-      const [, serverAddress, serverPort] =
-        /:\/\/([\d\w.]+?):(.+)$/gi.exec(peer);
-      peer = `http://${ serverAddress }:${ serverPort }`;
+      const [, serverAddress, serverPort] = /:\/\/([\d\w.]+?):(.+)$/gi.exec(peer);
+      peer = `http://${serverAddress}:${serverPort}`;
 
       // EXAMPLE: http://localhost:5001 || ws://localhost:5001
       this.connectToPeer(peer, serverAddress, serverPort);
@@ -177,7 +177,7 @@ class P2pServer extends EventEmitter {
     socket.send(JSON.stringify({
       type: MESSAGE_TYPES.serverAddressReq,
       prevAddress: this.getSocketAddress(req),
-    }))
+    }));
   }
 
   connectSocket(socket) {
@@ -189,7 +189,7 @@ class P2pServer extends EventEmitter {
 
   addCloseAndErrorHandler(socket) {
     const handler = () => {
-      let fullAddress = `http://${socket.serverAddress}:${socket.serverPort}`;
+      const fullAddress = `http://${socket.serverAddress}:${socket.serverPort}`;
 
       if (this.inbounds[fullAddress]) {
         delete this.inbounds[fullAddress];
@@ -221,7 +221,7 @@ class P2pServer extends EventEmitter {
           this.transactionPool.clear();
           break;
         case MESSAGE_TYPES.transactionPool:
-          for (let transaction of data.transactionPool) {
+          for (const transaction of data.transactionPool) {
             this.transactionPool.updateOrAddTransaction(transaction);
           }
           break;
@@ -236,7 +236,7 @@ class P2pServer extends EventEmitter {
 
             this.emit(
               'info',
-              `Your external address: http://${this.externalAddress}:${this.externalPort}`
+              `Your external address: http://${this.externalAddress}:${this.externalPort}`,
             );
           }
 
@@ -249,14 +249,16 @@ class P2pServer extends EventEmitter {
         case MESSAGE_TYPES.serverAddressRes:
           this.saveInbound(socket, data.serverAddress, data.serverPort);
           break;
+        default:
+          break;
       }
-    })
+    });
   }
 
   sendChain(socket) {
     socket.send(JSON.stringify({
       type: MESSAGE_TYPES.chain,
-      chain: this.blockchain.chain
+      chain: this.blockchain.chain,
     }));
   }
 
@@ -277,7 +279,7 @@ class P2pServer extends EventEmitter {
   sendClearTransactions(socket) {
     socket.send(JSON.stringify({
       type: MESSAGE_TYPES.clearTransactions,
-    }))
+    }));
   }
 
   sendPeers(socket) {
@@ -298,12 +300,11 @@ class P2pServer extends EventEmitter {
     socket.serverAddress = serverAddress;
     socket.serverPort = serverPort;
 
-    let fullAddress = `http://${ serverAddress }:${ serverPort }`;
+    const fullAddress = `http://${serverAddress}:${serverPort}`;
     if (!this.inbounds[fullAddress] && !this.outbounds[fullAddress]) {
-
       this.inbounds[fullAddress] = socket;
       this.inboundsQuantity += 1;
-      console.log(`Socket was connected: ${ fullAddress }`);
+      console.log(`Socket was connected: ${fullAddress}`);
     }
   }
 

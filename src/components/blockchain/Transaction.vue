@@ -34,7 +34,7 @@
 
 <script>
 import { computed, ref, toRefs } from 'vue';
-import { MINER_WALLET } from '@/assets/core/config';
+import { MINER_WALLET } from '@/resources/core/config';
 
 export default {
   name: 'Transaction',

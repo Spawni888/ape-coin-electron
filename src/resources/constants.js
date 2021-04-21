@@ -4,7 +4,7 @@ const WSS_TYPES = {
   ERROR: 'error',
 };
 
-const MINE_TYPES = {
+const MINING_TYPES = {
   START_MINING: 'start-mining',
   BLOCK_HAS_CALCULATED: 'block-has-calculated',
   ERROR: 'mining-error',
@@ -12,5 +12,5 @@ const MINE_TYPES = {
 
 module.exports = {
   WSS_TYPES,
-  MINE_TYPES,
+  MINING_TYPES,
 };

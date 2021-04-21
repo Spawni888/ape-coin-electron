@@ -1,7 +1,8 @@
 const { createHash } = require('crypto');
-const { FIRST_MINING_REWARD } = require('./config');
 const EC = require('elliptic').ec;
 const uuidV1 = require('uuid').v1;
+const { FIRST_MINING_REWARD } = require('./config');
+
 const ec = new EC('secp256k1');
 
 class ChainUtil {
@@ -17,10 +18,10 @@ class ChainUtil {
     if (privateKey === null && pubKey === null) {
       return ec.genKeyPair();
     }
-    else if (privateKey) {
+    if (privateKey) {
       return ec.keyFromPrivate(privateKey, 'hex');
     }
-    else if (pubKey) {
+    if (pubKey) {
       return ec.keyFromPublic(pubKey, 'hex');
     }
     return null;
@@ -50,21 +51,19 @@ class ChainUtil {
 
       if (typeof value === 'boolean') {
         bytes += 4;
-      }
-      else if (typeof value === 'string') {
+      } else if (typeof value === 'string') {
         bytes += Buffer.from(value).length;
-      }
-      else if (typeof value === 'number') {
+      } else if (typeof value === 'number') {
         bytes += 8;
-      }
-      else if
+      } else if
       (
         typeof value === 'object'
         && objectList.indexOf(value) === -1
       ) {
         objectList.push(value);
 
-        for (let key in value) {
+        for (const key in value) {
+          // eslint-disable-next-line no-prototype-builtins
           if (value.hasOwnProperty(key)) {
             stack.push(value[key]);
           }
@@ -75,6 +74,7 @@ class ChainUtil {
   }
 
   static miningRewardAmount(chain) {
+    // eslint-disable-next-line no-restricted-properties
     return FIRST_MINING_REWARD * Math.pow(0.5, Math.floor((chain.length - 1) / 200000));
   }
 }

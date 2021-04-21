@@ -11,7 +11,7 @@ class Transaction {
   update(senderWallet, recipient, amount, fee = 0) {
     const senderOutput = this.outputs.find(output => output.address === senderWallet.publicKey);
     if (amount + fee > senderOutput.amount) {
-      console.log(`Amount + fee: ${ amount + fee } exceeds the balance`);
+      console.log(`Amount + fee: ${amount + fee} exceeds the balance`);
       return;
     }
 
@@ -21,6 +21,7 @@ class Transaction {
 
     Transaction.signTransaction(this, senderWallet);
 
+    // eslint-disable-next-line consistent-return
     return this;
   }
 
@@ -29,17 +30,18 @@ class Transaction {
 
     transaction.outputs.push(...outputs);
 
-    Transaction.signTransaction(transaction, senderWallet)
+    Transaction.signTransaction(transaction, senderWallet);
 
     return transaction;
   }
 
   static newTransaction(senderWallet, recipient, amount, fee = 0) {
     if (amount + fee > senderWallet.balance) {
-      console.log(`Amount + fee: ${ amount + fee } exceeds balance.`);
+      console.log(`Amount + fee: ${amount + fee} exceeds balance.`);
       return;
     }
 
+    // eslint-disable-next-line consistent-return
     return this.transactionWithOutputs(senderWallet, [
       {
         amount: senderWallet.balance - amount - fee,
@@ -51,7 +53,7 @@ class Transaction {
       }, {
         amount: fee,
         address: MINER_WALLET,
-      }
+      },
     ]);
   }
 
@@ -63,14 +65,14 @@ class Transaction {
         if (output.address === MINER_WALLET) {
           amount += output.amount;
         }
-      })
-    })
+      });
+    });
 
     const transaction = new this();
     transaction.input = {
       timestamp: Date.now(),
-      address: BLOCKCHAIN_WALLET
-    }
+      address: BLOCKCHAIN_WALLET,
+    };
     transaction.outputs.push(
       {
         address: minerWallet.publicKey,
@@ -86,15 +88,15 @@ class Transaction {
       amount: senderWallet.balance,
       address: senderWallet.publicKey,
       signature: senderWallet.sign(ChainUtil.createHash(transaction.outputs)),
-    }
+    };
   }
 
   static verifyTransaction(transaction) {
     return ChainUtil.verifySignature(
       transaction.input.address,
       transaction.input.signature,
-      ChainUtil.createHash(transaction.outputs)
-    )
+      ChainUtil.createHash(transaction.outputs),
+    );
   }
 
   static verifyRewardTransaction(rewardTransaction, usersTransactions, bc) {

@@ -18,5 +18,8 @@ module.exports = {
     'import/no-extraneous-dependencies': 'off',
     'import/extensions': 'off',
     'no-param-reassign': 'off',
+    'no-plusplus': 'off',
+    'array-callback-return': 'off',
+    'class-methods-use-this': 'off',
   },
 };
