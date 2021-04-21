@@ -40,11 +40,8 @@ const p2pServerHandler = (win) => {
 };
 
 const miningHandler = (win) => {
-  let miningProcess = null;
   ipcMain.on('start-mining', (event, info) => {
-    if (miningProcess === null) {
-      miningProcess = fork(path.join(RESOURCES_PATH, '/childProcesses/miningProcess.js'));
-    }
+    const miningProcess = fork(path.join(RESOURCES_PATH, '/childProcesses/miningProcess.js'));
 
     miningProcess.send({
       type: MINING_TYPES.START_MINING,
@@ -58,6 +55,7 @@ const miningHandler = (win) => {
       switch (type) {
         case MINING_TYPES.BLOCK_HAS_CALCULATED:
           win.webContents.send('block-has-calculated', { block: data.block });
+          miningProcess.kill();
           break;
         case MINING_TYPES.ERROR:
           win.webContents.send('mining-error', { error: data.error });

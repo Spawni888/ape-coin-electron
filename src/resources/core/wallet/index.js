@@ -75,7 +75,7 @@ class Wallet {
   }
 
   calculateBalance(blockchain) {
-    let { balance } = this;
+    let balance = INITIAL_BALANCE;
     const transactions = [];
 
     blockchain.chain.forEach(block => block.data.forEach(transaction => {
@@ -99,12 +99,13 @@ class Wallet {
     }
 
     transactions.forEach(transaction => {
-      if (transaction.input.timestamp > startTime) {
-        transaction.outputs.find(output => {
-          if (output.address !== this.publicKey) return;
-          balance += output.amount;
-        });
-      }
+      if (transaction.input.timestamp <= startTime) return;
+      if (transaction.input.address === this.publicKey) return;
+
+      transaction.outputs.find(output => {
+        if (output.address !== this.publicKey) return;
+        balance += output.amount;
+      });
     });
 
     return balance;
