@@ -1,7 +1,6 @@
 const Websocket = require('ws');
 const { EventEmitter } = require('events');
 const ngrok = require('ngrok');
-const { ipcRenderer } = require('electron');
 const { MAXIMUM_INBOUNDS, MAXIMUM_OUTBOUNDS } = require('../config');
 
 const MESSAGE_TYPES = {
@@ -13,6 +12,7 @@ const MESSAGE_TYPES = {
   serverAddressReq: 'SERVER_ADDRESS_REQUEST',
   serverAddressRes: 'SERVER_ADDRESS_RESPONSE',
   replaceAddressWithNgrok: 'REPLACE_ADDRESS_WITH_NGROK',
+  disconnection: 'DISCONNECT_ME',
 };
 
 class P2pServer extends EventEmitter {
@@ -24,7 +24,7 @@ class P2pServer extends EventEmitter {
     this.outbounds = {};
     this.outboundsQuantity = 0;
     this.inboundsQuantity = 0;
-    this.serverProcess = null;
+    this.server = null;
     this.host = null;
     this.port = null;
     this.externalAddress = null;
@@ -48,7 +48,7 @@ class P2pServer extends EventEmitter {
   }
 
   close() {
-    ipcRenderer.send('close-p2p-server');
+    this.server.close();
   }
 
   listen({
@@ -65,19 +65,18 @@ class P2pServer extends EventEmitter {
       this.ngrokConnect(ngrokAuthToken);
     }
 
-    ipcRenderer.send('start-p2p-server', serverOpts);
-    ipcRenderer.on('p2p-connection', (event, data) => {
-      const { socket, req } = data;
-
+    this.server = new Websocket.Server(serverOpts);
+    this.server.on('connection', (socket, req) => {
       this.sendPeers(socket);
+
       if (this.inboundsQuantity < MAXIMUM_INBOUNDS) {
         this.connectSocket(socket);
         this.requestServerAddress(socket, req);
       }
     });
-    ipcRenderer.on('p2p-error', (event, data) => {
-      console.log(data.error);
+    this.server.on('error', (err) => {
       this.emit('error', 'Error occurred during P2P-server listening...');
+      console.log(err);
     });
 
     this.connectToPeers();
@@ -214,8 +213,11 @@ class P2pServer extends EventEmitter {
           this.blockchain.replaceChain(data.chain, this.transactionPool);
           break;
         case MESSAGE_TYPES.transaction:
+          console.log('Received new transaction');
           this.transactionPool.updateOrAddTransaction(data.transaction);
-          this.transactionPool.emit('changed');
+          this.emit('transaction-pool-changed', {
+            transactions: this.transactionPool.transactions,
+          });
           break;
         case MESSAGE_TYPES.clearTransactions:
           this.transactionPool.clear();
@@ -249,6 +251,14 @@ class P2pServer extends EventEmitter {
         case MESSAGE_TYPES.serverAddressRes:
           this.saveInbound(socket, data.serverAddress, data.serverPort);
           break;
+
+        case MESSAGE_TYPES.disconnection:
+          if (!this.inbounds[data.peer]) return;
+          delete this.inbounds[data.peer];
+          this.inboundsQuantity -= 1;
+          this.emit('info', `Connection with peer ${data.peer} was broken.`);
+          break;
+
         default:
           break;
       }
@@ -294,6 +304,13 @@ class P2pServer extends EventEmitter {
         peers,
       }));
     }
+  }
+
+  sendDisconnection(socket, peer) {
+    socket.send(JSON.stringify({
+      type: MESSAGE_TYPES.disconnection,
+      peer,
+    }));
   }
 
   saveInbound(socket, serverAddress, serverPort) {

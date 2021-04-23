@@ -74,6 +74,7 @@ export default {
 
     const p2pInboundsList = computed(() => store.getters.p2pInboundsList);
     const p2pOutboundsList = computed(() => store.getters.p2pOutboundsList);
+    console.log(p2pOutboundsList);
     const p2pConnectionsExistence = computed(() => p2pOutboundsList.value.length
       || p2pInboundsList.value.length);
 

@@ -67,7 +67,7 @@ class Wallet {
       transaction = Transaction.newTransaction(this, recipient, amount, fee);
       transactionPool.updateOrAddTransaction(transaction);
     }
-    transactionPool.emit('changed', transaction);
+    // transactionPool.emit('changed', transaction);
 
     this.calculateBalanceWithTpIncluded(transactionPool);
 

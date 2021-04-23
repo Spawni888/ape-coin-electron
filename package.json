@@ -26,6 +26,7 @@
     "luxon": "^1.26.0",
     "ngrok": "^3.4.1",
     "portfinder": "^1.0.28",
+    "serialize-javascript": "^5.0.1",
     "uuid": "^3.4.0",
     "vue": "^3.0.0",
     "vue-router": "^4.0.0-0",

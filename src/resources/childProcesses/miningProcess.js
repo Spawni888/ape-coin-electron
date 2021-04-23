@@ -13,7 +13,16 @@ try {
 
         process.send({
           type: MINING_TYPES.BLOCK_HAS_CALCULATED,
-          data: { block },
+          data: {
+            block: {
+              timestamp: block.timestamp,
+              lastHash: block.lastHash,
+              hash: block.hash,
+              data: block.data,
+              nonce: block.nonce,
+              difficulty: block.difficulty,
+            },
+          },
         });
         break;
       }

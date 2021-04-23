@@ -1,7 +1,17 @@
-const WSS_TYPES = {
+const P2P_SERVER_TYPES = {
   START_SERVER: 'start-server',
-  CONNECTION: 'connection',
-  ERROR: 'error',
+  INFO_ALERT: 'info-alert',
+  WARNING_ALERT: 'warning-alert',
+  ERROR_ALERT: 'error-alert',
+  ALERT: 'p2p-alert',
+  SUCCESS_ALERT: 'success-alert',
+  SERVER_STARTED: 'server-started',
+  PROPERTY_CHANGED: 'property-changed',
+  INBOUNDS_LIST_CHANGED: 'inbounds-list-changed',
+  OUTBOUNDS_LIST_CHANGED: 'outbounds-list-changed',
+  STOP_SERVER: 'stop-server',
+  NEW_BLOCK_ADDED: 'new_block_added',
+  TRANSACTION_POOL_CHANGED: 'transaction-pool-changed',
 };
 
 const MINING_TYPES = {
@@ -11,6 +21,6 @@ const MINING_TYPES = {
 };
 
 module.exports = {
-  WSS_TYPES,
+  P2P_SERVER_TYPES,
   MINING_TYPES,
 };

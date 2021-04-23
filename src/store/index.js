@@ -1,9 +1,9 @@
 import { createStore } from 'vuex';
-import P2pServer from '@/resources/core/app/p2p-server';
 import Blockchain from '@/resources/core/blockchain';
 import TransactionPool from '@/resources/core/wallet/transactionPool';
 import Wallet from '@/resources/core/wallet';
 import Miner from '@/resources/core/app/miner';
+import Block from '@/resources/core/blockchain/block';
 import ChainUtil from '@/resources/core/chain-util';
 import portfinder from 'portfinder';
 import Koa from 'koa';
@@ -14,7 +14,21 @@ import { BLOCKCHAIN_WALLET } from '@/resources/core/config';
 export default createStore({
   state: {
     server: null,
-    p2pServer: null,
+    p2pServer: {
+      inbounds: {},
+      inboundsList: [],
+      outboundsList: [],
+      outbounds: {},
+      outboundsQuantity: 0,
+      inboundsQuantity: 0,
+      server: null,
+      host: null,
+      port: null,
+      externalAddress: null,
+      externalPort: null,
+      ngrokAddress: null,
+      peers: [],
+    },
     blockchain: null,
     transactionPool: null,
     wallet: null,
@@ -51,7 +65,10 @@ export default createStore({
       return state.p2pServer.outboundsList;
     },
     myPeerLink(state) {
-      return state.p2pServer.myPeerLink;
+      const { p2pServer } = state;
+      if (p2pServer.externalAddress === null) return null;
+
+      return `http://${p2pServer.externalAddress}:${p2pServer.externalPort}`;
     },
     serverIsUp(state) {
       return state.serverIsUp;
@@ -108,11 +125,9 @@ export default createStore({
       commit,
       dispatch,
     }, options) {
-      // TODO: uncomment it
-
-      // if (state.serverIsUp) {
-      //   dispatch('closeServer');
-      // }
+      if (state.serverIsUp) {
+        dispatch('closeServer');
+      }
       let {
         serverPort,
         peers,
@@ -158,54 +173,52 @@ export default createStore({
         state.server = app.listen(serverPort, '127.0.0.1', () => console.log(`API running on port ${serverPort}`));
       }
 
-      // create p2p-server
       state.transactionPool = new TransactionPool();
       state.blockchain = new Blockchain();
-      state.p2pServer = new P2pServer(state.blockchain, state.transactionPool);
-
-      state.p2pServer.on('error', (err) => {
-        console.log(err);
-        commit('showAlert', {
-          type: 'error',
-          title: 'Error',
-          message: err,
-        });
-        dispatch('closeServer');
-      });
-      state.p2pServer.on('success', (msg) => {
-        console.log(msg);
-        commit('showAlert', {
-          type: 'success',
-          title: 'Success',
-          message: msg,
-        });
-      });
-      state.p2pServer.on('info', (msg) => {
-        console.log(msg);
-        commit('showAlert', {
-          type: 'info',
-          title: 'Info',
-          message: msg,
-        });
-      });
-      state.p2pServer.on('warning', (msg) => {
-        console.log(msg);
-        commit('showAlert', {
-          type: 'warning',
-          title: 'Warning',
-          message: msg,
-        });
-      });
-
-      state.p2pServer.listen({
+      // create p2p-server
+      ipcRenderer.send('start-p2p-server', {
         peers,
         host: serverHost,
         port: serverPort,
         httpServer: API ? state.server : null,
         ngrokAuthToken: ngrok ? ngrokAuthToken : null,
-      }, () => {
+      });
+
+      ipcRenderer.on('p2p-server-started', () => {
         state.serverIsUp = true;
         console.log(`Listening for peer-to-peer connections on: ${serverPort}`);
+      });
+
+      // alerts
+      ipcRenderer.on('p2p-alert', (event, data) => {
+        console.log(data.message);
+        commit('showAlert', data);
+        if (data.type === 'error') dispatch('closeServer');
+      });
+
+      // p2p-server property changes
+      ipcRenderer.on('p2p-property-changed', (event, data) => {
+        const {
+          prop,
+          value,
+        } = data;
+
+        if (prop === 'blockchain') {
+          state[prop].chain = value.chain;
+          return;
+        }
+        if (prop === 'transactionPool') {
+          state[prop].transactions = value.transactions;
+        }
+        state.p2pServer[prop] = value;
+      });
+
+      ipcRenderer.on('outbounds-list-changed', (event, data) => {
+        // TODO: FIX IT
+        state.p2pServer.outbounds = data.outbounds;
+      });
+      ipcRenderer.on('inbounds-list-changed', (event, data) => {
+        state.p2pServer.inboundsList = data.inbounds;
       });
 
       // if keepLoggedIn was turned on
@@ -281,32 +294,16 @@ export default createStore({
         return;
       }
       state.wallet = new Wallet(privKey);
+
       state.miner = new Miner(
         state.blockchain,
         state.transactionPool,
         state.wallet,
-        state.p2pServer,
       );
-      state.transactionPool.on('clear', () => {
-        commit('recalculateBalance');
-      });
-
-      if (!silentMode) {
-        commit('showAlert', {
-          type: 'success',
-          title: 'Success',
-          message: 'You have been authorized successfully.',
-        });
-      }
-    },
-    startMining({ state, commit, dispatch }) {
-      state.miningIsUp = true;
-
-      state.miner.mine();
-
       state.miner.on('newBlock', (block) => {
-        console.log(block);
-        state.blockchain.chain.push(block);
+        console.log('new Block:', block);
+        state.blockchain.chain.push(new Block(...Object.values(block)));
+        state.transactionPool.clear();
 
         const reward = block.data
           .find(transaction => transaction.input.address === BLOCKCHAIN_WALLET)
@@ -320,8 +317,7 @@ export default createStore({
           message: `You have mine block with difficulty: ${block.difficulty} and earn ${reward} coins!`,
         });
       });
-
-      state.miner.on('error', error => {
+      ipcRenderer.on('mining-error', (event, { error }) => {
         console.log(error);
         state.miningIsUp = false;
         commit('showAlert', {
@@ -331,12 +327,39 @@ export default createStore({
         });
       });
 
-      state.transactionPool.on('changed', () => dispatch('stopMining'));
+      state.transactionPool.on('clear', () => {
+        commit('recalculateBalance');
+      });
+
+      if (!silentMode) {
+        commit('showAlert', {
+          type: 'success',
+          title: 'Success',
+          message: 'You have been authorized successfully.',
+        });
+      }
     },
-    stopMining({ state, commit }) {
+    startMining({ state, dispatch }) {
+      state.miningIsUp = true;
+
+      state.miner.mine();
+
+      // TODO: remake its logic
+      ipcRenderer.on('transaction-pool-changed', (event, { transactions }) => {
+        state.transactionPool.transactions = transactions;
+        dispatch('stopMining', true);
+        dispatch('startMining');
+      });
+
+      state.transactionPool.on('changed', () => {
+        dispatch('stopMining');
+      });
+    },
+    stopMining({ state, commit }, silence = false) {
       state.miningIsUp = false;
       state.miner.stopMining();
 
+      if (silence) return;
       commit('showAlert', {
         type: 'info',
         title: 'Info',
@@ -344,9 +367,18 @@ export default createStore({
       });
     },
     closeServer({ state, commit, dispatch }) {
-      state.p2pServer.close();
-      state.p2pServer = null;
+      ipcRenderer.send('stop-p2p-server');
+      ipcRenderer.removeAllListeners('signInWallet');
+      ipcRenderer.removeAllListeners('p2p-server-started');
+      ipcRenderer.removeAllListeners('p2p-alert');
+      ipcRenderer.removeAllListeners('p2p-property-changed');
+      ipcRenderer.removeAllListeners('outbounds-list-changed');
+      ipcRenderer.removeAllListeners('inbounds-list-changed');
+
       state.transactionPool = null;
+      state.blockchain = null;
+      state.miner = null;
+
       state.serverIsUp = false;
 
       commit('logOutWallet');

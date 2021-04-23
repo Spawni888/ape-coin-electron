@@ -4,12 +4,11 @@ const { cloneDeep } = require('lodash');
 const Transaction = require('../wallet/transaction');
 
 class Miner extends EventEmitter {
-  constructor(blockchain, transactionPool, wallet, p2pServer) {
+  constructor(blockchain, transactionPool, wallet) {
     super();
     this.blockchain = blockchain;
     this.transactionPool = transactionPool;
     this.wallet = wallet;
-    this.p2pServer = p2pServer;
   }
 
   startMining() {
@@ -34,8 +33,6 @@ class Miner extends EventEmitter {
 
     ipcRenderer.on('block-has-calculated', (event, { block }) => {
       this.emit('newBlock', block);
-      this.p2pServer.syncChains();
-      this.transactionPool.clear();
 
       setTimeout(this.startMining.bind(this), 0);
     });
@@ -46,6 +43,8 @@ class Miner extends EventEmitter {
 
   stopMining() {
     ipcRenderer.send('stop-mining');
+    ipcRenderer.removeAllListeners('block-has-calculated');
+    ipcRenderer.removeAllListeners('mining-error');
   }
 }
 
