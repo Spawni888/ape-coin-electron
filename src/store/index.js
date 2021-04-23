@@ -10,6 +10,7 @@ import Koa from 'koa';
 import bodyParser from 'koa-bodyparser';
 import { ipcRenderer } from 'electron';
 import { BLOCKCHAIN_WALLET } from '@/resources/core/config';
+import uuid from 'uuid';
 
 export default createStore({
   state: {
@@ -35,12 +36,14 @@ export default createStore({
     miner: null,
     serverIsUp: false,
     alertQueue: [],
+    alertsJournal: [],
     alertIsShowing: false,
     alertTimer: null,
     alertInfo: {
       type: 'error',
       title: 'Error',
       message: 'Try again later...',
+      timestamp: 0,
     },
     transactionPending: false,
     miningIsUp: false,
@@ -51,6 +54,9 @@ export default createStore({
     },
     alertInfo(state) {
       return state.alertInfo;
+    },
+    alertsJournal(state) {
+      return state.alertsJournal;
     },
     p2pInboundsQuantity(state) {
       return state.p2pServer.inboundsQuantity;
@@ -95,12 +101,16 @@ export default createStore({
     },
     showAlert(state, alertInfo = null) {
       if (alertInfo !== null) {
+        alertInfo.timestamp = Date.now();
+        alertInfo.id = uuid.v4();
+
         const sameAlertAlreadyExists = state.alertQueue.find(
           alert => (alert.message === alertInfo.message) && (alert.type === alertInfo.type),
         );
         if (sameAlertAlreadyExists !== undefined) return;
 
         state.alertQueue.push(alertInfo);
+        state.alertsJournal.push(alertInfo);
       }
 
       if (state.alertTimer) return;
@@ -120,7 +130,6 @@ export default createStore({
     },
     recalculateBalance(state) {
       state.wallet.balance = state.wallet.calculateBalance(state.blockchain);
-      console.log(state.wallet.balance);
       state.wallet.calculateBalanceWithTpIncluded(state.transactionPool);
     },
   },
@@ -162,7 +171,6 @@ export default createStore({
         peers = peers.trim()
           .replace(/[,\s;]+/gi, ',')
           .split(',');
-        console.log(peers);
       } else {
         peers = [];
       }
@@ -217,11 +225,9 @@ export default createStore({
       });
 
       ipcRenderer.on('outbounds-list-changed', (event, data) => {
-        console.log('outbounds', data);
         state.p2pServer.outboundsList = data.outboundsList;
       });
       ipcRenderer.on('inbounds-list-changed', (event, data) => {
-        console.log('inbounds', data);
         state.p2pServer.inboundsList = data.inboundsList;
       });
 

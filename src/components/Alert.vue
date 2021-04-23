@@ -63,7 +63,7 @@
       <div class="alert__message">
         {{ alertInfo.message }}
       </div>
-      <div class="alert__cross" @click="closeAlert">
+      <div v-if="!alertInfoWithProp" class="alert__cross" @click="closeAlert">
         <svg
           class="cross"
           focusable="false"
@@ -76,21 +76,35 @@
         </svg>
       </div>
     </div>
+    <div class="date" v-if="alertInfoWithProp">{{ date }}</div>
   </div>
 </template>
 
 <script>
 import { useStore } from 'vuex';
 import { computed } from 'vue';
+import useFormattedTimestamp from '@/use/formattedTimestamp';
 
 export default {
   name: 'Alert',
-
-  setup() {
+  props: {
+    alertInfoProp: {
+      type: Object,
+    },
+  },
+  setup(props) {
     const store = useStore();
+    const alertInfoWithProp = props.alertInfoProp !== undefined;
+
+    const alertInfo = alertInfoWithProp
+      ? props.alertInfoProp
+      : computed(() => store.getters.alertInfo);
+
     return {
       closeAlert: () => store.dispatch('closeAlert'),
-      alertInfo: computed(() => store.getters.alertInfo),
+      alertInfoWithProp,
+      alertInfo,
+      date: useFormattedTimestamp(alertInfo.timestamp),
     };
   },
 };
@@ -161,6 +175,13 @@ $successIconCol: #5CB65F;
       width: 20px;
       fill: $errorColor;
     }
+  }
+  .date {
+    font-size: 12px;
+    font-weight: 500;
+    position: absolute;
+    right: 10px;
+    top: 10px;
   }
 }
 

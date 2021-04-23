@@ -2,11 +2,26 @@
   <header class="header">
     <div class="header__logo">
       <div class="img"
-         :style="{'maskImage': `url(${require('@/assets/icon.png')})`}"
+           :style="{'maskImage': `url(${require('@/assets/icon.png')})`}"
       />
       <div class="title">Ape-coin</div>
     </div>
     <div class="header__buttons clickable">
+      <transition name="fade" mode="out-in">
+        <router-link
+          :to="{name: 'alertJournal'}"
+          tag="div"
+          class="header__button exclamation"
+          v-if="serverIsUp"
+        >
+          <svg class="exclamation-svg" viewBox="0 0 41.49 24">
+            <path
+              d="M 16 1 L 21 1 L 21 16 L 16 16 L 16 1 M 16 20 L 21 20 M 21 20 L 21 24
+            L 16 24 L 16 20"
+            />
+          </svg>
+        </router-link>
+      </transition>
       <div
         class="header__button hide"
         @click="hideWindow"
@@ -23,6 +38,7 @@
           ></path>
         </svg>
       </div>
+
       <div
         class="header__button close"
         @click="closeWindow"
@@ -44,10 +60,13 @@
 
 <script>
 import { ipcRenderer } from 'electron';
+import { useStore } from 'vuex';
+import { computed } from 'vue';
 
 export default {
   name: 'Header',
   setup() {
+    const store = useStore();
     const closeWindow = () => {
       ipcRenderer.send('close-window');
     };
@@ -57,6 +76,7 @@ export default {
     return {
       closeWindow,
       hideWindow,
+      serverIsUp: computed(() => store.getters.serverIsUp),
     };
   },
 };
@@ -69,7 +89,7 @@ $headerBgColor: lighten($bgColor, 15%);
   display: flex;
   //background-color: darken($surfaceColor, 4%);
   background-color: $headerBgColor;
-  z-index: 8;
+  z-index: 99;
   justify-content: space-between;
   height: 30px;
   box-shadow: 0 0 8px rgba(0, 0, 0, 1);
@@ -79,6 +99,7 @@ $headerBgColor: lighten($bgColor, 15%);
 
     display: flex;
     align-items: center;
+
     .img {
       margin-right: 5px;
 
@@ -88,6 +109,7 @@ $headerBgColor: lighten($bgColor, 15%);
       width: 16px;
       height: 16px;
     }
+
     .title {
       font-size: 12px;
       color: $onSurfaceColor;
@@ -96,6 +118,7 @@ $headerBgColor: lighten($bgColor, 15%);
       align-self: flex-end;
     }
   }
+
   &__buttons {
     $iconSize: 20px;
     display: flex;
@@ -107,6 +130,7 @@ $headerBgColor: lighten($bgColor, 15%);
         fill: darken($onSurfaceColor, 20%);
       }
     }
+
     .close {
       .cross {
         width: $iconSize;
@@ -114,7 +138,18 @@ $headerBgColor: lighten($bgColor, 15%);
         fill: darken($onSurfaceColor, 20%);
       }
     }
+
+    .exclamation {
+      padding: 0 5px;
+
+      .exclamation-svg {
+        width: 22px;
+        height: 20px;
+        fill: darken($onSurfaceColor, 22%);
+      }
+    }
   }
+
   &__button {
     cursor: pointer;
     display: flex;
@@ -123,11 +158,13 @@ $headerBgColor: lighten($bgColor, 15%);
     height: 100%;
     padding: 0 6px;
     transition: .2s ease-in-out;
+
     &:hover {
       background-color: lighten($headerBgColor, 10%);
     }
   }
 }
+
 .clickable {
   -webkit-app-region: no-drag;
 }

@@ -80,6 +80,7 @@ export default {
     flex-grow: 1;
 
     .balance {
+      z-index: 10;
       color: $bgColor;
       background-color: $onBgColor;
       opacity: 0.9;

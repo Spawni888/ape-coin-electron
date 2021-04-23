@@ -4,6 +4,7 @@ import PeerToPeer from '@/views/PeerToPeer';
 import Mining from '@/views/Mining';
 import store from '@/store';
 import Blockchain from '@/views/Blockchain';
+import AlertsJournal from '@/views/AlertsJournal';
 
 const routes = [
   {
@@ -25,6 +26,11 @@ const routes = [
     path: '/mining',
     name: 'mining',
     component: Mining,
+  },
+  {
+    path: '/alerts-journal',
+    name: 'alertJournal',
+    component: AlertsJournal,
   },
 ];
 
