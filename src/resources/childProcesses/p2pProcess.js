@@ -30,7 +30,8 @@ try {
             process.send({
               type: P2P_SERVER_TYPES.INBOUNDS_LIST_CHANGED,
               data: {
-                inboundsList: Object.keys(target),
+                test: target,
+                inboundsList: [...Object.keys(target), prop],
               },
             });
             return Reflect.set(target, prop, value, receiver);
@@ -41,7 +42,7 @@ try {
             process.send({
               type: P2P_SERVER_TYPES.OUTBOUNDS_LIST_CHANGED,
               data: {
-                outboundsList: Object.keys(target),
+                outboundsList: [...Object.keys(target), prop],
               },
             });
             return Reflect.set(target, prop, value, receiver);

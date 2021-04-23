@@ -95,6 +95,11 @@ export default createStore({
     },
     showAlert(state, alertInfo = null) {
       if (alertInfo !== null) {
+        const sameAlertAlreadyExists = state.alertQueue.find(
+          alert => (alert.message === alertInfo.message) && (alert.type === alertInfo.type),
+        );
+        if (sameAlertAlreadyExists !== undefined) return;
+
         state.alertQueue.push(alertInfo);
       }
 
@@ -125,9 +130,7 @@ export default createStore({
       commit,
       dispatch,
     }, options) {
-      if (state.serverIsUp) {
-        dispatch('closeServer');
-      }
+      dispatch('closeServer');
       let {
         serverPort,
         peers,
@@ -214,11 +217,12 @@ export default createStore({
       });
 
       ipcRenderer.on('outbounds-list-changed', (event, data) => {
-        // TODO: FIX IT
-        state.p2pServer.outbounds = data.outbounds;
+        console.log('outbounds', data);
+        state.p2pServer.outboundsList = data.outboundsList;
       });
       ipcRenderer.on('inbounds-list-changed', (event, data) => {
-        state.p2pServer.inboundsList = data.inbounds;
+        console.log('inbounds', data);
+        state.p2pServer.inboundsList = data.inboundsList;
       });
 
       // if keepLoggedIn was turned on

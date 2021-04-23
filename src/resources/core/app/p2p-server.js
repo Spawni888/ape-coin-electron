@@ -120,7 +120,7 @@ class P2pServer extends EventEmitter {
   }
 
   connectToPeer(peer, serverAddress, serverPort, retries = 10) {
-    if (retries === 0) return;
+    if (retries <= 0) return;
     if (this.outbounds[peer] || this.inbounds[peer]) return;
     const reconnectInterval = 5000;
     const socket = new Websocket(peer);
@@ -137,7 +137,10 @@ class P2pServer extends EventEmitter {
     });
 
     socket.on('error', (err) => {
+      // TODO: Look at its work ?!
       console.log(err);
+      if (err.message !== 'Unexpected server response: 404') return;
+      retries = 0;
     });
 
     socket.on('close', () => {

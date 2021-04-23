@@ -74,7 +74,6 @@ export default {
 
     const p2pInboundsList = computed(() => store.getters.p2pInboundsList);
     const p2pOutboundsList = computed(() => store.getters.p2pOutboundsList);
-    console.log(p2pOutboundsList);
     const p2pConnectionsExistence = computed(() => p2pOutboundsList.value.length
       || p2pInboundsList.value.length);
 
@@ -88,7 +87,7 @@ export default {
       }
       if (p2pOutboundsList.value.length) {
         paragraphs.push(
-          '<span style="font-weight: 500">Inbounds:</span>',
+          '<span style="font-weight: 500">Outbounds:</span>',
           ...p2pOutboundsList.value,
         );
       }
