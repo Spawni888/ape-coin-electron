@@ -3,10 +3,10 @@ import { fork } from 'child_process';
 import path from 'path';
 import { P2P_SERVER_TYPES, MINING_TYPES } from '@/resources/constants';
 
-// TODO: fix this path in production
 const RESOURCES_PATH = process.env.NODE_ENV === 'production'
-  ? path.resolve(__dirname, '../../../')
+  ? path.resolve(__dirname, '../')
   : path.resolve(__dirname, '../src/resources');
+
 let serverProcess = null;
 let miningProcess = null;
 

@@ -354,7 +354,6 @@ export default createStore({
 
       state.miner.mine();
 
-      // TODO: remake its logic
       ipcRenderer.on('transaction-pool-changed', (event, { transactions }) => {
         state.transactionPool.transactions = transactions;
         dispatch('stopMining', true);
@@ -387,7 +386,6 @@ export default createStore({
 
       state.transactionPool = null;
       state.blockchain = null;
-      state.miner = null;
 
       state.serverIsUp = false;
 

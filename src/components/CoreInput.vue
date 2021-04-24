@@ -69,7 +69,7 @@ export default {
       compressedPlaceholder.value = true;
     };
     const onInputBlur = () => {
-      if (!input.value.value) {
+      if (!input?.value?.value) {
         compressedPlaceholder.value = false;
       }
     };
