@@ -3,16 +3,34 @@ import { fork } from 'child_process';
 import path from 'path';
 import { P2P_SERVER_TYPES, MINING_TYPES } from '@/resources/constants';
 
-const RESOURCES_PATH = process.env.NODE_ENV === 'production'
-  ? path.resolve(__dirname, '../')
-  : path.resolve(__dirname, '../src/resources');
-
 let serverProcess = null;
 let miningProcess = null;
 
-const p2pServerHandler = (win) => {
+const p2pServerHandler = (win, app) => {
+  const RESOURCES_PATH = process.env.NODE_ENV === 'production'
+    ? path.resolve(app.getAppPath(), '../')
+    : path.resolve(__dirname, '../src/resources');
+
   ipcMain.on('start-p2p-server', (event, serverOptions) => {
+    win.webContents.send('server-info', path.join(RESOURCES_PATH, '/childProcesses/p2pProcess.js'));
+
+    if (serverProcess !== null) {
+      serverProcess.kill();
+      serverProcess = null;
+      win.webContents.send('p2p-alert', {
+        title: 'Info',
+        type: 'info',
+        timestamp: Date.now(),
+        message: 'Server was already running... It was stopped now. Try again.',
+      });
+      return;
+    }
+
     serverProcess = fork(path.join(RESOURCES_PATH, '/childProcesses/p2pProcess.js'));
+    serverProcess.on('exit', () => {
+      console.log('Server Process exited!');
+      serverProcess = null;
+    });
 
     serverProcess.send({
       type: P2P_SERVER_TYPES.START_SERVER,
@@ -38,8 +56,9 @@ const p2pServerHandler = (win) => {
         case P2P_SERVER_TYPES.INBOUNDS_LIST_CHANGED:
           win.webContents.send('inbounds-list-changed', data);
           break;
-        case 'ERROR':
+        case P2P_SERVER_TYPES.ERROR:
           console.log(data.error);
+          win.webContents.send('server-info', data.error);
           break;
         default:
           break;
@@ -55,9 +74,23 @@ const p2pServerHandler = (win) => {
   });
 };
 
-const miningHandler = (win) => {
+const miningHandler = (win, app) => {
+  const RESOURCES_PATH = process.env.NODE_ENV === 'production'
+    ? path.resolve(app.getAppPath(), '../')
+    : path.resolve(__dirname, '../src/resources');
+
   ipcMain.on('start-mining', (event, info) => {
+    win.webContents.send('server-info', path.join(RESOURCES_PATH, '/childProcesses/miningProcess.js'));
+
+    if (miningProcess !== null) {
+      miningProcess.kill();
+      miningProcess = null;
+    }
     miningProcess = fork(path.join(RESOURCES_PATH, '/childProcesses/miningProcess.js'));
+    miningProcess.on('exit', () => {
+      console.log('Mining Process exited!');
+      miningProcess = null;
+    });
 
     miningProcess.send({
       type: MINING_TYPES.START_MINING,
@@ -71,7 +104,6 @@ const miningHandler = (win) => {
       switch (type) {
         case MINING_TYPES.BLOCK_HAS_CALCULATED:
           win.webContents.send('block-has-calculated', { block: data.block });
-          miningProcess.kill();
           miningProcess = null;
 
           if (serverProcess === null) return;
@@ -90,6 +122,8 @@ const miningHandler = (win) => {
     });
 
     ipcMain.on('stop-mining', () => {
+      if (miningProcess === null) return;
+
       miningProcess.kill();
       ipcMain.removeAllListeners('stop-mining');
     });

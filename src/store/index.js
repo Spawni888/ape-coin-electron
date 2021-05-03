@@ -12,6 +12,10 @@ import { ipcRenderer } from 'electron';
 import { BLOCKCHAIN_WALLET } from '@/resources/core/config';
 import uuid from 'uuid';
 
+ipcRenderer.on('server-info', (event, info) => {
+  console.log(info);
+});
+
 export default createStore({
   state: {
     server: null,
@@ -140,6 +144,7 @@ export default createStore({
       dispatch,
     }, options) {
       dispatch('closeServer');
+
       let {
         serverPort,
         peers,

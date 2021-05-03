@@ -121,7 +121,7 @@ try {
   });
 } catch (error) {
   process.send({
-    type: 'ERROR',
+    type: P2P_SERVER_TYPES.ERROR,
     data: { error },
   });
 }

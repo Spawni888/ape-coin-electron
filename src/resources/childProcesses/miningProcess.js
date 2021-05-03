@@ -26,6 +26,10 @@ try {
         });
         break;
       }
+      // case MINING_TYPES.STOP_MINING: {
+      //   process.exit(0);
+      //   break;
+      // }
       default:
         break;
     }

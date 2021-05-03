@@ -88,8 +88,8 @@ async function createWindow() {
     win.minimize();
   });
 
-  bgHandlers.p2pServerHandler(win);
-  bgHandlers.miningHandler(win);
+  bgHandlers.p2pServerHandler(win, app);
+  bgHandlers.miningHandler(win, app);
 
   ipcMain.on('save-p2pForm', (event, form) => {
     electronStore.set('p2pForm', form);

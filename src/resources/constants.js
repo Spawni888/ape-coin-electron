@@ -12,10 +12,12 @@ const P2P_SERVER_TYPES = {
   STOP_SERVER: 'stop-server',
   NEW_BLOCK_ADDED: 'new_block_added',
   TRANSACTION_POOL_CHANGED: 'transaction-pool-changed',
+  ERROR: 'p2p-server-error',
 };
 
 const MINING_TYPES = {
   START_MINING: 'start-mining',
+  STOP_MINING: 'stop-mining',
   BLOCK_HAS_CALCULATED: 'block-has-calculated',
   ERROR: 'mining-error',
 };
