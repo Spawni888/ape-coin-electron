@@ -1,4 +1,4 @@
-const { MINING_TYPES } = require('../constants');
+const { MINING_TYPES } = require('../events');
 const Blockchain = require('../core/blockchain/index');
 
 try {

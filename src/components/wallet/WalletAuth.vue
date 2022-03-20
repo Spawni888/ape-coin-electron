@@ -45,6 +45,7 @@ import { ref, reactive } from 'vue';
 import { useStore } from 'vuex';
 import { ipcRenderer } from 'electron';
 import CoreSwitch from '@/components/CoreSwitch';
+import { FROM_BG, TO_BG } from '@/resources/events';
 
 const required = (val) => !!val;
 
@@ -125,10 +126,10 @@ export default {
 
     const newKeyPair = reactive({});
     const createWallet = () => {
-      ipcRenderer.send('createWallet');
+      ipcRenderer.send(TO_BG.CREATE_WALLET);
     };
 
-    ipcRenderer.on('newWalletCreated', (event, keyPair) => {
+    ipcRenderer.on(FROM_BG.WALLET_CREATED, (event, keyPair) => {
       [newKeyPair.pub, newKeyPair.priv] = [keyPair.pub, keyPair.priv];
 
       modalInfo.paragraphs = [

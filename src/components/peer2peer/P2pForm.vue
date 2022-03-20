@@ -39,6 +39,7 @@ import CoreSwitch from '@/components/CoreSwitch';
 import useForm from '@/use/form/form';
 import useTooltip from '@/use/tooltip';
 import { ipcRenderer } from 'electron';
+import { FROM_BG, TO_BG } from '@/resources/events';
 
 const required = (val) => !!val;
 const isNumeric = (val) => /^\d+$/.test(val);
@@ -150,8 +151,8 @@ export default {
           + 'But if you can`t port forward you can use ngrok to expose your network. '
           + 'Register for free at ngrok.com and pass ngrok AuthToken to the field above.',
       });
-      ipcRenderer.send('check-p2pForm');
-      ipcRenderer.on('load-p2pForm', (event, savedForm) => {
+      ipcRenderer.send(TO_BG.CHECK_P2P_FORM_SAVING);
+      ipcRenderer.on(FROM_BG.LOAD_P2P_FORM, (event, savedForm) => {
         loadedForm = savedForm;
 
         Object.keys(form)
@@ -215,7 +216,7 @@ export default {
         .forEach(key => {
           formattedSwitches[key] = switches[key].value;
         });
-      ipcRenderer.send('save-p2pForm', {
+      ipcRenderer.send(TO_BG.SAVE_P2P_FORM, {
         inputs: formattedInputs,
         switches: formattedSwitches,
       });

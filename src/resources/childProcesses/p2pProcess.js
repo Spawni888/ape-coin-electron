@@ -2,7 +2,7 @@ const P2pServer = require('../core/app/p2p-server');
 const Blockchain = require('../core/blockchain');
 const TransactionPool = require('../core/wallet/transactionPool');
 const Block = require('../core/blockchain/block');
-const { P2P_SERVER_TYPES } = require('../constants');
+const { P2P_SERVER_TYPES } = require('../events');
 
 let server = null;
 

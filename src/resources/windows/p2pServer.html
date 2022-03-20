@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Hidden p2p-server</title>
+</head>
+<body>
+  <script>
+    const { ipcRenderer } = require('electron');
+    const P2pServer = require('../core/app/p2p-server');
+    const Blockchain = require('../core/blockchain');
+    const TransactionPool = require('../core/wallet/transactionPool');
+    const Block = require('../core/blockchain/block');
+    const { FROM_P2P, TO_P2P, FROM_APP } = require('../events');
+
+    let server = null;
+    const messageToUI = (channel, data) => {
+      ipcRenderer.send(FROM_P2P.TO_UI, JSON.stringify({ channel, data }));
+    }
+
+    try {
+      ipcRenderer.on(TO_P2P.START_SERVER, (event, serverOptions) => {
+        server = new P2pServer(new Blockchain(), new TransactionPool());
+
+        server = new Proxy(server, {
+          set(target, prop, value, receiver) {
+            messageToUI(FROM_P2P.PROPERTY_CHANGED, { prop, value });
+            return Reflect.set(target, prop, value, receiver);
+          },
+        });
+
+        server.inbounds = new Proxy(server.inbounds, {
+          set(target, prop, value, receiver) {
+            messageToUI(FROM_P2P.INBOUNDS_LIST_CHANGED, {
+              test: target,
+              inboundsList: [...Object.keys(target), prop],
+            });
+            return Reflect.set(target, prop, value, receiver);
+          },
+        });
+        server.outbounds = new Proxy(server.outbounds, {
+          set(target, prop, value, receiver) {
+            messageToUI(FROM_P2P.OUTBOUNDS_LIST_CHANGED, {
+              outboundsList: [...Object.keys(target), prop]
+            });
+            return Reflect.set(target, prop, value, receiver);
+          },
+        });
+
+        // alerts
+        server.on('info', (msg) => messageToUI(FROM_APP.ALERT, {
+          type: 'info',
+          title: 'Info',
+          message: msg,
+        }));
+        server.on('error', (msg) => messageToUI(FROM_APP.ALERT, {
+          type: 'error',
+          title: 'Error',
+          message: msg,
+        }));
+        server.on('warning', (msg) => messageToUI(FROM_APP.ALERT,{
+          type: 'warning',
+          title: 'Warning',
+          message: msg,
+        }));
+        server.on('success', (msg) => messageToUI(FROM_APP.ALERT, {
+          type: 'success',
+          title: 'Success',
+          message: msg,
+        }));
+
+        // props change
+        server.on('property-changed', (propInfo) => messageToUI(FROM_P2P.PROPERTY_CHANGED, propInfo));
+
+        // eslint-disable-next-line no-shadow
+        server.on('transaction-pool-changed', (data) => messageToUI(FROM_P2P.TRANSACTION_POOL_CHANGED, data));
+
+        // start server
+        server.listen(serverOptions, () => messageToUI(FROM_P2P.SERVER_STARTED));
+      })
+
+      ipcRenderer.on(TO_P2P.NEW_BLOCK_ADDED, (event, data) => {
+        if (server === null) return;
+        data = JSON.parse(data);
+
+        server.blockchain.chain.push(new Block(...Object.values(data.block)));
+        server.syncChains();
+      })
+    } catch (error) {
+      ipcRenderer.send(FROM_P2P.ERROR, error);
+    }
+
+  </script>
+</body>
+</html>

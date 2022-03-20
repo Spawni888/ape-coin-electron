@@ -1,23 +1,38 @@
-import { ipcMain } from 'electron';
+import { ipcMain, BrowserWindow } from 'electron';
 import { fork } from 'child_process';
 import path from 'path';
-import { P2P_SERVER_TYPES, MINING_TYPES } from '@/resources/constants';
+import {
+  TO_MINING,
+  FROM_MINING,
+  FROM_BG,
+  TO_BG,
+  TO_P2P,
+  FROM_P2P,
+  FROM_APP,
+} from '@/resources/events';
 
-let serverProcess = null;
-let miningProcess = null;
+const logToUI = (win, msg) => {
+  win.webContents.send(
+    FROM_BG.CONSOLE_LOG,
+    msg,
+  );
+};
 
-const p2pServerHandler = (win, app) => {
+let p2pWin = null;
+let miningWin = null;
+
+const p2pServerHandler = (mainWin, app) => {
   const RESOURCES_PATH = process.env.NODE_ENV === 'production'
     ? path.resolve(app.getAppPath(), '../')
     : path.resolve(__dirname, '../src/resources');
 
-  ipcMain.on('start-p2p-server', (event, serverOptions) => {
-    win.webContents.send('server-info', path.join(RESOURCES_PATH, '/childProcesses/p2pProcess.js'));
+  logToUI(mainWin, `RESOURCES_PATH: ${RESOURCES_PATH}`);
 
-    if (serverProcess !== null) {
-      serverProcess.kill();
-      serverProcess = null;
-      win.webContents.send('p2p-alert', {
+  ipcMain.on(TO_BG.START_P2P_SERVER, async (event, serverOptions) => {
+    if (p2pWin !== null) {
+      p2pWin.close();
+
+      mainWin.webContents.send(FROM_APP.ALERT, {
         title: 'Info',
         type: 'info',
         timestamp: Date.now(),
@@ -26,95 +41,100 @@ const p2pServerHandler = (win, app) => {
       return;
     }
 
-    serverProcess = fork(path.join(RESOURCES_PATH, '/childProcesses/p2pProcess.js'));
-    serverProcess.on('exit', () => {
-      console.log('Server Process exited!');
-      serverProcess = null;
+    p2pWin = new BrowserWindow({
+      // show: false,
+      webPreferences: { nodeIntegration: true },
     });
+    await p2pWin.loadFile(path.resolve(RESOURCES_PATH, './windows/p2pServer.html'));
 
-    serverProcess.send({
-      type: P2P_SERVER_TYPES.START_SERVER,
-      data: { serverOptions },
-    });
-    serverProcess.on('message', ({ type, data }) => {
-      switch (type) {
-        case P2P_SERVER_TYPES.SERVER_STARTED:
-          win.webContents.send('p2p-server-started');
-          break;
-        case P2P_SERVER_TYPES.ALERT:
-          win.webContents.send('p2p-alert', data);
-          break;
-        case P2P_SERVER_TYPES.PROPERTY_CHANGED:
-          win.webContents.send('p2p-property-changed', data);
-          break;
-        case P2P_SERVER_TYPES.TRANSACTION_POOL_CHANGED:
-          win.webContents.send('transaction-pool-changed', data);
-          break;
-        case P2P_SERVER_TYPES.OUTBOUNDS_LIST_CHANGED:
-          win.webContents.send('outbounds-list-changed', data);
-          break;
-        case P2P_SERVER_TYPES.INBOUNDS_LIST_CHANGED:
-          win.webContents.send('inbounds-list-changed', data);
-          break;
-        case P2P_SERVER_TYPES.ERROR:
-          console.log(data.error);
-          win.webContents.send('server-info', data.error);
-          break;
-        default:
-          break;
+    p2pWin.webContents.send(TO_P2P.START_SERVER, serverOptions);
+
+    ipcMain.on(FROM_P2P.TO_UI, (_event, payload) => {
+      const { channel, data } = JSON.parse(payload);
+
+      console.log(`Message to UI in channel "${channel}"`);
+      if (data) {
+        console.log(JSON.stringify(data));
       }
+      console.log('-'.repeat(10));
+
+      mainWin.webContents.send(channel, data);
     });
 
-    ipcMain.on('stop-p2p-server', () => {
-      if (serverProcess === null) return;
-
-      serverProcess.send({ type: P2P_SERVER_TYPES.STOP_SERVER });
-      ipcMain.removeAllListeners('stop-p2p-server');
+    ipcMain.on(FROM_P2P.ERROR, (_event, error) => {
+      mainWin.webContents.send(FROM_BG.CONSOLE_LOG, error);
     });
+
+    p2pWin.on('close', () => {
+      ipcMain.removeAllListeners(FROM_P2P.TO_UI);
+      // ipcMain.removeAllListeners(FROM_P2P.ERROR);
+      // ipcMain.removeAllListeners(TO_BG.STOP_P2P_SERVER);
+
+      p2pWin = null;
+
+      mainWin.webContents.send(FROM_P2P.SERVER_STOPPED);
+
+      mainWin.webContents.send(FROM_APP.ALERT, {
+        type: 'info',
+        title: 'Info',
+        message: 'Server Process exited!',
+      });
+      console.log(`%c
+      --------------------------------
+      --------------------------------
+      --> P2P SERVER WINDOW CLOSED <--
+      --------------------------------
+      --------------------------------
+      `, 'color: #eb4034');
+    });
+  });
+
+  ipcMain.on(TO_BG.STOP_P2P_SERVER, () => {
+    if (p2pWin === null) return;
+    p2pWin.close();
   });
 };
 
-const miningHandler = (win, app) => {
+const miningHandler = (mainWin, app) => {
   const RESOURCES_PATH = process.env.NODE_ENV === 'production'
     ? path.resolve(app.getAppPath(), '../')
     : path.resolve(__dirname, '../src/resources');
 
   ipcMain.on('start-mining', (event, info) => {
-    win.webContents.send('server-info', path.join(RESOURCES_PATH, '/childProcesses/miningProcess.js'));
+    mainWin.webContents.send('server-info', path.join(RESOURCES_PATH, '/childProcesses/miningWin.js'));
 
-    if (miningProcess !== null) {
-      miningProcess.kill();
-      miningProcess = null;
+    if (miningWin !== null) {
+      miningWin.kill();
+      miningWin = null;
     }
-    miningProcess = fork(path.join(RESOURCES_PATH, '/childProcesses/miningProcess.js'));
-    miningProcess.on('exit', () => {
+    miningWin = fork(path.join(RESOURCES_PATH, '/childProcesses/miningWin.js'));
+    miningWin.on('exit', () => {
       console.log('Mining Process exited!');
-      miningProcess = null;
+      miningWin = null;
     });
 
-    miningProcess.send({
-      type: MINING_TYPES.START_MINING,
+    miningWin.send({
+      type: TO_MINING.START_MINING,
       data: info,
     });
 
-    miningProcess.on('message', ({
+    miningWin.on('message', ({
       type,
       data,
     }) => {
       switch (type) {
-        case MINING_TYPES.BLOCK_HAS_CALCULATED:
-          win.webContents.send('block-has-calculated', { block: data.block });
-          miningProcess = null;
+        case FROM_MINING.BLOCK_HAS_CALCULATED:
+          mainWin.webContents.send('block-has-calculated', { block: data.block });
+          miningWin = null;
 
-          if (serverProcess === null) return;
-          serverProcess.send({
-            type: P2P_SERVER_TYPES.NEW_BLOCK_ADDED,
+          if (p2pWin === null) return;
+          p2pWin.send({
+            type: FROM_MINING.NEW_BLOCK_ADDED,
             data: { block: data.block },
           });
-
           break;
-        case MINING_TYPES.ERROR:
-          win.webContents.send('mining-error', { error: data.error });
+        case FROM_MINING.ERROR:
+          mainWin.webContents.send('mining-error', { error: data.error });
           break;
         default:
           break;
@@ -122,9 +142,9 @@ const miningHandler = (win, app) => {
     });
 
     ipcMain.on('stop-mining', () => {
-      if (miningProcess === null) return;
+      if (miningWin === null) return;
 
-      miningProcess.kill();
+      miningWin.kill();
       ipcMain.removeAllListeners('stop-mining');
     });
   });
