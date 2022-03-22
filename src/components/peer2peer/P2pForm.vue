@@ -30,7 +30,7 @@
 
 <script>
 import {
-  ref, onMounted, reactive,
+  ref, onMounted, reactive, onActivated,
 } from 'vue';
 import { useStore } from 'vuex';
 import CoreInput from '@/components/CoreInput';
@@ -136,7 +136,7 @@ export default {
     // const API = ref(null);
     const ngrok = ref(null);
     let loadedForm;
-    onMounted(() => {
+    onActivated(() => {
       // useTooltip({
       //   el: API.value,
       //   id: 'API',

@@ -15,6 +15,7 @@ import {
   FROM_APP,
 } from '@/resources/events';
 import uuid from 'uuid';
+import { routeTo } from '@/router';
 
 export default createStore({
   state: {
@@ -393,6 +394,10 @@ export default createStore({
         message: 'Mining have been stopped.',
       });
     },
+    async routeHome() {
+      console.log(10);
+      await routeTo({ name: 'p2p' });
+    },
     closeServer({ state, commit, dispatch }) {
       ipcRenderer.send(TO_BG.STOP_P2P_SERVER);
 
@@ -409,6 +414,7 @@ export default createStore({
       state.serverIsUp = false;
 
       commit('logOutWallet');
+      dispatch('routeHome');
 
       if (!state.miningIsUp) return;
       dispatch('stopMining');

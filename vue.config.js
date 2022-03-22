@@ -5,17 +5,25 @@ const path = require('path');
 module.exports = {
   pluginOptions: {
     electronBuilder: {
+      externals: ['ngrok', 'ws', 'elliptic'],
       nodeIntegration: true,
       builderOptions: {
+        asar: false,
+        // asarUnpack: ['./node_modules'],
+        // unpackDir: './test',
+        // extraResources: [
+        //   './node_modules/ws',
+        //   './node_modules/async-limiter',
+        // ],
         extraFiles: [
-          {
-            from: 'node_modules/ngrok/bin',
-            to: 'resources/ngrok/bin',
-            filter: ['**/*'],
-          },
+          // {
+          //   from: 'node_modules/ngrok/bin',
+          //   to: 'resources/ngrok/bin',
+          //   filter: ['**/*'],
+          // },
           {
             from: 'src/resources',
-            to: 'resources',
+            to: 'resources/app',
             filter: ['**/*'],
           },
         ],

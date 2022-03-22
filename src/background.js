@@ -28,7 +28,7 @@ try {
   let isQuiting = false;
   const gotTheLock = app.requestSingleInstanceLock();
 
-// Scheme must be registered before the app is ready
+  // Scheme must be registered before the app is ready
   protocol.registerSchemesAsPrivileged([
     {
       scheme: 'app',
@@ -49,7 +49,7 @@ try {
     }
   };
 
-  async function createWindow() {
+  const createWindow = async () => {
     // Create the browser window.
     mainWin = new BrowserWindow({
       width: 1000,
@@ -61,6 +61,7 @@ try {
         enableRemoteModule: true,
         contextIsolation: false,
         // Use pluginOptions.nodeIntegration, leave this alone
+        // eslint-disable-next-line max-len
         // See nklayman.github.io/vue-cli-plugin-electron-builder/guide/security.html#node-integration
         // for more info
         nodeIntegration: process.env.ELECTRON_NODE_INTEGRATION,
@@ -71,8 +72,7 @@ try {
       // Load the url of the dev server if in development mode
       await mainWin.loadURL(process.env.WEBPACK_DEV_SERVER_URL);
       if (!process.env.IS_TEST) mainWin.webContents.openDevTools();
-    }
-    else {
+    } else {
       createProtocol('app');
       // Load the index.html when not in development
       await mainWin.loadURL('app://./index.html');
@@ -125,8 +125,8 @@ try {
       });
 
       if (!canceled) {
-        const txtKeyPair = `publicKey(your address): ${ keyPair.pub }
-privateKey(secret key, don't share it): ${ keyPair.priv }`;
+        const txtKeyPair = `publicKey(your address): ${keyPair.pub}
+privateKey(secret key, don't share it): ${keyPair.priv}`;
         fs.writeFile(filePath, txtKeyPair, (err) => {
           if (err) {
             mainWin.webContents.send('newWalletSaveError');
@@ -176,7 +176,7 @@ privateKey(secret key, don't share it): ${ keyPair.priv }`;
     isQuiting = true;
   });
 
-// Quit when all windows are closed.
+  // Quit when all windows are closed.
   app.on('window-all-closed', () => {
     // On macOS it is common for applications and their menu bar
     // to stay active until the user quits explicitly with Cmd + Q
@@ -191,14 +191,13 @@ privateKey(secret key, don't share it): ${ keyPair.priv }`;
     if (BrowserWindow.getAllWindows().length === 0) createWindow();
   });
 
-// This method will be called when Electron has finished
-// initialization and is ready to create browser windows.
-// Some APIs can only be used after this event occurs.
+  // This method will be called when Electron has finished
+  // initialization and is ready to create browser windows.
+  // Some APIs can only be used after this event occurs.
 
   if (!gotTheLock) {
     app.quit();
-  }
-  else {
+  } else {
     app.on('second-instance', () => {
       // Someone tried to run a second instance, we should focus our window.
       if (mainWin) {
@@ -218,8 +217,7 @@ privateKey(secret key, don't share it): ${ keyPair.priv }`;
             electron: '>=1.2.1',
           });
           // await installExtension(VUEJS_DEVTOOLS);
-        }
-        catch (e) {
+        } catch (e) {
           console.error('Vue Devtools failed to install:', e.toString());
         }
       }
@@ -242,7 +240,6 @@ privateKey(secret key, don't share it): ${ keyPair.priv }`;
       });
     }
   }
-}
-catch (err) {
+} catch (err) {
   console.log(err);
 }

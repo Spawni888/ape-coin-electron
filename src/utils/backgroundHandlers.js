@@ -22,9 +22,13 @@ let p2pWin = null;
 let miningWin = null;
 
 const p2pServerHandler = (mainWin, app) => {
-  const RESOURCES_PATH = process.env.NODE_ENV === 'production'
+  const isProd = process.env.NODE_ENV === 'production';
+  const RESOURCES_PATH = isProd
     ? path.resolve(app.getAppPath(), '../')
-    : path.resolve(__dirname, '../src/resources');
+    : path.resolve(app.getAppPath(), '../src/resources');
+  const WINDOWS_PATH = isProd
+    ? path.resolve(app.getAppPath(), './windows')
+    : path.resolve(RESOURCES_PATH, './windows');
 
   logToUI(mainWin, `RESOURCES_PATH: ${RESOURCES_PATH}`);
 
@@ -43,9 +47,12 @@ const p2pServerHandler = (mainWin, app) => {
 
     p2pWin = new BrowserWindow({
       // show: false,
-      webPreferences: { nodeIntegration: true },
+      webPreferences: {
+        nodeIntegration: true,
+        contextIsolation: false,
+      },
     });
-    await p2pWin.loadFile(path.resolve(RESOURCES_PATH, './windows/p2pServer.html'));
+    await p2pWin.loadFile(path.resolve(WINDOWS_PATH, 'p2pServer.html'));
 
     p2pWin.webContents.send(TO_P2P.START_SERVER, serverOptions);
 

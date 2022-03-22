@@ -7,7 +7,7 @@
 <script>
 import CoreButton from '@/components/CoreButton';
 import useTooltip from '@/use/tooltip';
-import { ref, onMounted } from 'vue';
+import { ref, onMounted, onActivated } from 'vue';
 import { useStore } from 'vuex';
 
 export default {
@@ -17,7 +17,7 @@ export default {
     const store = useStore();
     const mineBtn = ref(null);
 
-    onMounted(() => {
+    onActivated(() => {
       useTooltip({
         el: mineBtn.value,
         id: 'mineBtn',

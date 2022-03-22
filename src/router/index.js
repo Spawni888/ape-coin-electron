@@ -2,6 +2,7 @@ import { createRouter, createWebHistory } from 'vue-router';
 import Wallet from '@/views/Wallet';
 import PeerToPeer from '@/views/PeerToPeer';
 import Mining from '@/views/Mining';
+// eslint-disable-next-line import/no-cycle
 import store from '@/store';
 import Blockchain from '@/views/Blockchain';
 import AlertsJournal from '@/views/AlertsJournal';
@@ -49,3 +50,4 @@ router.beforeEach((to, from, next) => {
   return next();
 });
 export default router;
+export const routeTo = async (route) => router.push(route);
