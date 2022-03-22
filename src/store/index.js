@@ -15,6 +15,7 @@ import {
   FROM_APP,
 } from '@/resources/events';
 import uuid from 'uuid';
+// eslint-disable-next-line import/no-cycle
 import { routeTo } from '@/router';
 
 export default createStore({
@@ -97,7 +98,7 @@ export default createStore({
       return state.miningIsUp;
     },
     blockchain(state) {
-      return state.blockchain.chain;
+      return state.blockchain?.chain;
     },
   },
   mutations: {
@@ -203,13 +204,12 @@ export default createStore({
         ngrokAuthToken: ngrok ? ngrokAuthToken : null,
       });
 
-      ipcRenderer.on(FROM_P2P.SERVER_STARTED, () => {
+      ipcRenderer.once(FROM_P2P.SERVER_STARTED, () => {
         state.serverIsUp = true;
         console.log(`Listening for peer-to-peer connections on: ${serverPort}`);
       });
 
-      ipcRenderer.on(FROM_P2P.SERVER_STOPPED, () => {
-        console.log(1111);
+      ipcRenderer.once(FROM_P2P.SERVER_STOPPED, () => {
         dispatch('closeServer');
         console.log('Server stopped.');
       });
@@ -395,26 +395,25 @@ export default createStore({
       });
     },
     async routeHome() {
-      console.log(10);
       await routeTo({ name: 'p2p' });
     },
     closeServer({ state, commit, dispatch }) {
       ipcRenderer.send(TO_BG.STOP_P2P_SERVER);
 
+      ipcRenderer.removeAllListeners(FROM_APP.ALERT);
       ipcRenderer.removeAllListeners(FROM_BG.SIGN_IN_WALLET);
-      ipcRenderer.removeAllListeners(FROM_P2P.SERVER_STARTED);
-      ipcRenderer.removeAllListeners(FROM_P2P.ALERT);
       ipcRenderer.removeAllListeners(FROM_P2P.PROPERTY_CHANGED);
       ipcRenderer.removeAllListeners(FROM_P2P.OUTBOUNDS_LIST_CHANGED);
       ipcRenderer.removeAllListeners(FROM_P2P.INBOUNDS_LIST_CHANGED);
 
+      dispatch('routeHome');
+
       state.transactionPool = null;
-      state.blockchain = null;
+      // state.blockchain = null;
 
       state.serverIsUp = false;
 
       commit('logOutWallet');
-      dispatch('routeHome');
 
       if (!state.miningIsUp) return;
       dispatch('stopMining');

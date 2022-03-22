@@ -1,4 +1,4 @@
-import { ipcMain, BrowserWindow } from 'electron';
+import { ipcMain, BrowserWindow, app } from 'electron';
 import { fork } from 'child_process';
 import path from 'path';
 import {
@@ -18,18 +18,18 @@ const logToUI = (win, msg) => {
   );
 };
 
-let p2pWin = null;
+const isProd = process.env.NODE_ENV === 'production';
+const RESOURCES_PATH = isProd
+  ? path.resolve(app.getAppPath(), '../')
+  : path.resolve(app.getAppPath(), '../src/resources');
+const WINDOWS_PATH = isProd
+  ? path.resolve(app.getAppPath(), './windows')
+  : path.resolve(RESOURCES_PATH, './windows');
+
 let miningWin = null;
+let p2pWin = null;
 
-const p2pServerHandler = (mainWin, app) => {
-  const isProd = process.env.NODE_ENV === 'production';
-  const RESOURCES_PATH = isProd
-    ? path.resolve(app.getAppPath(), '../')
-    : path.resolve(app.getAppPath(), '../src/resources');
-  const WINDOWS_PATH = isProd
-    ? path.resolve(app.getAppPath(), './windows')
-    : path.resolve(RESOURCES_PATH, './windows');
-
+const p2pServerHandler = (mainWin) => {
   logToUI(mainWin, `RESOURCES_PATH: ${RESOURCES_PATH}`);
 
   ipcMain.on(TO_BG.START_P2P_SERVER, async (event, serverOptions) => {
@@ -103,10 +103,6 @@ const p2pServerHandler = (mainWin, app) => {
 };
 
 const miningHandler = (mainWin, app) => {
-  const RESOURCES_PATH = process.env.NODE_ENV === 'production'
-    ? path.resolve(app.getAppPath(), '../')
-    : path.resolve(__dirname, '../src/resources');
-
   ipcMain.on('start-mining', (event, info) => {
     mainWin.webContents.send('server-info', path.join(RESOURCES_PATH, '/childProcesses/miningWin.js'));
 

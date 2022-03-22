@@ -1,5 +1,5 @@
 <template>
-  <form class="p2p-form">
+  <form class="p2p-form" ref="test">
     <div class="p2p-title">
       Distribution Network
     </div>
@@ -135,8 +135,11 @@ export default {
 
     // const API = ref(null);
     const ngrok = ref(null);
+    const test = ref(null);
     let loadedForm;
-    onActivated(() => {
+    onMounted(() => {
+      console.log(ngrok);
+      console.log(test);
       // useTooltip({
       //   el: API.value,
       //   id: 'API',
@@ -144,7 +147,7 @@ export default {
       // });
       useTooltip({
         el: ngrok.value,
-        id: 'ngrok',
+        id: 'ngrok-switch',
         maxWidth: 300,
         text: 'You should port forward to mine faster, because people will be able to'
           + ' connect to you. You will have as much actual info as connections of your network. '
@@ -152,7 +155,9 @@ export default {
           + 'Register for free at ngrok.com and pass ngrok AuthToken to the field above.',
       });
       ipcRenderer.send(TO_BG.CHECK_P2P_FORM_SAVING);
+      console.log(123);
       ipcRenderer.on(FROM_BG.LOAD_P2P_FORM, (event, savedForm) => {
+        console.log(savedForm);
         loadedForm = savedForm;
 
         Object.keys(form)

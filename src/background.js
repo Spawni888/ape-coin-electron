@@ -45,7 +45,7 @@ try {
   const sendP2pForm = () => {
     const form = electronStore.get('p2pForm');
     if (form) {
-      mainWin.webContents.send('load-p2pForm', form);
+      mainWin.webContents.send(FROM_BG.LOAD_P2P_FORM, form);
     }
   };
 
@@ -97,10 +97,13 @@ try {
     bgHandlers.miningHandler(mainWin, app);
 
     ipcMain.on(TO_BG.SAVE_P2P_FORM, (event, form) => {
+      console.log('FORM WAS SAVED:');
+      console.log(JSON.stringify(form, null, 2));
+      console.log('-'.repeat(10));
       electronStore.set('p2pForm', form);
     });
 
-    ipcMain.on('check-p2pForm', sendP2pForm);
+    ipcMain.on(TO_BG.CHECK_P2P_FORM_SAVING, sendP2pForm);
 
     ipcMain.on(TO_BG.CHECK_AUTH_SAVING, async () => {
       const keyPair = electronStore.get('walletAuth');
@@ -125,8 +128,8 @@ try {
       });
 
       if (!canceled) {
-        const txtKeyPair = `publicKey(your address): ${keyPair.pub}
-privateKey(secret key, don't share it): ${keyPair.priv}`;
+        const txtKeyPair = `publicKey(your address): ${ keyPair.pub }
+privateKey(secret key, don't share it): ${ keyPair.priv }`;
         fs.writeFile(filePath, txtKeyPair, (err) => {
           if (err) {
             mainWin.webContents.send('newWalletSaveError');
@@ -170,7 +173,7 @@ privateKey(secret key, don't share it): ${keyPair.priv}`;
       mainWin.show();
     });
     // tray.setContextMenu(contextMenu);
-  }
+  };
 
   app.on('before-quit', () => {
     isQuiting = true;
