@@ -42,7 +42,7 @@
 <script>
 import { useStore } from 'vuex';
 import {
-  computed, onMounted, reactive, ref, onActivated,
+  computed, onMounted, reactive, ref,
 } from 'vue';
 import CoreInput from '@/components/CoreInput';
 import useForm from '@/use/form/form';
@@ -161,7 +161,7 @@ export default {
     };
 
     const feeNode = ref(null);
-    onActivated(() => {
+    onMounted(() => {
       useTooltip({
         el: feeNode.value,
         id: 'feeNode',

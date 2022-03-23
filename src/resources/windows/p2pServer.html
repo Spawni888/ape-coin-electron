@@ -76,7 +76,7 @@
         server.on('transaction-pool-changed', (data) => messageToUI(FROM_P2P.TRANSACTION_POOL_CHANGED, data));
 
         // start server
-        server.listen(serverOptions, () => messageToUI(FROM_P2P.SERVER_STARTED));
+        server.listen(serverOptions, () => messageToUI(FROM_P2P.SERVER_STARTED, serverOptions.port));
       })
 
       ipcRenderer.on(TO_P2P.NEW_BLOCK_ADDED, (event, data) => {

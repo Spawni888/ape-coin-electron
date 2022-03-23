@@ -20,6 +20,7 @@ import { routeTo } from '@/router';
 
 export default createStore({
   state: {
+    backgroundListenersInitialized: false,
     server: null,
     p2pServer: {
       inbounds: {},
@@ -140,12 +141,75 @@ export default createStore({
     },
   },
   actions: {
+    initBackgroundListeners({ state, commit, dispatch }) {
+      state.backgroundListenersInitialized = true;
+
+      // console logs
+      ipcRenderer.on(FROM_BG.CONSOLE_LOG, (event, data) => {
+        console.log(JSON.stringify(data));
+      });
+
+      ipcRenderer.on(FROM_P2P.SERVER_STARTED, (event, { serverPort }) => {
+        state.serverIsUp = true;
+        console.log(`Listening for peer-to-peer connections on: ${serverPort}`);
+      });
+
+      ipcRenderer.on(FROM_P2P.SERVER_STOPPED, () => {
+        commit('showAlert', {
+          type: 'info',
+          title: 'Info',
+          message: 'Server Process exited!',
+        });
+
+        dispatch('closeServer');
+      });
+
+      // alerts
+      ipcRenderer.on(FROM_APP.ALERT, (event, data) => {
+        console.log(data.message);
+        commit('showAlert', data);
+        if (data.type === 'error') dispatch('closeServer');
+      });
+
+      // p2p-server property changes
+      ipcRenderer.on(FROM_P2P.PROPERTY_CHANGED, (event, data) => {
+        const {
+          prop,
+          value,
+        } = data;
+
+        if (prop === 'blockchain') {
+          state[prop].chain = value.chain;
+          return;
+        }
+        if (prop === 'transactionPool') {
+          state[prop].transactions = value.transactions;
+        }
+        state.p2pServer[prop] = value;
+      });
+
+      ipcRenderer.on(FROM_P2P.OUTBOUNDS_LIST_CHANGED, (event, data) => {
+        state.p2pServer.outboundsList = data.outboundsList;
+      });
+      ipcRenderer.on(FROM_P2P.INBOUNDS_LIST_CHANGED, (event, data) => {
+        state.p2pServer.inboundsList = data.inboundsList;
+      });
+
+      // if keepLoggedIn was turned on
+      ipcRenderer.on(FROM_BG.SIGN_IN_WALLET, (event, keyPair) => {
+        dispatch('signInWallet', {
+          ...keyPair,
+          silentMode: true,
+        });
+      });
+    },
     async createServer({
       state,
       commit,
       dispatch,
     }, options) {
-      dispatch('closeServer');
+      if (!state.backgroundListenersInitialized) dispatch('initBackgroundListeners');
+      if (state.serverIsUp) dispatch('closeServer');
 
       let {
         serverPort,
@@ -204,60 +268,8 @@ export default createStore({
         ngrokAuthToken: ngrok ? ngrokAuthToken : null,
       });
 
-      ipcRenderer.once(FROM_P2P.SERVER_STARTED, () => {
-        state.serverIsUp = true;
-        console.log(`Listening for peer-to-peer connections on: ${serverPort}`);
-      });
-
-      ipcRenderer.once(FROM_P2P.SERVER_STOPPED, () => {
-        dispatch('closeServer');
-        console.log('Server stopped.');
-      });
-
-      // alerts
-      ipcRenderer.on(FROM_APP.ALERT, (event, data) => {
-        console.log(data.message);
-        commit('showAlert', data);
-        if (data.type === 'error') dispatch('closeServer');
-      });
-
-      // p2p-server property changes
-      ipcRenderer.on(FROM_P2P.PROPERTY_CHANGED, (event, data) => {
-        const {
-          prop,
-          value,
-        } = data;
-
-        if (prop === 'blockchain') {
-          state[prop].chain = value.chain;
-          return;
-        }
-        if (prop === 'transactionPool') {
-          state[prop].transactions = value.transactions;
-        }
-        state.p2pServer[prop] = value;
-      });
-
-      ipcRenderer.on(FROM_P2P.OUTBOUNDS_LIST_CHANGED, (event, data) => {
-        state.p2pServer.outboundsList = data.outboundsList;
-      });
-      ipcRenderer.on(FROM_P2P.INBOUNDS_LIST_CHANGED, (event, data) => {
-        state.p2pServer.inboundsList = data.inboundsList;
-      });
-
-      // console logs
-      ipcRenderer.on(FROM_BG.CONSOLE_LOG, (event, data) => {
-        console.log(JSON.stringify(data));
-      });
-
       // if keepLoggedIn was turned on
       ipcRenderer.send(TO_BG.CHECK_AUTH_SAVING);
-      ipcRenderer.on(FROM_BG.SIGN_IN_WALLET, (event, keyPair) => {
-        dispatch('signInWallet', {
-          ...keyPair,
-          silentMode: true,
-        });
-      });
     },
     createTransaction({ state, commit }, transactionInfo) {
       if (state.transactionPending) return;
@@ -373,6 +385,7 @@ export default createStore({
 
       state.miner.mine();
 
+      // restart MINING process if new transaction was created
       ipcRenderer.on(FROM_P2P.TRANSACTION_POOL_CHANGED, (event, { transactions }) => {
         state.transactionPool.transactions = transactions;
         dispatch('stopMining', true);
@@ -387,6 +400,8 @@ export default createStore({
       state.miningIsUp = false;
       state.miner.stopMining();
 
+      ipcRenderer.removeAllListeners(FROM_P2P.TRANSACTION_POOL_CHANGED);
+
       if (silence) return;
       commit('showAlert', {
         type: 'info',
@@ -399,12 +414,6 @@ export default createStore({
     },
     closeServer({ state, commit, dispatch }) {
       ipcRenderer.send(TO_BG.STOP_P2P_SERVER);
-
-      ipcRenderer.removeAllListeners(FROM_APP.ALERT);
-      ipcRenderer.removeAllListeners(FROM_BG.SIGN_IN_WALLET);
-      ipcRenderer.removeAllListeners(FROM_P2P.PROPERTY_CHANGED);
-      ipcRenderer.removeAllListeners(FROM_P2P.OUTBOUNDS_LIST_CHANGED);
-      ipcRenderer.removeAllListeners(FROM_P2P.INBOUNDS_LIST_CHANGED);
 
       dispatch('routeHome');
 

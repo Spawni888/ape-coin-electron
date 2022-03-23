@@ -81,11 +81,6 @@ const p2pServerHandler = (mainWin) => {
 
       mainWin.webContents.send(FROM_P2P.SERVER_STOPPED);
 
-      mainWin.webContents.send(FROM_APP.ALERT, {
-        type: 'info',
-        title: 'Info',
-        message: 'Server Process exited!',
-      });
       console.log(`%c
       --------------------------------
       --------------------------------
@@ -102,7 +97,7 @@ const p2pServerHandler = (mainWin) => {
   });
 };
 
-const miningHandler = (mainWin, app) => {
+const miningHandler = (mainWin) => {
   ipcMain.on('start-mining', (event, info) => {
     mainWin.webContents.send('server-info', path.join(RESOURCES_PATH, '/childProcesses/miningWin.js'));
 

@@ -128,8 +128,8 @@ try {
       });
 
       if (!canceled) {
-        const txtKeyPair = `publicKey(your address): ${ keyPair.pub }
-privateKey(secret key, don't share it): ${ keyPair.priv }`;
+        const txtKeyPair = `publicKey(your address): ${keyPair.pub}
+privateKey(secret key, don't share it): ${keyPair.priv}`;
         fs.writeFile(filePath, txtKeyPair, (err) => {
           if (err) {
             mainWin.webContents.send('newWalletSaveError');
