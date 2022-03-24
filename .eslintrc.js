@@ -21,5 +21,6 @@ module.exports = {
     'no-plusplus': 'off',
     'array-callback-return': 'off',
     'class-methods-use-this': 'off',
+    'no-bitwise': 'off',
   },
 };

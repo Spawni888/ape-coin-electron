@@ -39,6 +39,7 @@ class Blockchain {
 
     console.log('Replacing blockchain with the new chain');
     this.chain = newChain;
+    // TODO: U should filter tp, not clear.
     tp.clear();
   }
 }

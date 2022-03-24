@@ -12,7 +12,7 @@ class TransactionPool extends EventEmitter {
 
   updateOrAddTransaction(transaction) {
     const sameTransactionIdx = this.transactions.findIndex(t => t.id === transaction.id);
-    // eslint-disable-next-line no-bitwise
+
     if (~sameTransactionIdx) {
       this.transactions[sameTransactionIdx] = transaction;
     } else {
@@ -20,7 +20,7 @@ class TransactionPool extends EventEmitter {
     }
   }
 
-  existingTransaction(address) {
+  getTransactionFromAddress(address) {
     return this.transactions.find(t => t.input.address === address);
   }
 

@@ -1,5 +1,4 @@
 import { ipcMain, BrowserWindow, app } from 'electron';
-import { fork } from 'child_process';
 import path from 'path';
 import {
   TO_MINING,
@@ -18,6 +17,18 @@ const logToUI = (win, msg) => {
   );
 };
 
+const proxyToUI = (_event, payload, mainWin) => {
+  const { channel, data } = JSON.parse(payload);
+
+  console.log(`Message to UI in channel "${channel}"`);
+  if (data) {
+    console.log(JSON.stringify(data, null, 2));
+  }
+  console.log('-'.repeat(10));
+
+  mainWin.webContents.send(channel, data);
+};
+
 const isProd = process.env.NODE_ENV === 'production';
 const RESOURCES_PATH = isProd
   ? path.resolve(app.getAppPath(), '../')
@@ -26,8 +37,21 @@ const WINDOWS_PATH = isProd
   ? path.resolve(app.getAppPath(), './windows')
   : path.resolve(RESOURCES_PATH, './windows');
 
-let miningWin = null;
+const createWindow = async fileName => {
+  const win = new BrowserWindow({
+    // show: false,
+    webPreferences: {
+      nodeIntegration: true,
+      contextIsolation: false,
+    },
+  });
+  await win.loadFile(path.resolve(WINDOWS_PATH, fileName));
+  console.log(`Window ${fileName} was created`);
+  return win;
+};
+
 let p2pWin = null;
+let miningWin = null;
 
 const p2pServerHandler = (mainWin) => {
   logToUI(mainWin, `RESOURCES_PATH: ${RESOURCES_PATH}`);
@@ -45,38 +69,18 @@ const p2pServerHandler = (mainWin) => {
       return;
     }
 
-    p2pWin = new BrowserWindow({
-      // show: false,
-      webPreferences: {
-        nodeIntegration: true,
-        contextIsolation: false,
-      },
-    });
-    await p2pWin.loadFile(path.resolve(WINDOWS_PATH, 'p2pServer.html'));
-
+    p2pWin = await createWindow('p2pServer.html');
     p2pWin.webContents.send(TO_P2P.START_SERVER, serverOptions);
 
-    ipcMain.on(FROM_P2P.TO_UI, (_event, payload) => {
-      const { channel, data } = JSON.parse(payload);
+    ipcMain.on(FROM_P2P.TO_UI, (...args) => proxyToUI(...args, mainWin));
 
-      console.log(`Message to UI in channel "${channel}"`);
-      if (data) {
-        console.log(JSON.stringify(data));
-      }
-      console.log('-'.repeat(10));
-
-      mainWin.webContents.send(channel, data);
-    });
-
-    ipcMain.on(FROM_P2P.ERROR, (_event, error) => {
+    ipcMain.once(FROM_P2P.ERROR, (_event, error) => {
       mainWin.webContents.send(FROM_BG.CONSOLE_LOG, error);
+      p2pWin.close();
     });
 
     p2pWin.on('close', () => {
       ipcMain.removeAllListeners(FROM_P2P.TO_UI);
-      // ipcMain.removeAllListeners(FROM_P2P.ERROR);
-      // ipcMain.removeAllListeners(TO_BG.STOP_P2P_SERVER);
-
       p2pWin = null;
 
       mainWin.webContents.send(FROM_P2P.SERVER_STOPPED);
@@ -98,53 +102,39 @@ const p2pServerHandler = (mainWin) => {
 };
 
 const miningHandler = (mainWin) => {
-  ipcMain.on('start-mining', (event, info) => {
-    mainWin.webContents.send('server-info', path.join(RESOURCES_PATH, '/childProcesses/miningWin.js'));
-
+  ipcMain.on(TO_BG.START_MINING, async (event, info) => {
     if (miningWin !== null) {
-      miningWin.kill();
-      miningWin = null;
+      miningWin.close();
     }
-    miningWin = fork(path.join(RESOURCES_PATH, '/childProcesses/miningWin.js'));
-    miningWin.on('exit', () => {
-      console.log('Mining Process exited!');
+
+    miningWin = await createWindow('mining.html');
+    miningWin.send(TO_MINING.START_MINING, info);
+
+    ipcMain.on(FROM_MINING.TO_UI, (...args) => proxyToUI(...args, mainWin));
+
+    ipcMain.once(FROM_MINING.ERROR, (_event, error) => {
+      mainWin.webContents.send(FROM_BG.CONSOLE_LOG, error);
+      miningWin.close();
+    });
+
+    miningWin.on('close', () => {
+      ipcMain.removeAllListeners(FROM_MINING.TO_UI);
       miningWin = null;
+
+      mainWin.webContents.send(FROM_MINING.MINING_STOPPED);
+      console.log(`%c
+      --------------------------------
+      --------------------------------
+      ----> MINING WINDOW CLOSED <----
+      --------------------------------
+      --------------------------------
+      `, 'color: #eb4034');
     });
+  });
 
-    miningWin.send({
-      type: TO_MINING.START_MINING,
-      data: info,
-    });
-
-    miningWin.on('message', ({
-      type,
-      data,
-    }) => {
-      switch (type) {
-        case FROM_MINING.BLOCK_HAS_CALCULATED:
-          mainWin.webContents.send('block-has-calculated', { block: data.block });
-          miningWin = null;
-
-          if (p2pWin === null) return;
-          p2pWin.send({
-            type: FROM_MINING.NEW_BLOCK_ADDED,
-            data: { block: data.block },
-          });
-          break;
-        case FROM_MINING.ERROR:
-          mainWin.webContents.send('mining-error', { error: data.error });
-          break;
-        default:
-          break;
-      }
-    });
-
-    ipcMain.on('stop-mining', () => {
-      if (miningWin === null) return;
-
-      miningWin.kill();
-      ipcMain.removeAllListeners('stop-mining');
-    });
+  ipcMain.on(TO_BG.STOP_MINING, () => {
+    if (miningWin === null) return;
+    miningWin.close();
   });
 };
 

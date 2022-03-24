@@ -71,14 +71,12 @@
 
         // props change
         server.on('property-changed', (propInfo) => messageToUI(FROM_P2P.PROPERTY_CHANGED, propInfo));
-
-        // eslint-disable-next-line no-shadow
         server.on('transaction-pool-changed', (data) => messageToUI(FROM_P2P.TRANSACTION_POOL_CHANGED, data));
 
         // start server
         server.listen(serverOptions, () => messageToUI(FROM_P2P.SERVER_STARTED, serverOptions.port));
       })
-
+      // TODO: start with this next time xxxxxxxxxxxxdddddddddddddddd))))))))))))))))))))))))
       ipcRenderer.on(TO_P2P.NEW_BLOCK_ADDED, (event, data) => {
         if (server === null) return;
         data = JSON.parse(data);

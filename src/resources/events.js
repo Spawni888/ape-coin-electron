@@ -24,7 +24,8 @@ const TO_MINING = {
 const FROM_MINING = {
   BLOCK_HAS_CALCULATED: 'block-has-calculated',
   ERROR: 'mining-error',
-  CONSOLE_LOG: 'console-log',
+  TO_UI: 'from-mining-to-ui',
+  MINING_STOPPED: 'mining_stopped',
 };
 
 const FROM_BG = {
@@ -38,6 +39,8 @@ const FROM_BG = {
 const TO_BG = {
   START_P2P_SERVER: 'start-p2p-server',
   STOP_P2P_SERVER: 'stop-p2p-server',
+  START_MINING: 'to-bg-start-mining',
+  STOP_MINING: 'to-bg-stop-mining',
   CHECK_AUTH_SAVING: 'check-auth-saving',
   SAVE_P2P_FORM: 'save-p2p-form',
   CHECK_P2P_FORM_SAVING: 'check-p2p-form-saving',

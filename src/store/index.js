@@ -2,7 +2,6 @@ import { createStore } from 'vuex';
 import Blockchain from '@/resources/core/blockchain';
 import TransactionPool from '@/resources/core/wallet/transactionPool';
 import Wallet from '@/resources/core/wallet';
-import Miner from '@/resources/core/app/miner';
 import Block from '@/resources/core/blockchain/block';
 import ChainUtil from '@/resources/core/chain-util';
 import portfinder from 'portfinder';
@@ -12,11 +11,13 @@ import {
   TO_BG,
   FROM_P2P,
   FROM_BG,
-  FROM_APP,
+  FROM_APP, FROM_MINING,
 } from '@/resources/events';
 import uuid from 'uuid';
 // eslint-disable-next-line import/no-cycle
 import { routeTo } from '@/router';
+import Transaction from '@/resources/core/wallet/transaction';
+import { cloneDeep } from 'lodash';
 
 export default createStore({
   state: {
@@ -40,7 +41,6 @@ export default createStore({
     blockchain: null,
     transactionPool: null,
     wallet: null,
-    miner: null,
     serverIsUp: false,
     alertQueue: [],
     alertsJournal: [],
@@ -136,6 +136,8 @@ export default createStore({
       state.alertTimer = setInterval(intervalFunc, 5000);
     },
     recalculateBalance(state) {
+      if (state.wallet === null) return;
+
       state.wallet.balance = state.wallet.calculateBalance(state.blockchain);
       state.wallet.calculateBalanceWithTpIncluded(state.transactionPool);
     },
@@ -195,6 +197,18 @@ export default createStore({
         state.p2pServer.inboundsList = data.inboundsList;
       });
 
+      // FROM_MINING
+      ipcRenderer.on(FROM_MINING.BLOCK_HAS_CALCULATED, (event, { block }) => dispatch('onBlockCalculated', block));
+      ipcRenderer.on(FROM_MINING.ERROR, (event, { error }) => dispatch('onMiningError', error));
+
+      // restart MINING process if new transaction was created
+      ipcRenderer.on(FROM_P2P.TRANSACTION_POOL_CHANGED, (event, { transactions }) => {
+        state.transactionPool.transactions = transactions;
+
+        if (!state.miningIsUp) return;
+        dispatch('startMining', { silenceMode: true });
+      });
+
       // if keepLoggedIn was turned on
       ipcRenderer.on(FROM_BG.SIGN_IN_WALLET, (event, keyPair) => {
         dispatch('signInWallet', {
@@ -202,6 +216,34 @@ export default createStore({
           silentMode: true,
         });
       });
+    },
+    onBlockCalculated({ state, dispatch, commit }, block) {
+      console.log('new Block:', block);
+      state.blockchain.chain.push(new Block(...Object.values(block)));
+      state.transactionPool.clear();
+
+      const reward = block.data
+        .find(transaction => transaction.input.address === BLOCKCHAIN_WALLET)
+        .outputs
+        .find(output => output.address === state.wallet.publicKey)
+        .amount;
+
+      commit('showAlert', {
+        type: 'success',
+        title: 'Success',
+        message: `You have mine block with difficulty: ${block.difficulty} and earn ${reward} coins!`,
+      });
+
+      setTimeout(() => dispatch('startMining', { silenceMode: true }), 0);
+    },
+    onMiningError({ dispatch, commit }, error) {
+      console.log(error);
+      commit('showAlert', {
+        type: 'error',
+        title: 'Error',
+        message: 'Something went wrong with mining...',
+      });
+      dispatch('stopMining');
     },
     async createServer({
       state,
@@ -259,6 +301,10 @@ export default createStore({
       state.transactionPool = new TransactionPool();
       state.blockchain = new Blockchain();
 
+      state.transactionPool.on('clear', () => {
+        commit('recalculateBalance');
+      });
+
       // create p2p-server
       ipcRenderer.send(TO_BG.START_P2P_SERVER, {
         peers,
@@ -271,7 +317,7 @@ export default createStore({
       // if keepLoggedIn was turned on
       ipcRenderer.send(TO_BG.CHECK_AUTH_SAVING);
     },
-    createTransaction({ state, commit }, transactionInfo) {
+    createTransaction({ state, commit, dispatch }, transactionInfo) {
       if (state.transactionPending) return;
 
       state.transactionPending = true;
@@ -303,6 +349,9 @@ export default createStore({
         });
       }
       state.transactionPending = false;
+
+      if (!state.miningIsUp) return;
+      dispatch('startMining', { silenceMode: true });
     },
     closeAlert({ state, commit }) {
       clearInterval(state.alertTimer);
@@ -325,84 +374,56 @@ export default createStore({
       const isValid = ChainUtil.verifyKeyPair(privKey, pubKey);
 
       if (!isValid) {
-        if (!silentMode) {
-          commit('showAlert', {
-            type: 'error',
-            title: 'Error',
-            message: 'Invalid key pair.',
-          });
-        }
+        if (silentMode) return;
+        commit('showAlert', {
+          type: 'error',
+          title: 'Error',
+          message: 'Invalid key pair.',
+        });
         return;
       }
       state.wallet = new Wallet(privKey);
 
-      state.miner = new Miner(
-        state.blockchain,
-        state.transactionPool,
-        state.wallet,
-      );
-      state.miner.on('newBlock', (block) => {
-        console.log('new Block:', block);
-        state.blockchain.chain.push(new Block(...Object.values(block)));
-        state.transactionPool.clear();
+      if (silentMode) return;
 
-        const reward = block.data
-          .find(transaction => transaction.input.address === BLOCKCHAIN_WALLET)
-          .outputs
-          .find(output => output.address === state.wallet.publicKey)
-          .amount;
-
-        commit('showAlert', {
-          type: 'success',
-          title: 'Success',
-          message: `You have mine block with difficulty: ${block.difficulty} and earn ${reward} coins!`,
-        });
+      commit('showAlert', {
+        type: 'success',
+        title: 'Success',
+        message: 'You have been authorized successfully.',
       });
-      ipcRenderer.on('mining-error', (event, { error }) => {
-        console.log(error);
-        state.miningIsUp = false;
-        commit('showAlert', {
-          type: 'error',
-          title: 'Error',
-          message: 'Something went wrong...',
-        });
-      });
-
-      state.transactionPool.on('clear', () => {
-        commit('recalculateBalance');
-      });
-
-      if (!silentMode) {
-        commit('showAlert', {
-          type: 'success',
-          title: 'Success',
-          message: 'You have been authorized successfully.',
-        });
-      }
     },
-    startMining({ state, dispatch }) {
+    startMining({ state, commit }, { silenceMode } = { silenceMode: false }) {
       state.miningIsUp = true;
 
-      state.miner.mine();
+      const pickedTransactions = state.transactionPool.pickTransactions();
+      const rewardTransaction = Transaction.rewardTransaction(
+        state.wallet,
+        pickedTransactions,
+        state.blockchain,
+      );
+      pickedTransactions.push(rewardTransaction);
 
-      // restart MINING process if new transaction was created
-      ipcRenderer.on(FROM_P2P.TRANSACTION_POOL_CHANGED, (event, { transactions }) => {
-        state.transactionPool.transactions = transactions;
-        dispatch('stopMining', true);
-        dispatch('startMining');
+      ipcRenderer.send(TO_BG.START_MINING, {
+        pickedTransactions: cloneDeep(pickedTransactions),
+        blockchain: cloneDeep(state.blockchain),
       });
 
-      state.transactionPool.on('changed', () => {
-        dispatch('stopMining');
+      // TODO: remove this line if app will work correctly without it:
+      // state.transactionPool.on('changed', () => dispatch('stopMining'));
+
+      if (silenceMode) return;
+      commit('showAlert', {
+        type: 'info',
+        title: 'Info',
+        message: 'Mining process was started!',
       });
     },
-    stopMining({ state, commit }, silence = false) {
+    stopMining({ state, commit }, { silenceMode } = { silenceMode: false }) {
       state.miningIsUp = false;
-      state.miner.stopMining();
 
-      ipcRenderer.removeAllListeners(FROM_P2P.TRANSACTION_POOL_CHANGED);
+      ipcRenderer.send(TO_BG.STOP_MINING);
 
-      if (silence) return;
+      if (silenceMode) return;
       commit('showAlert', {
         type: 'info',
         title: 'Info',
@@ -417,7 +438,7 @@ export default createStore({
 
       dispatch('routeHome');
 
-      state.transactionPool = null;
+      // state.transactionPool = null;
       // state.blockchain = null;
 
       state.serverIsUp = false;

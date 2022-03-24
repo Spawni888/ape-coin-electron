@@ -41,15 +41,14 @@ class Wallet {
       };
     }
 
-    let transaction = transactionPool.existingTransaction(this.publicKey);
+    let transaction = transactionPool.getTransactionFromAddress(this.publicKey);
 
     if (transaction) {
       let totalTransactionAmount = 0;
 
       transaction.outputs.forEach(output => {
-        if (output.address !== this.publicKey) {
-          totalTransactionAmount += output.amount;
-        }
+        if (output.address === this.publicKey) return;
+        totalTransactionAmount += output.amount;
       });
 
       if (totalTransactionAmount + amount + fee > this.balance) {
