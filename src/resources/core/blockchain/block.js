@@ -23,7 +23,7 @@ class Block {
   }
 
   static genesis() {
-    return new this(Date.now(), '------', 'f1r57-h45h', [], 0, DIFFICULTY);
+    return new this(Date.now(), '------', 'GENESIS', [], 0, DIFFICULTY);
   }
 
   static mineBlock(bc, data) {
@@ -71,6 +71,7 @@ class Block {
     let rewardTransaction;
 
     if (!Array.isArray(block.data)) {
+      console.log('Block Data should be an Array');
       return false;
     }
 

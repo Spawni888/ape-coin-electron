@@ -25,7 +25,7 @@ class Wallet {
   createTransaction(recipient, amount, blockchain, transactionPool, fee = 0) {
     if (recipient === this.publicKey) {
       return {
-        res: null,
+        transaction: null,
         msg: 'You can\'t transact money to yourself',
       };
     }
@@ -36,7 +36,7 @@ class Wallet {
 
     if (amount + fee > this.balance) {
       return {
-        res: null,
+        transaction: null,
         msg: `Amount + fee: ${amount + fee} exceeds the current balance: ${this.balance}`,
       };
     }
@@ -57,20 +57,20 @@ class Wallet {
         } exceeds the current balance: ${this.balance - totalTransactionAmount}`;
 
         return {
-          res: null,
+          transaction: null,
           msg,
         };
       }
       transaction.update(this, recipient, amount, fee);
     } else {
       transaction = Transaction.newTransaction(this, recipient, amount, fee);
-      transactionPool.updateOrAddTransaction(transaction);
+      transactionPool.replaceOrAddTransaction(transaction);
     }
     // transactionPool.emit('changed', transaction);
 
     this.calculateBalanceWithTpIncluded(transactionPool);
 
-    return { res: transaction };
+    return { transaction };
   }
 
   calculateBalance(blockchain) {

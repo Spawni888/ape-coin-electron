@@ -39,7 +39,7 @@ import CoreSwitch from '@/components/CoreSwitch';
 import useForm from '@/use/form/form';
 import useTooltip from '@/use/tooltip';
 import { ipcRenderer } from 'electron';
-import { FROM_BG, TO_BG } from '@/resources/events';
+import { FROM_BG, TO_BG } from '@/resources/channels';
 
 const required = (val) => !!val;
 const isNumeric = (val) => /^\d+$/.test(val);

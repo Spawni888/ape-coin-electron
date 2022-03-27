@@ -10,10 +10,6 @@ class Transaction {
 
   update(senderWallet, recipient, amount, fee = 0) {
     const senderOutput = this.outputs.find(output => output.address === senderWallet.publicKey);
-    if (amount + fee > senderOutput.amount) {
-      console.log(`Amount + fee: ${amount + fee} exceeds the balance`);
-      return;
-    }
 
     senderOutput.amount -= amount + fee;
     this.outputs.push({ amount, address: recipient });

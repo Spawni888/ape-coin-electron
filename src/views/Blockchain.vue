@@ -23,7 +23,10 @@
             :block-position="getBlockPosition(index, chainSlice.length, chain.length)"
             :chain-length="chain.length"
             :is-first="index === 0"
-            :key="block.hash.slice(0, 10) + 'hash'"
+            :key="block.hash.slice(10, 20) +
+              chain.length +
+              block.nonce +
+              block.lastHash.slice(10, 20)"
             @click="showBlockInfo(block, getBlockPosition(index, chainSlice.length, chain.length))"
           />
         </BlockchainTransition>
@@ -181,6 +184,8 @@ export default {
       blockInfo.block = block;
       blockInfo.blockPosition = blockPosition;
       blockInfo.show = true;
+
+      console.log(block);
     };
 
     const addBlock = (block) => {

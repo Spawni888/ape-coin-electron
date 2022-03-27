@@ -1,3 +1,7 @@
+const FROM_UI = {
+  TO_P2P: 'from-ui-to-p2p',
+};
+
 const FROM_P2P = {
   ALERT: 'p2p-alert',
   SERVER_STARTED: 'p2p-server-started',
@@ -6,6 +10,7 @@ const FROM_P2P = {
   INBOUNDS_LIST_CHANGED: 'inbounds-list-changed',
   OUTBOUNDS_LIST_CHANGED: 'outbounds-list-changed',
   TRANSACTION_POOL_CHANGED: 'transaction-pool-changed',
+  BLOCKCHAIN_CHANGED: 'from-p2p-blockchain-changed',
   TO_UI: 'from-p2p-to-ui',
   ERROR: 'p2p-server-error',
   CONSOLE_LOG: 'console-log',
@@ -13,7 +18,8 @@ const FROM_P2P = {
 
 const TO_P2P = {
   START_SERVER: 'to-p2p-start-server',
-  NEW_BLOCK_ADDED: 'new_block_added',
+  NEW_BLOCK_ADDED: 'new-block-added',
+  NEW_TRANSACTION_CREATED: 'new-transaction-created',
 };
 
 const TO_MINING = {
@@ -52,6 +58,7 @@ const FROM_APP = {
 };
 
 module.exports = {
+  FROM_UI,
   FROM_P2P,
   TO_P2P,
   FROM_MINING,

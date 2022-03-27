@@ -45,7 +45,7 @@ import { ref, reactive } from 'vue';
 import { useStore } from 'vuex';
 import { ipcRenderer } from 'electron';
 import CoreSwitch from '@/components/CoreSwitch';
-import { FROM_BG, TO_BG } from '@/resources/events';
+import { FROM_BG, TO_BG } from '@/resources/channels';
 
 const required = (val) => !!val;
 

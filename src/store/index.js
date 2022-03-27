@@ -12,7 +12,8 @@ import {
   FROM_P2P,
   FROM_BG,
   FROM_APP, FROM_MINING,
-} from '@/resources/events';
+  TO_P2P, FROM_UI,
+} from '@/resources/channels';
 import uuid from 'uuid';
 // eslint-disable-next-line import/no-cycle
 import { routeTo } from '@/router';
@@ -141,6 +142,9 @@ export default createStore({
       state.wallet.balance = state.wallet.calculateBalance(state.blockchain);
       state.wallet.calculateBalanceWithTpIncluded(state.transactionPool);
     },
+    sendToP2P(state, { channel, data }) {
+      ipcRenderer.send(FROM_UI.TO_P2P, JSON.stringify({ channel, data }));
+    },
   },
   actions: {
     initBackgroundListeners({ state, commit, dispatch }) {
@@ -164,6 +168,25 @@ export default createStore({
         });
 
         dispatch('closeServer');
+      });
+
+      ipcRenderer.on(FROM_P2P.BLOCKCHAIN_CHANGED, (event, { chain }) => {
+        console.log('FROM_P2P.BLOCKCHAIN_CHANGED:');
+        console.log(chain);
+        console.log('-'.repeat(10));
+
+        for (let i = state.blockchain.chain.length - 1; i >= 0; i--) {
+          state.blockchain.chain.pop();
+        }
+        chain.forEach(block => {
+          state.blockchain.chain.push(new Block(...Object.values(block)));
+        });
+
+        state.transactionPool.clear();
+        commit('recalculateBalance');
+
+        if (!state.miningIsUp) return;
+        dispatch('startMining', { silenceMode: true });
       });
 
       // alerts
@@ -198,11 +221,18 @@ export default createStore({
       });
 
       // FROM_MINING
-      ipcRenderer.on(FROM_MINING.BLOCK_HAS_CALCULATED, (event, { block }) => dispatch('onBlockCalculated', block));
+      ipcRenderer.on(
+        FROM_MINING.BLOCK_HAS_CALCULATED,
+        (event, { chain, block }) => dispatch('onBlockCalculated', { chain, block }),
+      );
       ipcRenderer.on(FROM_MINING.ERROR, (event, { error }) => dispatch('onMiningError', error));
 
       // restart MINING process if new transaction was created
       ipcRenderer.on(FROM_P2P.TRANSACTION_POOL_CHANGED, (event, { transactions }) => {
+        console.log('FROM_P2P.TRANSACTION_POOL_CHANGED:');
+        console.log(transactions);
+        console.log('-'.repeat(10));
+
         state.transactionPool.transactions = transactions;
 
         if (!state.miningIsUp) return;
@@ -217,10 +247,20 @@ export default createStore({
         });
       });
     },
-    onBlockCalculated({ state, dispatch, commit }, block) {
-      console.log('new Block:', block);
-      state.blockchain.chain.push(new Block(...Object.values(block)));
+    onBlockCalculated({ state, dispatch, commit }, { block, chain }) {
+      console.log('new Block calculated:', block);
+
+      // TODO: MAKE ALERTION ABOUT NEW BLOCK AND ABOUT TRANSACTIONS
+      for (let i = state.blockchain.chain.length - 1; i >= 0; i--) {
+        state.blockchain.chain.pop();
+      }
+      // eslint-disable-next-line no-underscore-dangle
+      for (const _block of chain) {
+        state.blockchain.chain.push(_block);
+      }
+
       state.transactionPool.clear();
+      commit('recalculateBalance');
 
       const reward = block.data
         .find(transaction => transaction.input.address === BLOCKCHAIN_WALLET)
@@ -234,6 +274,10 @@ export default createStore({
         message: `You have mine block with difficulty: ${block.difficulty} and earn ${reward} coins!`,
       });
 
+      commit('sendToP2P', {
+        channel: TO_P2P.NEW_BLOCK_ADDED,
+        data: { block, chain },
+      });
       setTimeout(() => dispatch('startMining', { silenceMode: true }), 0);
     },
     onMiningError({ dispatch, commit }, error) {
@@ -288,22 +332,8 @@ export default createStore({
         peers = [];
       }
 
-      // create HTTP Api, if active
-      // if (API) {
-      //   const app = new Koa();
-      //   app.keys = ['--> stop looking here <--'];
-      //   app
-      //     .use(bodyParser());
-      // eslint-disable-next-line max-len
-      //   state.server = app.listen(serverPort, '127.0.0.1', () => console.log(`API running on port ${serverPort}`));
-      // }
-
       state.transactionPool = new TransactionPool();
       state.blockchain = new Blockchain();
-
-      state.transactionPool.on('clear', () => {
-        commit('recalculateBalance');
-      });
 
       // create p2p-server
       ipcRenderer.send(TO_BG.START_P2P_SERVER, {
@@ -327,7 +357,7 @@ export default createStore({
         amount,
         fee,
       } = transactionInfo;
-      const transaction = state.wallet.createTransaction(
+      const transactionObj = state.wallet.createTransaction(
         recipient,
         amount,
         state.blockchain,
@@ -335,17 +365,22 @@ export default createStore({
         fee,
       );
 
-      if (transaction.res === null) {
+      if (transactionObj.transaction === null) {
         commit('showAlert', {
           type: 'error',
           title: 'Error',
-          message: transaction.msg,
+          message: transactionObj.msg,
         });
       } else {
         commit('showAlert', {
           type: 'success',
           title: 'Success',
           message: 'Transaction has been created successfully!',
+        });
+
+        commit('sendToP2P', {
+          channel: TO_P2P.NEW_TRANSACTION_CREATED,
+          data: { transaction: transactionObj.transaction },
         });
       }
       state.transactionPending = false;
@@ -437,9 +472,6 @@ export default createStore({
       ipcRenderer.send(TO_BG.STOP_P2P_SERVER);
 
       dispatch('routeHome');
-
-      // state.transactionPool = null;
-      // state.blockchain = null;
 
       state.serverIsUp = false;
 
