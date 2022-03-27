@@ -11,7 +11,7 @@
     const Blockchain = require('../core/blockchain');
     const TransactionPool = require('../core/wallet/transactionPool');
     const Block = require('../core/blockchain/block');
-    const { FROM_P2P, TO_P2P, FROM_APP } = require('../events');
+    const { FROM_P2P, TO_P2P, FROM_APP } = require('../channels');
 
     let server = null;
     const messageToUI = (channel, data) => {
@@ -38,6 +38,7 @@
             return Reflect.set(target, prop, value, receiver);
           },
         });
+
         server.outbounds = new Proxy(server.outbounds, {
           set(target, prop, value, receiver) {
             messageToUI(FROM_P2P.OUTBOUNDS_LIST_CHANGED, {
@@ -46,6 +47,30 @@
             return Reflect.set(target, prop, value, receiver);
           },
         });
+
+        // server.transactionPool.transactions = new Proxy(server.transactionPool.transactions, {
+        //   set(target, prop, value, receiver) {
+        //     if (prop !== 'length') {
+        //       messageToUI(FROM_P2P.TRANSACTION_POOL_CHANGED, {
+        //         transactions: [...target, value]
+        //       });
+        //     }
+        //     return Reflect.set(target, prop, value, receiver);
+        //   },
+        // });
+
+        // server.blockchain.chain = new Proxy(server.blockchain.chain, {
+        //   set(target, prop, value, receiver) {
+        //     console.log('server.blockchain.chain PROXY', server.blockchain.chain);
+        //
+        //     if (prop !== 'length') {
+        //       messageToUI(FROM_P2P.BLOCKCHAIN_CHANGED, {
+        //         chain: [...target, value]
+        //       });
+        //     }
+        //     return Reflect.set(target, prop, value, receiver);
+        //   },
+        // });
 
         // alerts
         server.on('info', (msg) => messageToUI(FROM_APP.ALERT, {
@@ -70,19 +95,27 @@
         }));
 
         // props change
-        server.on('property-changed', (propInfo) => messageToUI(FROM_P2P.PROPERTY_CHANGED, propInfo));
+        // server.on('property-changed', (propInfo) => messageToUI(FROM_P2P.PROPERTY_CHANGED, propInfo));
         server.on('transaction-pool-changed', (data) => messageToUI(FROM_P2P.TRANSACTION_POOL_CHANGED, data));
+        server.on('blockchain-changed', (data) => messageToUI(FROM_P2P.BLOCKCHAIN_CHANGED, data));
 
         // start server
         server.listen(serverOptions, () => messageToUI(FROM_P2P.SERVER_STARTED, serverOptions.port));
       })
-      // TODO: start with this next time xxxxxxxxxxxxdddddddddddddddd))))))))))))))))))))))))
-      ipcRenderer.on(TO_P2P.NEW_BLOCK_ADDED, (event, data) => {
-        if (server === null) return;
-        data = JSON.parse(data);
 
-        server.blockchain.chain.push(new Block(...Object.values(data.block)));
+      ipcRenderer.on(TO_P2P.NEW_TRANSACTION_CREATED, (event, { transaction }) => {
+        if (server === null) return;
+
+        server.transactionPool.replaceOrAddTransaction(transaction);
+        server.broadcastTransaction(transaction);
+      })
+
+      ipcRenderer.on(TO_P2P.NEW_BLOCK_ADDED, (event, { block, chain }) => {
+        if (server === null) return;
+
+        server.blockchain.chain = chain;
         server.syncChains();
+        server.transactionPool.clear();
       })
     } catch (error) {
       ipcRenderer.send(FROM_P2P.ERROR, error);

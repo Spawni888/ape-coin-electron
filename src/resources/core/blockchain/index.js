@@ -10,7 +10,10 @@ class Blockchain {
   }
 
   isValidChain(chain) {
-    if (JSON.stringify(chain[0]) !== JSON.stringify(Block.genesis())) return false;
+    if (JSON.stringify(chain[0].hash) !== JSON.stringify(Block.genesis().hash)) {
+      console.log('Genesis block hash is wrong!');
+      return false;
+    }
 
     for (let i = 1; i < chain.length; i++) {
       const block = chain[i];
@@ -21,6 +24,22 @@ class Blockchain {
         || block.hash !== Block.blockHash(block)
         || !Block.validBlock(block, this)
       ) {
+        console.log('block.lastHash !== lastBlock.hash');
+        console.log(block.lastHash !== lastBlock.hash);
+        console.log(block.lastHash);
+        console.log(lastBlock.hash);
+        console.log('-'.repeat(10));
+
+        console.log('block.hash !== Block.blockHash(block)');
+        console.log(block.hash !== Block.blockHash(block));
+        console.log(block.hash);
+        console.log(Block.blockHash(block));
+        console.log('-'.repeat(10));
+
+        console.log('!Block.validBlock(block, this)');
+        console.log(!Block.validBlock(block, this));
+        console.log('-'.repeat(10));
+
         return false;
       }
     }
@@ -30,17 +49,19 @@ class Blockchain {
   replaceChain(newChain, tp) {
     if (newChain.length <= this.chain.length) {
       console.log('Received chain is not longer than the current chain');
-      return;
+      return false;
     }
     if (!this.isValidChain(newChain)) {
       console.log('The received chain is not valid');
-      return;
+      return false;
     }
 
     console.log('Replacing blockchain with the new chain');
     this.chain = newChain;
-    // TODO: U should filter tp, not clear.
-    tp.clear();
+
+    // tp.clear();
+
+    return true;
   }
 }
 

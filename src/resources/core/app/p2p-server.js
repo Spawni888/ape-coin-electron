@@ -212,28 +212,37 @@ class P2pServer extends EventEmitter {
       const data = JSON.parse(message);
 
       switch (data.type) {
-        case MESSAGE_TYPES.chain:
-          this.blockchain.replaceChain(data.chain, this.transactionPool);
+        case MESSAGE_TYPES.chain: {
+          console.log('on MESSAGE_TYPES.chain in p2p-server.js:');
+          const chainReplaced = this.blockchain.replaceChain(data.chain, this.transactionPool);
+          if (chainReplaced) {
+            this.emit('blockchain-changed', { chain: this.blockchain.chain });
+          }
           break;
+        }
         case MESSAGE_TYPES.transaction:
-          console.log('Received new transaction');
-          this.transactionPool.updateOrAddTransaction(data.transaction);
+          console.log('New transaction was received');
+          this.transactionPool.replaceOrAddTransaction(data.transaction);
+
           this.emit('transaction-pool-changed', {
             transactions: this.transactionPool.transactions,
           });
           break;
-        case MESSAGE_TYPES.clearTransactions:
-          this.transactionPool.clear();
-          break;
+
         case MESSAGE_TYPES.transactionPool:
           for (const transaction of data.transactionPool) {
-            this.transactionPool.updateOrAddTransaction(transaction);
+            this.transactionPool.replaceOrAddTransaction(transaction);
           }
+          this.emit('transaction-pool-changed', {
+            transactions: this.transactionPool.transactions,
+          });
           break;
+
         case MESSAGE_TYPES.peers:
           this.peers.push(...data.peers);
           this.connectToPeers();
           break;
+
         case MESSAGE_TYPES.serverAddressReq:
           if (this.ngrokAddress === null) {
             this.externalAddress = data.prevAddress;
@@ -262,6 +271,9 @@ class P2pServer extends EventEmitter {
           this.emit('info', `Connection with peer ${data.peer} was broken.`);
           break;
 
+        case MESSAGE_TYPES.clearTransactions:
+          this.transactionPool.clear();
+          break;
         default:
           break;
       }

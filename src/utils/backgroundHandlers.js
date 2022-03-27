@@ -7,8 +7,8 @@ import {
   TO_BG,
   TO_P2P,
   FROM_P2P,
-  FROM_APP,
-} from '@/resources/events';
+  FROM_APP, FROM_UI,
+} from '@/resources/channels';
 
 const logToUI = (win, msg) => {
   win.webContents.send(
@@ -17,16 +17,18 @@ const logToUI = (win, msg) => {
   );
 };
 
-const proxyToUI = (_event, payload, mainWin) => {
+const proxyLogger = (_event, payload, win) => {
+  if (win === null) return;
+
   const { channel, data } = JSON.parse(payload);
 
-  console.log(`Message to UI in channel "${channel}"`);
+  console.log(`Message in channel "${channel}"`);
   if (data) {
     console.log(JSON.stringify(data, null, 2));
   }
   console.log('-'.repeat(10));
 
-  mainWin.webContents.send(channel, data);
+  win.webContents.send(channel, data);
 };
 
 const isProd = process.env.NODE_ENV === 'production';
@@ -54,7 +56,8 @@ let p2pWin = null;
 let miningWin = null;
 
 const p2pServerHandler = (mainWin) => {
-  logToUI(mainWin, `RESOURCES_PATH: ${RESOURCES_PATH}`);
+  // logToUI(mainWin, `RESOURCES_PATH: ${RESOURCES_PATH}`);
+  ipcMain.on(FROM_UI.TO_P2P, (...args) => proxyLogger(...args, p2pWin));
 
   ipcMain.on(TO_BG.START_P2P_SERVER, async (event, serverOptions) => {
     if (p2pWin !== null) {
@@ -72,7 +75,7 @@ const p2pServerHandler = (mainWin) => {
     p2pWin = await createWindow('p2pServer.html');
     p2pWin.webContents.send(TO_P2P.START_SERVER, serverOptions);
 
-    ipcMain.on(FROM_P2P.TO_UI, (...args) => proxyToUI(...args, mainWin));
+    ipcMain.on(FROM_P2P.TO_UI, (...args) => proxyLogger(...args, mainWin));
 
     ipcMain.once(FROM_P2P.ERROR, (_event, error) => {
       mainWin.webContents.send(FROM_BG.CONSOLE_LOG, error);
@@ -95,6 +98,11 @@ const p2pServerHandler = (mainWin) => {
     });
   });
 
+  ipcMain.on(TO_P2P.NEW_TRANSACTION_CREATED, () => {
+    if (p2pWin === null) return;
+    p2pWin.webContents.send(TO_P2P.NEW)
+  });
+
   ipcMain.on(TO_BG.STOP_P2P_SERVER, () => {
     if (p2pWin === null) return;
     p2pWin.close();
@@ -110,7 +118,7 @@ const miningHandler = (mainWin) => {
     miningWin = await createWindow('mining.html');
     miningWin.send(TO_MINING.START_MINING, info);
 
-    ipcMain.on(FROM_MINING.TO_UI, (...args) => proxyToUI(...args, mainWin));
+    ipcMain.on(FROM_MINING.TO_UI, (...args) => proxyLogger(...args, mainWin));
 
     ipcMain.once(FROM_MINING.ERROR, (_event, error) => {
       mainWin.webContents.send(FROM_BG.CONSOLE_LOG, error);

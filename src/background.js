@@ -16,7 +16,7 @@ import path from 'path';
 import fs from 'fs';
 import { genKeyPair } from '@/utils/elliptic';
 import bgHandlers from '@/utils/backgroundHandlers';
-import { FROM_BG, TO_BG } from '@/resources/events';
+import { FROM_BG, TO_BG } from '@/resources/channels';
 
 const isDevelopment = process.env.NODE_ENV !== 'production';
 
@@ -118,7 +118,7 @@ try {
       mainWin.webContents.send(FROM_BG.WALLET_CREATED, keyPair);
     });
 
-    // TODO: CONTINUE TO CREATE EVENTS
+    // TODO: CONTINUE TO CREATE CHANNELS
     ipcMain.on('saveNewWallet', async (event, keyPair) => {
       const {
         filePath,
@@ -198,36 +198,54 @@ privateKey(secret key, don't share it): ${keyPair.priv}`;
   // initialization and is ready to create browser windows.
   // Some APIs can only be used after this event occurs.
 
-  if (!gotTheLock) {
-    app.quit();
-  } else {
-    app.on('second-instance', () => {
-      // Someone tried to run a second instance, we should focus our window.
-      if (mainWin) {
-        if (mainWin.isMinimized()) mainWin.restore();
-        if (!mainWin.isVisible()) mainWin.show();
-        mainWin.focus();
-      }
-    });
+  // if (!gotTheLock) {
+  //   app.quit();
+  // } else {
+  //   app.on('second-instance', () => {
+  //     // Someone tried to run a second instance, we should focus our window.
+  //     if (mainWin) {
+  //       if (mainWin.isMinimized()) mainWin.restore();
+  //       if (!mainWin.isVisible()) mainWin.show();
+  //       mainWin.focus();
+  //     }
+  //   });
+  //
+  //   app.on('ready', async () => {
+  //     if (isDevelopment && !process.env.IS_TEST) {
+  //       // Install Vue Devtools
+  //       try {
+  //         // demo vue-devtools for vue3 in electron
+  //         await installExtension({
+  //           id: 'ljjemllljcmogpfapbkkighbhhppjdbg',
+  //           electron: '>=1.2.1',
+  //         });
+  //         // await installExtension(VUEJS_DEVTOOLS);
+  //       } catch (e) {
+  //         console.error('Vue Devtools failed to install:', e.toString());
+  //       }
+  //     }
+  //     await createWindow();
+  //     sendP2pForm();
+  //   });
+  // }
 
-    app.on('ready', async () => {
-      if (isDevelopment && !process.env.IS_TEST) {
-        // Install Vue Devtools
-        try {
-          // demo vue-devtools for vue3 in electron
-          await installExtension({
-            id: 'ljjemllljcmogpfapbkkighbhhppjdbg',
-            electron: '>=1.2.1',
-          });
-          // await installExtension(VUEJS_DEVTOOLS);
-        } catch (e) {
-          console.error('Vue Devtools failed to install:', e.toString());
-        }
+  app.on('ready', async () => {
+    if (isDevelopment && !process.env.IS_TEST) {
+      // Install Vue Devtools
+      try {
+        // demo vue-devtools for vue3 in electron
+        await installExtension({
+          id: 'ljjemllljcmogpfapbkkighbhhppjdbg',
+          electron: '>=1.2.1',
+        });
+        // await installExtension(VUEJS_DEVTOOLS);
+      } catch (e) {
+        console.error('Vue Devtools failed to install:', e.toString());
       }
-      await createWindow();
-      sendP2pForm();
-    });
-  }
+    }
+    await createWindow();
+    sendP2pForm();
+  });
 
   // Exit cleanly on request from parent process in development mode.
   if (isDevelopment) {

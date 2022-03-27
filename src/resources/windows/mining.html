@@ -7,8 +7,9 @@
 <body>
   <script>
     const { ipcRenderer } = require('electron');
-    const { FROM_MINING, TO_MINING } = require('../events');
+    const { FROM_MINING, TO_MINING } = require('../channels');
     const Blockchain = require('../core/blockchain/index');
+    const Block = require('../core/blockchain/block');
 
     const messageToUI = (channel, data) => {
       ipcRenderer.send(FROM_MINING.TO_UI, JSON.stringify({ channel, data }));
@@ -19,6 +20,9 @@
         const { pickedTransactions, blockchain } = data;
         const block = Blockchain.addBlock(blockchain, pickedTransactions);
 
+        const updatedChain = blockchain.chain;
+        updatedChain.push(new Block(...Object.values(block)));
+
         messageToUI(FROM_MINING.BLOCK_HAS_CALCULATED, {
           block: {
             timestamp: block.timestamp,
@@ -28,6 +32,7 @@
             nonce: block.nonce,
             difficulty: block.difficulty,
           },
+          chain: updatedChain,
         });
       });
     } catch (error) {

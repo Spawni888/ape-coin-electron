@@ -10,7 +10,7 @@ class TransactionPool extends EventEmitter {
     this.transactions = [];
   }
 
-  updateOrAddTransaction(transaction) {
+  replaceOrAddTransaction(transaction) {
     const sameTransactionIdx = this.transactions.findIndex(t => t.id === transaction.id);
 
     if (~sameTransactionIdx) {
