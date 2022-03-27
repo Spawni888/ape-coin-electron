@@ -52,11 +52,8 @@ class P2pServer extends EventEmitter {
   }
 
   listen({
-    host = '127.0.0.1', port, httpServer = null, ngrokAuthToken = null, peers,
+    host = '127.0.0.1', port, ngrokAuthToken = null, peers,
   }, cb = null) {
-    const serverOpts = httpServer === null
-      ? { host, port }
-      : { server: httpServer, noServer: false };
     this.port = port;
     this.host = host;
     this.peers = peers;
@@ -65,7 +62,7 @@ class P2pServer extends EventEmitter {
       this.ngrokConnect(ngrokAuthToken);
     }
 
-    this.server = new Websocket.Server(serverOpts);
+    this.server = new Websocket.Server({ host, port });
     this.server.on('connection', (socket, req) => {
       this.sendPeers(socket);
 
@@ -166,11 +163,14 @@ class P2pServer extends EventEmitter {
     while (this.peers.length && this.outboundsQuantity < MAXIMUM_OUTBOUNDS) {
       let peer = this.peers.pop();
 
-      const [, serverAddress, serverPort] = /:\/\/([\d\w.]+?):(.+)$/gi.exec(peer);
-      peer = `http://${serverAddress}:${serverPort}`;
+      const parsedPeerLink = /:\/\/([\d\w.\-_]+?):(.+)$/gi.exec(peer);
+      if (parsedPeerLink) {
+        const [, serverAddress, serverPort] = parsedPeerLink;
+        peer = `http://${serverAddress}:${serverPort}`;
 
-      // EXAMPLE: http://localhost:5001 || ws://localhost:5001
-      this.connectToPeer(peer, serverAddress, serverPort);
+        // EXAMPLE: http://localhost:5001 || ws://localhost:5001
+        this.connectToPeer(peer, serverAddress, serverPort);
+      }
     }
     this.peers = [];
   }

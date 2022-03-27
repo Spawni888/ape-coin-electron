@@ -100,7 +100,7 @@
         server.on('blockchain-changed', (data) => messageToUI(FROM_P2P.BLOCKCHAIN_CHANGED, data));
 
         // start server
-        server.listen(serverOptions, () => messageToUI(FROM_P2P.SERVER_STARTED, serverOptions.port));
+        server.listen(serverOptions, () => messageToUI(FROM_P2P.SERVER_STARTED, { serverPort: serverOptions.port }));
       })
 
       ipcRenderer.on(TO_P2P.NEW_TRANSACTION_CREATED, (event, { transaction }) => {

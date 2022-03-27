@@ -23,7 +23,6 @@ import { cloneDeep } from 'lodash';
 export default createStore({
   state: {
     backgroundListenersInitialized: false,
-    server: null,
     p2pServer: {
       inbounds: {},
       inboundsList: [],
@@ -299,13 +298,12 @@ export default createStore({
 
       let {
         serverPort,
-        peers,
       } = options;
       const {
         serverHost,
         ngrokAuthToken,
-        API,
         ngrok,
+        peers: peersString,
       } = options;
 
       // find free port if doesn't set manually
@@ -324,14 +322,14 @@ export default createStore({
       }
 
       // parse peers string
-      if (peers) {
-        peers = peers.trim()
+      let peers;
+      if (peersString) {
+        peers = peersString.trim()
           .replace(/[,\s;]+/gi, ',')
           .split(',');
       } else {
         peers = [];
       }
-
       state.transactionPool = new TransactionPool();
       state.blockchain = new Blockchain();
 
@@ -340,7 +338,6 @@ export default createStore({
         peers,
         host: serverHost,
         port: serverPort,
-        httpServer: API ? state.server : null,
         ngrokAuthToken: ngrok ? ngrokAuthToken : null,
       });
 
