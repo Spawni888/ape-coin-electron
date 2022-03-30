@@ -98,11 +98,6 @@ const p2pServerHandler = (mainWin) => {
     });
   });
 
-  ipcMain.on(TO_P2P.NEW_TRANSACTION_CREATED, () => {
-    if (p2pWin === null) return;
-    p2pWin.webContents.send(TO_P2P.NEW)
-  });
-
   ipcMain.on(TO_BG.STOP_P2P_SERVER, () => {
     if (p2pWin === null) return;
     p2pWin.close();

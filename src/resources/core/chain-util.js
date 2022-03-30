@@ -38,7 +38,10 @@ class ChainUtil {
   }
 
   static verifySignature(publicKey, signature, dataHash) {
-    return ec.keyFromPublic(publicKey, 'hex').verify(dataHash, signature);
+    const signatureIsValid = ec.keyFromPublic(publicKey, 'hex').verify(dataHash, signature);
+    if (!signatureIsValid) console.log('signature is not valid');
+
+    return signatureIsValid;
   }
 
   static sizeOfObjectInMb(object) {

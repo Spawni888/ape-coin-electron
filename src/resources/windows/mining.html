@@ -17,7 +17,7 @@
 
     try {
       ipcRenderer.on(TO_MINING.START_MINING, (event, data) => {
-        const { pickedTransactions, blockchain } = data;
+        const { pickedTransactions, blockchain } = JSON.parse(data);
         const block = Blockchain.addBlock(blockchain, pickedTransactions);
 
         const updatedChain = blockchain.chain;

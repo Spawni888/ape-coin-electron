@@ -18,7 +18,6 @@ import uuid from 'uuid';
 // eslint-disable-next-line import/no-cycle
 import { routeTo } from '@/router';
 import Transaction from '@/resources/core/wallet/transaction';
-import { cloneDeep } from 'lodash';
 
 export default createStore({
   state: {
@@ -435,10 +434,10 @@ export default createStore({
       );
       pickedTransactions.push(rewardTransaction);
 
-      ipcRenderer.send(TO_BG.START_MINING, {
-        pickedTransactions: cloneDeep(pickedTransactions),
-        blockchain: cloneDeep(state.blockchain),
-      });
+      ipcRenderer.send(TO_BG.START_MINING, JSON.stringify({
+        pickedTransactions,
+        blockchain: state.blockchain,
+      }));
 
       // TODO: remove this line if app will work correctly without it:
       // state.transactionPool.on('changed', () => dispatch('stopMining'));
