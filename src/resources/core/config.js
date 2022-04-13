@@ -6,6 +6,7 @@ const BLOCKCHAIN_WALLET = 'Blockchain wallet';
 const MINER_WALLET = 'Miner';
 const MAXIMUM_INBOUNDS = 40;
 const MAXIMUM_OUTBOUNDS = 8;
+const P2P_SOCKET_RECONNECTION_RETRIES = 10;
 
 module.exports = {
   DIFFICULTY,
@@ -16,4 +17,5 @@ module.exports = {
   MINER_WALLET,
   MAXIMUM_INBOUNDS,
   MAXIMUM_OUTBOUNDS,
+  P2P_SOCKET_RECONNECTION_RETRIES,
 };

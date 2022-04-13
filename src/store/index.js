@@ -22,6 +22,8 @@ import Transaction from '@/resources/core/wallet/transaction';
 export default createStore({
   state: {
     backgroundListenersInitialized: false,
+    walletRelatedTransactions: [],
+    // TODO: create transactions page.
     p2pServer: {
       inbounds: {},
       inboundsList: [],
@@ -182,6 +184,7 @@ export default createStore({
 
         state.transactionPool.clear();
         commit('recalculateBalance');
+        dispatch('updateWalletRelatedTransactions');
 
         if (!state.miningIsUp) return;
         dispatch('startMining', { silenceMode: true });
@@ -232,6 +235,8 @@ export default createStore({
         console.log('-'.repeat(10));
 
         state.transactionPool.transactions = transactions;
+        dispatch('updateWalletRelatedTransactions');
+        commit('recalculateBalance');
 
         if (!state.miningIsUp) return;
         dispatch('startMining', { silenceMode: true });
@@ -259,6 +264,7 @@ export default createStore({
 
       state.transactionPool.clear();
       commit('recalculateBalance');
+      dispatch('updateWalletRelatedTransactions');
 
       const reward = block.data
         .find(transaction => transaction.input.address === BLOCKCHAIN_WALLET)
@@ -461,9 +467,6 @@ export default createStore({
         message: 'Mining have been stopped.',
       });
     },
-    async routeHome() {
-      await routeTo({ name: 'p2p' });
-    },
     closeServer({ state, commit, dispatch }) {
       ipcRenderer.send(TO_BG.STOP_P2P_SERVER);
 
@@ -475,6 +478,35 @@ export default createStore({
 
       if (!state.miningIsUp) return;
       dispatch('stopMining');
+    },
+    async routeHome() {
+      await routeTo({ name: 'p2p' });
+    },
+    updateWalletRelatedTransactions({ state, commit }) {
+      let availableAlertsCount = 3;
+
+      const newWalletRelatedTransactions = state.wallet.getNewWalletRelatedTransactions(
+        state.walletRelatedTransactions,
+        state.blockchain.chain,
+        state.transactionPool.transactions,
+      );
+      newWalletRelatedTransactions.forEach(transaction => {
+        state.walletRelatedTransactions.push(transaction);
+        if (transaction.input.address === state.wallet.publicKey) return;
+
+        // create alerts about new received tokens
+        transaction.outputs.forEach(output => {
+          if (output.address === Wallet.blockchainWallet()) return;
+          if (output.address === state.wallet.publicKey && availableAlertsCount > 0) {
+            commit('showAlert', {
+              type: 'info',
+              title: 'Info',
+              message: `You received ${output.amount} tokens. View tab 'transactions' for more info.`,
+            });
+            availableAlertsCount--;
+          }
+        });
+      });
     },
   },
   modules: {},

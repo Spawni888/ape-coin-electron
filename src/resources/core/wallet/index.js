@@ -121,8 +121,45 @@ class Wallet {
               this.balanceWithTpIncluded -= output.amount;
             }
           });
+          return;
         }
+        transaction.outputs.forEach(output => {
+          if (output.address === this.publicKey) {
+            this.balanceWithTpIncluded += output.amount;
+          }
+        });
       });
+  }
+
+  getNewWalletRelatedTransactions(oldRelatedTransactions, bc, tp = []) {
+    const relatedTransactionIDsMap = {};
+    const newRelatedTransactions = [];
+
+    oldRelatedTransactions.forEach(transaction => {
+      relatedTransactionIDsMap[transaction.id] = transaction;
+    });
+
+    const pushIfRelated = (transaction) => {
+      for (const output of transaction.outputs) {
+        if (output.address === this.publicKey) {
+          if (!relatedTransactionIDsMap[transaction.id]) {
+            newRelatedTransactions.push(transaction);
+          }
+          break;
+        }
+      }
+    };
+
+    bc.forEach(block => {
+      block.data.forEach(pushIfRelated);
+    });
+    tp.forEach(pushIfRelated);
+
+    console.log('-'.repeat(10));
+    console.log('walletRelatedTransactions');
+    console.log(newRelatedTransactions);
+    console.log('-'.repeat(10));
+    return newRelatedTransactions;
   }
 
   static blockchainWallet() {

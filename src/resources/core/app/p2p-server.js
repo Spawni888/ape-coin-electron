@@ -1,7 +1,7 @@
 const Websocket = require('ws');
 const { EventEmitter } = require('events');
 const ngrok = require('ngrok');
-const { MAXIMUM_INBOUNDS, MAXIMUM_OUTBOUNDS } = require('../config');
+const { MAXIMUM_INBOUNDS, MAXIMUM_OUTBOUNDS, P2P_SOCKET_RECONNECTION_RETRIES } = require('../config');
 
 const MESSAGE_TYPES = {
   chain: 'CHAIN',
@@ -116,7 +116,7 @@ class P2pServer extends EventEmitter {
     })();
   }
 
-  connectToPeer(peer, serverAddress, serverPort, retries = 10) {
+  connectToPeer(peer, serverAddress, serverPort, retries = P2P_SOCKET_RECONNECTION_RETRIES) {
     if (retries <= 0) return;
     if (this.outbounds[peer] || this.inbounds[peer]) return;
     const reconnectInterval = 5000;
@@ -131,6 +131,8 @@ class P2pServer extends EventEmitter {
       this.outbounds[peer] = socket;
       this.outboundsQuantity += 1;
       console.log(`Connected to peer: ${peer}`);
+      // plus one because of "retries - 1" below
+      retries = P2P_SOCKET_RECONNECTION_RETRIES + 1;
     });
 
     socket.on('error', (err) => {
@@ -145,14 +147,17 @@ class P2pServer extends EventEmitter {
         delete this.outbounds[peer];
         this.outboundsQuantity -= 1;
       }
-      if (this.allSockets().length > 0) {
-        this.emit('info', `Connection with peer ${peer} was broken.`);
-      } else {
-        this.emit(
-          'warning',
-          `Connection with peer ${peer} was broken. It was your last connection`,
-        );
+      if (retries === 10) {
+        if (this.allSockets().length > 0) {
+          this.emit('info', `Connection with peer ${peer} was broken.`);
+        } else {
+          this.emit(
+            'warning',
+            `Connection with peer ${peer} was broken. It was your last connection`,
+          );
+        }
       }
+
       setImmediate(
         () => this.connectToPeer(peer, serverAddress, serverPort, retries - 1), reconnectInterval,
       );
