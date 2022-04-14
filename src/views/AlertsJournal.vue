@@ -6,16 +6,16 @@
         class="chip"
         :key="'chip' + chip.name"
         :class="{'inactive': chip.hidden}"
-        @click="chip.hidden = !chip.hidden"
+        @click="onChipClick(chip)"
       >{{ chip.name }}</div>
     </div>
     <div class="alerts">
-      <transition-group name="fade" mode="out-in">
+      <transition-group name="list" @before-leave="onBeforeLeave">
         <Alert
           v-for="alertInfo in sortJournal(filteredJournal)"
-          class="alert"
           :alert-info-prop="alertInfo"
           :key="'alertJ' + alertInfo.id"
+          style="margin-bottom: 5px"
         >
         </Alert>
       </transition-group>
@@ -24,9 +24,11 @@
 </template>
 
 <script>
+// TODO: add beautiful scrollbar later maybe
 import { computed, ref } from 'vue';
 import { useStore } from 'vuex';
 import Alert from '@/components/Alert';
+import gsap from 'gsap';
 
 export default {
   name: 'AlertsJournal',
@@ -62,11 +64,28 @@ export default {
       return alertsJournal.value.filter(alertInfo => chosenTypes.includes(alertInfo.type));
     });
 
+    const onChipClick = (chip) => {
+      if (!chip.hidden) {
+        const visibleChipsNum = chips.value
+          .map(_chip => !_chip.hidden)
+          .filter(Boolean).length;
+
+        if (visibleChipsNum <= 1) return;
+      }
+      chip.hidden = !chip.hidden;
+    };
+
+    const onBeforeLeave = (el) => {
+      gsap.set(el, { top: el.offsetTop });
+    };
+
     return {
       chips,
       alertsJournal,
       filteredJournal,
       sortJournal,
+      onChipClick,
+      onBeforeLeave,
     };
   },
 };
@@ -91,15 +110,21 @@ $successIconCol: #5CB65F;
   z-index: 9;
   width: 100%;
   height: 100%;
+  max-height: 100%;
+  overflow: hidden;
   display: flex;
   flex-direction: column;
+  position: relative;
+
   .chips-container {
     padding: 25px 20px 15px;
 
     display: flex;
+    z-index: 10;
     border-bottom-left-radius: 20px;
     border-bottom-right-radius: 20px;
     background-color: $onBgColor;
+
     .chip {
       margin: 0 5px 10px;
       cursor: pointer;
@@ -113,25 +138,25 @@ $successIconCol: #5CB65F;
       border: none;
       box-shadow: 0 0 6px rgba(0, 0, 0, 0.6);
       transition: .4s ease-in-out;
+
       &:hover {
         background: lighten($surfaceColor, 10%);
       }
     }
+
     .chip.inactive {
       box-shadow: none;
       background-color: lighten($surfaceColor, 40%);
     }
   }
+
   .alerts {
+    max-width: 100%;
     overflow-y: auto;
+    overflow-x: hidden;
     margin-top: 10px;
 
     flex-grow: 1;
-    .alert {
-      position: relative;
-      margin-top: 5px;
-    }
-
   }
 }
 </style>

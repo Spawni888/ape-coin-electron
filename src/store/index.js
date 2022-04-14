@@ -483,6 +483,7 @@ export default createStore({
       await routeTo({ name: 'p2p' });
     },
     updateWalletRelatedTransactions({ state, commit }) {
+      if (state.wallet === null) return;
       let availableAlertsCount = 3;
 
       const newWalletRelatedTransactions = state.wallet.getNewWalletRelatedTransactions(

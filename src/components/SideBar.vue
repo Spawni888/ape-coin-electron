@@ -69,6 +69,7 @@ import p2pImg from '@/assets/images/sidebar/electricity.svg';
 import walletImg from '@/assets/images/sidebar/wallet2.svg';
 import miningImg from '@/assets/images/sidebar/pick.svg';
 import blockchainImg from '@/assets/images/sidebar/block.svg';
+import transactionsImg from '@/assets/images/sidebar/transactions.svg';
 
 export default {
   name: 'SideBar',
@@ -92,6 +93,13 @@ export default {
         className: 'blockchain',
         imgSrc: blockchainImg,
         route: 'blockchain',
+        deactiveCondition: computed(() => !serverIsUp.value),
+      },
+      {
+        name: 'Transactions',
+        className: 'transactions',
+        imgSrc: transactionsImg,
+        route: 'transactions',
         deactiveCondition: computed(() => !serverIsUp.value),
       },
       {

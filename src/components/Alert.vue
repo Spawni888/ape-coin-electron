@@ -110,7 +110,7 @@ export default {
 };
 </script>
 
-<style scoped lang="scss">
+<style lang="scss">
 $errorBg: #ffbab2;
 $errorColor: #611A15;
 $errorIconCol: #F45448;
@@ -129,7 +129,7 @@ $successIconCol: #5CB65F;
   background-color: $errorBg;
   color: $errorColor;
 
-  position: absolute;
+  position: relative;
   width: 100%;
   top: 0;
   left: 0;

@@ -3,6 +3,7 @@
     <Header />
 
     <SideBar/>
+
     <div id="content" class="content">
 
       <transition name="scale-fade"  mode="out-in">
@@ -19,6 +20,7 @@
       <transition name="scale-fade" mode="out-in">
         <Alert
           v-if="alertIsShowing"
+          style="position: absolute"
         />
       </transition>
 
