@@ -493,11 +493,12 @@ export default createStore({
       );
       newWalletRelatedTransactions.forEach(transaction => {
         state.walletRelatedTransactions.push(transaction);
+
         if (transaction.input.address === state.wallet.publicKey) return;
+        if (transaction.input.address === Wallet.getBlockchainAddress()) return;
 
         // create alerts about new received tokens
         transaction.outputs.forEach(output => {
-          if (output.address === Wallet.blockchainWallet()) return;
           if (output.address === state.wallet.publicKey && availableAlertsCount > 0) {
             commit('showAlert', {
               type: 'info',

@@ -1,4 +1,4 @@
-const { INITIAL_BALANCE } = require('../config');
+const { INITIAL_BALANCE, BLOCKCHAIN_WALLET } = require('../config');
 const Transaction = require('./transaction');
 const ChainUtil = require('../chain-util');
 
@@ -164,8 +164,12 @@ class Wallet {
 
   static blockchainWallet() {
     const blockchainWallet = new this();
-    blockchainWallet.address = 'blockchain-wallet';
+    blockchainWallet.address = this.getBlockchainAddress();
     return blockchainWallet;
+  }
+
+  static getBlockchainAddress() {
+    return BLOCKCHAIN_WALLET;
   }
 }
 

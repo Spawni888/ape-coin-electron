@@ -149,7 +149,7 @@ class P2pServer extends EventEmitter {
       }
       if (retries === 10) {
         if (this.allSockets().length > 0) {
-          this.emit('info', `Connection with peer ${peer} was broken.`);
+          this.emit('warning', `Connection with peer ${peer} was broken.`);
         } else {
           this.emit(
             'warning',
