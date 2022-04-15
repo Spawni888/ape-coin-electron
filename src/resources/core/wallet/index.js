@@ -131,7 +131,10 @@ class Wallet {
       });
   }
 
-  getNewWalletRelatedTransactions(oldRelatedTransactions, bc, tp = []) {
+  static getNewWalletRelatedTransactions(
+    pubKey,
+    { bc = [], tp = [], oldRelatedTransactions = [] },
+  ) {
     const relatedTransactionIDsMap = {};
     const newRelatedTransactions = [];
 
@@ -141,7 +144,7 @@ class Wallet {
 
     const pushIfRelated = (transaction) => {
       for (const output of transaction.outputs) {
-        if (output.address === this.publicKey) {
+        if (output.address === pubKey) {
           if (!relatedTransactionIDsMap[transaction.id]) {
             newRelatedTransactions.push(transaction);
           }

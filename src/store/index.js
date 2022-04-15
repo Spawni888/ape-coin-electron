@@ -490,10 +490,13 @@ export default createStore({
       if (state.wallet === null) return;
       let availableAlertsCount = 3;
 
-      const newWalletRelatedTransactions = state.wallet.getNewWalletRelatedTransactions(
-        state.walletRelatedTransactions,
-        state.blockchain.chain,
-        state.transactionPool.transactions,
+      const newWalletRelatedTransactions = Wallet.getNewWalletRelatedTransactions(
+        state.wallet.publicKey,
+        {
+          oldRelatedTransactions: state.walletRelatedTransactions,
+          bc: state.blockchain.chain,
+          tp: state.transactionPool.transactions,
+        },
       );
       newWalletRelatedTransactions.forEach(transaction => {
         state.walletRelatedTransactions.push(transaction);

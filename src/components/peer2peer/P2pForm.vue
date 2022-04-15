@@ -1,5 +1,5 @@
 <template>
-  <form class="p2p-form" ref="test">
+  <form class="p2p-form">
     <div class="p2p-title">
       Distribution Network
     </div>
