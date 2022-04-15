@@ -32,10 +32,16 @@
         server.inbounds = new Proxy(server.inbounds, {
           set(target, prop, value, receiver) {
             messageToUI(FROM_P2P.INBOUNDS_LIST_CHANGED, {
-              test: target,
-              inboundsList: [...Object.keys(target), prop],
+              inboundsList: [...Object.keys(target), prop]
             });
             return Reflect.set(target, prop, value, receiver);
+          },
+          deleteProperty(target, prop) {
+            delete target[prop];
+            messageToUI(FROM_P2P.INBOUNDS_LIST_CHANGED, {
+              inboundsList: [...Object.keys(target)]
+            });
+            return true;
           },
         });
 
@@ -45,6 +51,13 @@
               outboundsList: [...Object.keys(target), prop]
             });
             return Reflect.set(target, prop, value, receiver);
+          },
+          deleteProperty(target, prop) {
+            delete target[prop];
+            messageToUI(FROM_P2P.OUTBOUNDS_LIST_CHANGED, {
+              outboundsList: [...Object.keys(target)]
+            });
+            return true;
           },
         });
 

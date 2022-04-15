@@ -1,18 +1,20 @@
 const Websocket = require('ws');
 const { EventEmitter } = require('events');
 const ngrok = require('ngrok');
-const { MAXIMUM_INBOUNDS, MAXIMUM_OUTBOUNDS, P2P_SOCKET_RECONNECTION_RETRIES } = require('../config');
+const {
+  MAXIMUM_INBOUNDS,
+  MAXIMUM_OUTBOUNDS,
+  P2P_SOCKET_RECONNECTION_RETRIES,
+  P2P_SOCKET_RECONNECTION_INTERVAL,
+} = require('../config');
 
 const MESSAGE_TYPES = {
   chain: 'CHAIN',
   transaction: 'TRANSACTION',
-  clearTransactions: 'CLEAR_TRANSACTIONS',
   transactionPool: 'TRANSACTION_POOL',
   peers: 'PEERS',
-  serverAddressReq: 'SERVER_ADDRESS_REQUEST',
-  serverAddressRes: 'SERVER_ADDRESS_RESPONSE',
-  replaceAddressWithNgrok: 'REPLACE_ADDRESS_WITH_NGROK',
-  disconnection: 'DISCONNECT_ME',
+  serverExternalAddressReq: 'SERVER_EXTERNAL_ADDRESS_REQUEST',
+  serverExternalAddressRes: 'SERVER_EXTERNAL_ADDRESS_RESPONSE',
 };
 
 class P2pServer extends EventEmitter {
@@ -22,21 +24,21 @@ class P2pServer extends EventEmitter {
     this.transactionPool = transactionPool;
     this.inbounds = {};
     this.outbounds = {};
-    this.outboundsQuantity = 0;
-    this.inboundsQuantity = 0;
     this.server = null;
     this.host = null;
     this.port = null;
-    this.externalAddress = null;
+    this.protocol = 'http';
+    this.externalDomain = null;
     this.externalPort = null;
-    this.ngrokAddress = null;
+    this.externalAddress = null;
+    this.ngrokHost = null;
     this.peers = [];
   }
 
   get myPeerLink() {
-    if (this.externalAddress === null) return null;
+    if (this.externalDomain === null) return null;
 
-    return `http://${this.externalAddress}:${this.externalPort}`;
+    return `${this.protocol}://${this.externalDomain}:${this.externalPort}`;
   }
 
   get inboundsList() {
@@ -45,6 +47,22 @@ class P2pServer extends EventEmitter {
 
   get outboundsList() {
     return Object.keys(this.outbounds);
+  }
+
+  get outboundsQuantity() {
+    return this.outboundsList.length;
+  }
+
+  get inboundsQuantity() {
+    return this.inboundsList.length;
+  }
+
+  get allSockets() {
+    return [...Object.values(this.inbounds), ...Object.values(this.outbounds)];
+  }
+
+  get allSocketsQuantity() {
+    return this.allSockets.length;
   }
 
   close() {
@@ -67,8 +85,24 @@ class P2pServer extends EventEmitter {
       this.sendPeers(socket);
 
       if (this.inboundsQuantity < MAXIMUM_INBOUNDS) {
+        const socketExternalAddressObj = this.getSocketExternalAddressObj(req);
+        const socketExternalAddress = socketExternalAddressObj.address;
+
+        if (this.outbounds[socketExternalAddress] || this.inbounds[socketExternalAddress]) {
+          socket.close();
+          return;
+        }
+
+        this.addServerAddressToSocket(socket, {
+          protocol: this.protocol,
+          domain: socketExternalAddressObj.domain,
+          port: socketExternalAddressObj.port,
+        });
+
+        this.inbounds[socketExternalAddress] = socket;
+
         this.connectSocket(socket);
-        this.requestServerAddress(socket, req);
+        this.requestServerExternalAddress(socket, socketExternalAddressObj);
       }
     });
     this.server.on('error', (err) => {
@@ -81,7 +115,7 @@ class P2pServer extends EventEmitter {
     this.emit(
       'success',
       `Your server was creates successfully. Your internal address:
-      http://${this.host}:${this.port}`,
+      ${this.protocol}://${this.host}:${this.port}`,
     );
     if (cb !== null) cb();
   }
@@ -89,7 +123,7 @@ class P2pServer extends EventEmitter {
   ngrokConnect(ngrokAuthToken) {
     (async () => {
       try {
-        this.ngrokAddress = await ngrok.connect({
+        this.ngrokHost = await ngrok.connect({
           proto: 'http', // http|tcp|tls, defaults to http
           addr: `${this.host}:${this.port}`, // port or network address, defaults to 80
           authtoken: ngrokAuthToken, // your authtoken from ngrok.com
@@ -105,85 +139,112 @@ class P2pServer extends EventEmitter {
         this.emit('error', 'Can\'t connect ngrok. Check your ngrok API key.');
         return;
       }
-      this.ngrokAddress = this.ngrokAddress.replace(/^https?:\/\//g, '');
-      this.externalAddress = this.ngrokAddress;
+      this.externalDomain = this.ngrokHost.replace(/^https?:\/\//g, '');
       this.externalPort = '80';
 
       this.emit(
         'info',
-        `Your server external address is http://${this.ngrokAddress}:80`,
+        `Your server external address is ${this.protocol}://${this.externalDomain}:${this.externalPort}`,
       );
     })();
   }
 
-  connectToPeer(peer, serverAddress, serverPort, retries = P2P_SOCKET_RECONNECTION_RETRIES) {
-    if (retries <= 0) return;
-    if (this.outbounds[peer] || this.inbounds[peer]) return;
-    const reconnectInterval = 5000;
-    const socket = new Websocket(peer);
+  connectToPeer(
+    peerAddress,
+    serverProtocol,
+    serverDomain,
+    serverPort,
+    retries = P2P_SOCKET_RECONNECTION_RETRIES,
+  ) {
+    console.log('-'.repeat(10));
+    console.log(`Trying to connect to peer ${peerAddress}`);
+    console.log(`Retries remain ${retries}`);
+    console.log('-'.repeat(10));
 
-    socket.serverAddress = serverAddress;
-    socket.serverPort = serverPort;
+    if (retries <= 0) {
+      console.log();
+      return;
+    }
+    if (this.outbounds[peerAddress] || this.inbounds[peerAddress]) return;
+
+    const socket = new Websocket(peerAddress);
+
+    this.addServerAddressToSocket(socket, {
+      protocol: serverProtocol,
+      domain: serverDomain,
+      port: serverPort,
+    });
 
     socket.on('open', () => {
       this.connectSocket(socket);
       this.sendPeers(socket);
-      this.outbounds[peer] = socket;
-      this.outboundsQuantity += 1;
-      console.log(`Connected to peer: ${peer}`);
+      this.outbounds[peerAddress] = socket;
+
+      console.log(`Connected to peer: ${peerAddress}`);
       // plus one because of "retries - 1" below
       retries = P2P_SOCKET_RECONNECTION_RETRIES + 1;
     });
 
     socket.on('error', (err) => {
-      // TODO: Look at its work ?!
       console.log(err);
-      if (err.message !== 'Unexpected server response: 404') return;
-      retries = 0;
     });
 
     socket.on('close', () => {
-      if (this.outbounds[peer]) {
-        delete this.outbounds[peer];
-        this.outboundsQuantity -= 1;
+      if (this.outbounds[peerAddress]) {
+        delete this.outbounds[peerAddress];
       }
-      if (retries === 10) {
-        if (this.allSockets().length > 0) {
-          this.emit('warning', `Connection with peer ${peer} was broken.`);
-        } else {
-          this.emit(
-            'warning',
-            `Connection with peer ${peer} was broken. It was your last connection`,
-          );
-        }
-      }
+      // if (retries === 10) {
+      //   if (this.allSocketsQuantity > 0) {
+      //     // I think users don't need alerts ab every disconnection.
+      //     // this.emit('warning', `Connection with peer ${peerAddress} was broken.`);
+      //   } else {
+      //     this.emit(
+      //       'warning',
+      //       `Connection with peer ${peerAddress} was broken. It was your last connection`,
+      //     );
+      //   }
+      // }
 
-      setImmediate(
-        () => this.connectToPeer(peer, serverAddress, serverPort, retries - 1), reconnectInterval,
+      setTimeout(
+        () => this.connectToPeer(
+          peerAddress,
+          serverProtocol,
+          serverDomain,
+          serverPort,
+          retries - 1,
+        ),
+        P2P_SOCKET_RECONNECTION_INTERVAL,
       );
     });
   }
 
   connectToPeers() {
     while (this.peers.length && this.outboundsQuantity < MAXIMUM_OUTBOUNDS) {
-      let peer = this.peers.pop();
+      let peerAddress = this.peers.pop();
 
-      const parsedPeerLink = /:\/\/([\d\w.\-_]+?):(.+)$/gi.exec(peer);
+      const parsedPeerLink = /(.+):\/\/([\d\w.\-_]+?):(.+)$/gi.exec(peerAddress);
       if (parsedPeerLink) {
-        const [, serverAddress, serverPort] = parsedPeerLink;
-        peer = `http://${serverAddress}:${serverPort}`;
-
+        const [, serverProtocol, serverDomain, serverPort] = parsedPeerLink;
+        peerAddress = `${serverProtocol}://${serverDomain}:${serverPort}`;
+        console.log(peerAddress);
         // EXAMPLE: http://localhost:5001 || ws://localhost:5001
-        this.connectToPeer(peer, serverAddress, serverPort);
+        this.connectToPeer(peerAddress, serverProtocol, serverDomain, serverPort);
       }
     }
     this.peers = [];
   }
 
-  requestServerAddress(socket, req) {
+  addServerAddressToSocket(socket, { protocol = this.protocol, domain = null, port = null }) {
+    socket.serverProtocol = protocol;
+    if (domain) socket.serverDomain = domain;
+    if (port) socket.serverPort = port;
+    if (domain && port) socket.serverAddress = `${protocol}://${domain}:${port}`;
+  }
+
+  requestServerExternalAddress(socket, socketExternalAddressObj) {
     socket.send(JSON.stringify({
-      type: MESSAGE_TYPES.serverAddressReq,
-      prevAddress: this.getSocketAddress(req),
+      type: MESSAGE_TYPES.serverExternalAddressReq,
+      socketExternalAddressObj,
     }));
   }
 
@@ -195,18 +256,24 @@ class P2pServer extends EventEmitter {
   }
 
   addCloseAndErrorHandler(socket) {
-    const handler = () => {
-      const fullAddress = `http://${socket.serverAddress}:${socket.serverPort}`;
+    const handler = (err) => {
+      if (err instanceof Error) console.log(err);
 
-      if (this.inbounds[fullAddress]) {
-        delete this.inbounds[fullAddress];
-        this.inboundsQuantity -= 1;
+      const serverAddress = `${socket.serverProtocol}://${socket.serverDomain}:${socket.serverPort}`;
+
+      if (this.inbounds[serverAddress]) {
+        delete this.inbounds[serverAddress];
       }
-      if (this.outbounds[fullAddress]) {
-        delete this.outbounds[fullAddress];
-        this.outboundsQuantity -= 1;
+      if (this.outbounds[serverAddress]) {
+        delete this.outbounds[serverAddress];
       }
-      console.log(`Socket was disconnected: ${fullAddress}`);
+
+      if (this.allSocketsQuantity === 0) {
+        this.emit(
+          'warning',
+          `Connection with ${serverAddress} was broken. It was your last connection.`,
+        );
+      }
     };
     socket.on('close', handler);
     socket.on('error', handler);
@@ -248,37 +315,38 @@ class P2pServer extends EventEmitter {
           this.connectToPeers();
           break;
 
-        case MESSAGE_TYPES.serverAddressReq:
-          if (this.ngrokAddress === null) {
-            this.externalAddress = data.prevAddress;
+        case MESSAGE_TYPES.serverExternalAddressReq: {
+          const {
+            protocol,
+            domain: prevDomain,
+          } = data.socketExternalAddressObj;
+
+          if (this.ngrokHost === null) {
+            this.externalDomain = prevDomain;
             this.externalPort = this.port;
 
             this.emit(
               'info',
-              `Your external address: http://${this.externalAddress}:${this.externalPort}`,
+              `Your external address: ${protocol}://${this.externalDomain}:${this.externalPort}`,
             );
           }
 
           socket.send(JSON.stringify({
-            type: MESSAGE_TYPES.serverAddressRes,
-            serverPort: this.externalPort,
-            serverAddress: this.externalAddress,
+            type: MESSAGE_TYPES.serverExternalAddressRes,
+            serverAddressObj: {
+              protocol: this.protocol,
+              domain: this.externalDomain,
+              port: this.externalPort,
+              address: `${this.protocol}://${this.externalDomain}:${this.externalPort}`,
+            },
           }));
           break;
-        case MESSAGE_TYPES.serverAddressRes:
-          this.saveInbound(socket, data.serverAddress, data.serverPort);
+        }
+
+        case MESSAGE_TYPES.serverExternalAddressRes:
+          this.updateInbound(socket, data.serverAddressObj);
           break;
 
-        case MESSAGE_TYPES.disconnection:
-          if (!this.inbounds[data.peer]) return;
-          delete this.inbounds[data.peer];
-          this.inboundsQuantity -= 1;
-          this.emit('info', `Connection with peer ${data.peer} was broken.`);
-          break;
-
-        case MESSAGE_TYPES.clearTransactions:
-          this.transactionPool.clear();
-          break;
         default:
           break;
       }
@@ -306,12 +374,6 @@ class P2pServer extends EventEmitter {
     }));
   }
 
-  sendClearTransactions(socket) {
-    socket.send(JSON.stringify({
-      type: MESSAGE_TYPES.clearTransactions,
-    }));
-  }
-
   sendPeers(socket) {
     const peers = [
       ...Object.keys(this.inbounds),
@@ -326,44 +388,62 @@ class P2pServer extends EventEmitter {
     }
   }
 
-  sendDisconnection(socket, peer) {
-    socket.send(JSON.stringify({
-      type: MESSAGE_TYPES.disconnection,
-      peer,
-    }));
-  }
+  updateInbound(socket, serverAddressObj) {
+    const {
+      port: serverPort,
+      address: serverAddress,
+    } = serverAddressObj;
 
-  saveInbound(socket, serverAddress, serverPort) {
-    socket.serverAddress = serverAddress;
-    socket.serverPort = serverPort;
-
-    const fullAddress = `http://${serverAddress}:${serverPort}`;
-    if (!this.inbounds[fullAddress] && !this.outbounds[fullAddress]) {
-      this.inbounds[fullAddress] = socket;
-      this.inboundsQuantity += 1;
-      console.log(`Socket was connected: ${fullAddress}`);
+    // we don't need more than one connection with same user
+    if (this.outbounds[serverAddress]) {
+      const sameSocket = this.outbounds[serverAddress];
+      sameSocket.close();
+      delete this.outbounds[serverAddress];
     }
+
+    if (this.inbounds[serverAddress]) {
+      const prevSocket = this.inbounds[serverAddress];
+      prevSocket.close();
+
+      this.inbounds[serverAddress] = socket;
+    } else {
+      this.inbounds[serverAddress] = socket;
+    }
+
+    if (serverPort !== socket.serverPort) {
+      const prevServerAddress = socket.serverAddress;
+      delete this.inbounds[prevServerAddress];
+
+      socket.serverPort = serverPort;
+    }
+
+    console.log('Inbounds:');
+    console.log(this.inbounds);
+    console.log('Outbounds:');
+    console.log(this.outbounds);
+
+    console.log(`Socket was connected: ${serverAddress}`);
   }
 
-  getSocketAddress(req) {
-    return (req.headers['x-forwarded-for'] || '').split(',')[0]
-      || req.connection.remoteAddress;
-  }
+  getSocketExternalAddressObj(req) {
+    const protocol = 'http';
+    const domain = req.connection.remoteAddress;
+    const port = req.connection.remotePort;
 
-  allSockets() {
-    return [...(Object.values(this.inbounds)), ...Object.values(this.outbounds)];
+    return {
+      protocol,
+      domain,
+      port,
+      address: `${protocol}://${domain}:${port}`,
+    };
   }
 
   syncChains() {
-    this.allSockets().forEach(socket => this.sendChain(socket));
+    this.allSockets.forEach(socket => this.sendChain(socket));
   }
 
   broadcastTransaction(transaction) {
-    this.allSockets().forEach(socket => this.sendTransaction(socket, transaction));
-  }
-
-  allPeersLinks() {
-    return [...Object.keys(this.inbounds), ...Object.keys(this.outbounds)];
+    this.allSockets.forEach(socket => this.sendTransaction(socket, transaction));
   }
 }
 

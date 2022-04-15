@@ -25,18 +25,16 @@ export default createStore({
     walletRelatedTransactions: [],
     // TODO: create transactions page.
     p2pServer: {
-      inbounds: {},
       inboundsList: [],
       outboundsList: [],
-      outbounds: {},
-      outboundsQuantity: 0,
-      inboundsQuantity: 0,
       server: null,
       host: null,
       port: null,
-      externalAddress: null,
+      protocol: 'http',
+      externalDomain: null,
       externalPort: null,
-      ngrokAddress: null,
+      externalAddress: null,
+      ngrokHost: null,
       peers: [],
     },
     blockchain: null,
@@ -67,10 +65,10 @@ export default createStore({
       return state.alertsJournal;
     },
     p2pInboundsQuantity(state) {
-      return state.p2pServer.inboundsQuantity;
+      return state.p2pServer.inboundsList.length;
     },
     p2pOutboundsQuantity(state) {
-      return state.p2pServer.outboundsQuantity;
+      return state.p2pServer.outboundsList.length;
     },
     p2pInboundsList(state) {
       return state.p2pServer.inboundsList;
@@ -79,10 +77,11 @@ export default createStore({
       return state.p2pServer.outboundsList;
     },
     myPeerLink(state) {
+      // it works because of p2pServer.html Proxy and FROM_P2P.PROPERTY_CHANGED channel.
       const { p2pServer } = state;
-      if (p2pServer.externalAddress === null) return null;
+      if (p2pServer.externalDomain === null) return null;
 
-      return `http://${p2pServer.externalAddress}:${p2pServer.externalPort}`;
+      return `${p2pServer.protocol}://${p2pServer.externalDomain}:${p2pServer.externalPort}`;
     },
     serverIsUp(state) {
       return state.serverIsUp;
@@ -215,9 +214,11 @@ export default createStore({
       });
 
       ipcRenderer.on(FROM_P2P.OUTBOUNDS_LIST_CHANGED, (event, data) => {
+        console.log('FROM_P2P.OUTBOUNDS_LIST_CHANGED');
         state.p2pServer.outboundsList = data.outboundsList;
       });
       ipcRenderer.on(FROM_P2P.INBOUNDS_LIST_CHANGED, (event, data) => {
+        console.log('FROM_P2P.INBOUNDS_LIST_CHANGED');
         state.p2pServer.inboundsList = data.inboundsList;
       });
 
@@ -473,6 +474,8 @@ export default createStore({
       dispatch('routeHome');
 
       state.serverIsUp = false;
+      state.p2pServer.outboundsList = [];
+      state.p2pServer.inboundsList = [];
 
       commit('logOutWallet');
 
@@ -505,7 +508,7 @@ export default createStore({
               title: 'Info',
               message: `You received ${output.amount} tokens. View tab 'transactions' for more info.`,
             });
-            availableAlertsCount--;
+            availableAlertsCount -= 1;
           }
         });
       });
