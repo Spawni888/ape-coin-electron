@@ -19,7 +19,7 @@
     }
 
     try {
-      ipcRenderer.on(TO_P2P.START_SERVER, (event, serverOptions) => {
+      ipcRenderer.on(TO_P2P.START_SERVER, async (event, serverOptions) => {
         server = new P2pServer(new Blockchain(), new TransactionPool());
 
         server = new Proxy(server, {
@@ -61,30 +61,6 @@
           },
         });
 
-        // server.transactionPool.transactions = new Proxy(server.transactionPool.transactions, {
-        //   set(target, prop, value, receiver) {
-        //     if (prop !== 'length') {
-        //       messageToUI(FROM_P2P.TRANSACTION_POOL_CHANGED, {
-        //         transactions: [...target, value]
-        //       });
-        //     }
-        //     return Reflect.set(target, prop, value, receiver);
-        //   },
-        // });
-
-        // server.blockchain.chain = new Proxy(server.blockchain.chain, {
-        //   set(target, prop, value, receiver) {
-        //     console.log('server.blockchain.chain PROXY', server.blockchain.chain);
-        //
-        //     if (prop !== 'length') {
-        //       messageToUI(FROM_P2P.BLOCKCHAIN_CHANGED, {
-        //         chain: [...target, value]
-        //       });
-        //     }
-        //     return Reflect.set(target, prop, value, receiver);
-        //   },
-        // });
-
         // alerts
         server.on('info', (msg) => messageToUI(FROM_APP.ALERT, {
           type: 'info',
@@ -107,13 +83,11 @@
           message: msg,
         }));
 
-        // props change
-        // server.on('property-changed', (propInfo) => messageToUI(FROM_P2P.PROPERTY_CHANGED, propInfo));
         server.on('transaction-pool-changed', (data) => messageToUI(FROM_P2P.TRANSACTION_POOL_CHANGED, data));
         server.on('blockchain-changed', (data) => messageToUI(FROM_P2P.BLOCKCHAIN_CHANGED, data));
 
         // start server
-        server.listen(serverOptions, () => messageToUI(FROM_P2P.SERVER_STARTED, { serverPort: serverOptions.port }));
+        await server.listen(serverOptions, () => messageToUI(FROM_P2P.SERVER_STARTED, { serverPort: serverOptions.port }));
       })
 
       ipcRenderer.on(TO_P2P.NEW_TRANSACTION_CREATED, (event, { transaction }) => {
@@ -123,7 +97,7 @@
         server.broadcastTransaction(transaction);
       })
 
-      ipcRenderer.on(TO_P2P.NEW_BLOCK_ADDED, (event, { block, chain }) => {
+      ipcRenderer.on(TO_P2P.NEW_BLOCK_ADDED, (event, { chain }) => {
         if (server === null) return;
 
         server.blockchain.chain = chain;

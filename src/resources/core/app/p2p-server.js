@@ -69,7 +69,7 @@ class P2pServer extends EventEmitter {
     this.server.close();
   }
 
-  listen({
+  async listen({
     host = '127.0.0.1', port, ngrokAuthToken = null, peers,
   }, cb = null) {
     this.port = port;
@@ -77,7 +77,7 @@ class P2pServer extends EventEmitter {
     this.peers = peers;
 
     if (ngrokAuthToken !== null) {
-      this.ngrokConnect(ngrokAuthToken);
+      await this.ngrokConnect(ngrokAuthToken);
     }
 
     this.server = new Websocket.Server({ host, port });
@@ -120,33 +120,32 @@ class P2pServer extends EventEmitter {
     if (cb !== null) cb();
   }
 
-  ngrokConnect(ngrokAuthToken) {
-    (async () => {
-      try {
-        this.ngrokHost = await ngrok.connect({
-          proto: 'http', // http|tcp|tls, defaults to http
-          addr: `${this.host}:${this.port}`, // port or network address, defaults to 80
-          authtoken: ngrokAuthToken, // your authtoken from ngrok.com
-          region: 'us', // one of ngrok regions (us, eu, au, ap, sa, jp, in), defaults to us
-          onStatusChange: status => {
-            if (status === 'closed') {
-              this.ngrokConnect(ngrokAuthToken);
-            }
-          }, // 'closed' - connection is lost, 'connected' - reconnected
-        });
-      } catch (e) {
-        console.log(e);
-        this.emit('error', 'Can\'t connect ngrok. Check your ngrok API key.');
-        return;
-      }
-      this.externalDomain = this.ngrokHost.replace(/^https?:\/\//g, '');
-      this.externalPort = '80';
+  async ngrokConnect(ngrokAuthToken) {
+    try {
+      this.ngrokHost = await ngrok.connect({
+        proto: 'http', // http|tcp|tls, defaults to http
+        addr: `${this.host}:${this.port}`, // port or network address, defaults to 80
+        authtoken: ngrokAuthToken, // your authtoken from ngrok.com
+        region: 'us', // one of ngrok regions (us, eu, au, ap, sa, jp, in), defaults to us
+        onStatusChange: status => {
+          if (status === 'closed') {
+            this.ngrokConnect(ngrokAuthToken);
+          }
+        }, // 'closed' - connection is lost, 'connected' - reconnected
+      });
+    } catch (e) {
+      console.log(e);
+      this.emit('error', 'Can\'t connect ngrok. Check your ngrok API key.');
+      return;
+    }
 
-      this.emit(
-        'info',
-        `Your server external address is ${this.protocol}://${this.externalDomain}:${this.externalPort}`,
-      );
-    })();
+    this.externalDomain = this.ngrokHost.replace(/^https?:\/\//g, '');
+    this.externalPort = '80';
+
+    this.emit(
+      'info',
+      `Your server external address is ${this.protocol}://${this.externalDomain}:${this.externalPort}`,
+    );
   }
 
   connectToPeer(
@@ -161,10 +160,6 @@ class P2pServer extends EventEmitter {
     console.log(`Retries remain ${retries}`);
     console.log('-'.repeat(10));
 
-    if (retries <= 0) {
-      console.log();
-      return;
-    }
     if (this.outbounds[peerAddress] || this.inbounds[peerAddress]) return;
 
     const socket = new Websocket(peerAddress);
@@ -393,6 +388,8 @@ class P2pServer extends EventEmitter {
       port: serverPort,
       address: serverAddress,
     } = serverAddressObj;
+
+    console.log(serverAddress);
 
     // we don't need more than one connection with same user
     if (this.outbounds[serverAddress]) {

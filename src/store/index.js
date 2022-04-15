@@ -476,6 +476,7 @@ export default createStore({
       state.serverIsUp = false;
       state.p2pServer.outboundsList = [];
       state.p2pServer.inboundsList = [];
+      state.p2pServer.externalDomain = null;
 
       commit('logOutWallet');
 
