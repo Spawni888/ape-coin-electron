@@ -133,8 +133,19 @@ class Wallet {
 
   static getNewWalletRelatedTransactions(
     pubKey,
-    { bc = [], tp = [], oldRelatedTransactions = [] },
+    {
+      tp = [],
+      oldRelatedTransactions = [],
+      bc = [],
+      bcStart = 0,
+      bcEnd = null,
+    },
   ) {
+    if (bcEnd === null) {
+      bcEnd = bc.length - 1;
+    }
+    const bcSlice = bc.slice(bcStart, bcEnd + 1);
+
     const relatedTransactionIDsMap = {};
     const newRelatedTransactions = [];
 
@@ -143,18 +154,40 @@ class Wallet {
     });
 
     const pushIfRelated = (transaction) => {
+      if (transaction.input.address === pubKey) {
+        newRelatedTransactions.push(transaction);
+        transaction.type = 'outcome';
+        return true;
+      }
+
       for (const output of transaction.outputs) {
         if (output.address === pubKey) {
           if (!relatedTransactionIDsMap[transaction.id]) {
             newRelatedTransactions.push(transaction);
+
+            if (transaction.input.address === Wallet.getBlockchainAddress()) {
+              transaction.type = 'reward';
+            } else {
+              transaction.type = 'income';
+            }
+            return true;
           }
           break;
         }
       }
+      return false;
     };
 
-    bc.forEach(block => {
-      block.data.forEach(pushIfRelated);
+    bcSlice.forEach((block, blockIdx) => {
+      block.data.forEach(transaction => {
+        const isRelated = pushIfRelated(transaction);
+
+        if (!isRelated) return;
+        transaction.confirmed = true;
+        transaction.blockHash = block.hash;
+        transaction.blockTimestamp = block.timestamp;
+        transaction.blockIndex = bcStart + blockIdx;
+      });
     });
     tp.forEach(pushIfRelated);
 

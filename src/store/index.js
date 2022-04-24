@@ -23,7 +23,6 @@ export default createStore({
   state: {
     backgroundListenersInitialized: false,
     walletRelatedTransactions: [],
-    // TODO: create transactions page.
     p2pServer: {
       inboundsList: [],
       outboundsList: [],
@@ -55,6 +54,9 @@ export default createStore({
     miningIsUp: false,
   },
   getters: {
+    walletRelatedTransactions(state) {
+      return state.walletRelatedTransactions;
+    },
     alertIsShowing(state) {
       return state.alertIsShowing;
     },
@@ -94,6 +96,10 @@ export default createStore({
     },
     walletBalance(state) {
       return state.wallet.balanceWithTpIncluded;
+    },
+    walletPubKey(state) {
+      if (state.wallet === null) return null;
+      return state.wallet.publicKey;
     },
     miningIsUp(state) {
       return state.miningIsUp;
@@ -143,6 +149,18 @@ export default createStore({
     },
     sendToP2P(state, { channel, data }) {
       ipcRenderer.send(FROM_UI.TO_P2P, JSON.stringify({ channel, data }));
+    },
+    findWalletRelatedTransactions(state, {
+      pubKey = null,
+      bcStart,
+      bcEnd,
+    }) {
+      state.walletRelatedTransactions = Wallet.getNewWalletRelatedTransactions(pubKey, {
+        bc: state.blockchain.chain,
+        tp: state.transactionPool.transactions,
+        bcStart,
+        bcEnd,
+      });
     },
   },
   actions: {
@@ -487,6 +505,9 @@ export default createStore({
       await routeTo({ name: 'p2p' });
     },
     updateWalletRelatedTransactions({ state, commit }) {
+      // TODO: unable it for a while. Remove it later maybe.
+      return;
+      // eslint-disable-next-line no-unreachable
       if (state.wallet === null) return;
       let availableAlertsCount = 3;
 

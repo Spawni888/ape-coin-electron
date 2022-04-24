@@ -13,7 +13,7 @@
       :show-error="!field.valid && highlightErrors"
       v-model:value="field.value"
     />
-    <CoreButton class="p2p-button" @click.prevent="searchForTransactions">Search</CoreButton>
+    <CoreButton class="p2p-button" @click.prevent="searchTransactions">Search</CoreButton>
   </form>
 </template>
 
@@ -21,9 +21,10 @@
 import CoreInput from '@/components/CoreInput';
 import CoreButton from '@/components/CoreButton';
 
-import { onMounted, ref } from 'vue';
+import { onMounted, ref, computed } from 'vue';
 import useForm from '@/use/form/form';
 import useTooltip from '@/use/tooltip';
+import { useStore } from 'vuex';
 
 export default {
   name: 'TransactionsForm',
@@ -31,10 +32,13 @@ export default {
     CoreInput,
     CoreButton,
   },
-  setup() {
+  setup(props, { emit }) {
+    const store = useStore();
+    const myPubKey = computed(() => store.getters.walletPubKey);
+
     const form = useForm({
       address: {
-        value: '',
+        value: myPubKey.value === null ? '' : myPubKey.value,
         fieldName: 'Enter user address',
         placeholder: 'Paste user public key',
         validators: {
@@ -47,10 +51,19 @@ export default {
       },
     });
 
-    const searchForTransactions = () => {
+    const highlightErrors = ref(false);
+    const searchTransactions = () => {
+      if (!form.address.valid) {
+        highlightErrors.value = true;
+        return;
+      }
+
+      store.commit('findWalletRelatedTransactions', {
+        pubKey: form.address.value,
+      });
+      emit('show-output');
     };
 
-    const highlightErrors = ref(false);
     const pubKeyNode = ref(null);
 
     onMounted(() => {
@@ -67,8 +80,9 @@ export default {
     return {
       form,
       highlightErrors,
+      myPubKey,
       pubKeyNode,
-      searchForTransactions,
+      searchTransactions,
     };
   },
 };

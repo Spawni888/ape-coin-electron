@@ -38,30 +38,40 @@ export default {
     const alertsJournal = computed(() => store.getters.alertsJournal);
     const sortJournal = (journal) => journal.sort((a, b) => b.timestamp - a.timestamp);
 
+    const existingTypes = computed(
+      () => alertsJournal.value
+        .filter((alertInfo, index, self) => self.indexOf(alertInfo) === index)
+        .map(alertInfo => alertInfo.type),
+    );
+
     const chips = ref([
       {
         name: 'error',
-        hidden: false,
+        hidden: !existingTypes.value.includes('error'),
       },
       {
         name: 'info',
-        hidden: false,
+        hidden: !existingTypes.value.includes('info'),
       },
       {
         name: 'warning',
-        hidden: false,
+        hidden: !existingTypes.value.includes('warning'),
       },
       {
         name: 'success',
-        hidden: false,
+        hidden: !existingTypes.value.includes('success'),
       },
     ]);
 
     const filteredJournal = computed(() => {
-      const chosenTypes = chips.value.filter(chip => !chip.hidden)
+      const chosenTypes = chips.value
+        .filter(chip => !chip.hidden)
         .map(chip => chip.name);
 
-      return alertsJournal.value.filter(alertInfo => chosenTypes.includes(alertInfo.type));
+      // eslint-disable-next-line arrow-body-style
+      return alertsJournal.value.filter(alertInfo => {
+        return chosenTypes.includes(alertInfo.type) && existingTypes.value.includes(alertInfo.type);
+      });
     });
 
     const onChipClick = (chip) => {
@@ -71,17 +81,20 @@ export default {
           .filter(Boolean).length;
 
         if (visibleChipsNum <= 1) return;
-      }
+      } else if (!existingTypes.value.includes(chip.name)) return;
+
       chip.hidden = !chip.hidden;
     };
 
     const onBeforeLeave = (el) => {
+      // it's just for nice animation
       gsap.set(el, { top: el.offsetTop });
     };
 
     return {
       chips,
       alertsJournal,
+      existingTypes,
       filteredJournal,
       sortJournal,
       onChipClick,

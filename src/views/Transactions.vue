@@ -2,10 +2,12 @@
   <div class="transactions">
     <transition name="fade" mode="out-in">
       <TransactionsInput
-        v-if="!transactionsReady"
+        v-if="!outputReady"
+        @show-output="outputReady = true"
       />
       <TransactionsOutput
         v-else
+        @hide-output="outputReady = false"
       />
     </transition>
   </div>
@@ -23,10 +25,15 @@ export default {
     TransactionsOutput,
   },
   setup() {
-    const transactionsReady = ref(false);
+    const outputReady = ref(false);
+
+    const showOutput = () => {
+      outputReady.value = true;
+    };
 
     return {
-      transactionsReady,
+      outputReady,
+      showOutput,
     };
   },
 };
