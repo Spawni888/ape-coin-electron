@@ -365,7 +365,7 @@ export default createStore({
         ngrokAuthToken: ngrok ? ngrokAuthToken : null,
       });
 
-      // if keepLoggedIn was turned on
+      // if keepLoggedIn was turned on the wallet will sign in
       ipcRenderer.send(TO_BG.CHECK_AUTH_SAVING);
     },
     createTransaction({ state, commit, dispatch }, transactionInfo) {

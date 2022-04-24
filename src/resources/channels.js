@@ -40,6 +40,8 @@ const FROM_BG = {
   SIGN_IN_WALLET: 'sign-in-wallet',
   LOAD_P2P_FORM: 'load-p2p-form',
   WALLET_CREATED: 'wallet-created',
+  NEW_WALLET_SAVED: 'new-wallet-saved',
+  NEW_WALLET_SAVE_ERROR: 'new-wallet-save-error',
 };
 
 const TO_BG = {
@@ -51,6 +53,9 @@ const TO_BG = {
   SAVE_P2P_FORM: 'save-p2p-form',
   CHECK_P2P_FORM_SAVING: 'check-p2p-form-saving',
   CREATE_WALLET: 'create-wallet',
+  SAVE_WALLET_CREDITS: 'save-wallet-credits',
+  SAVE_WALLET_AUTH: 'save-wallet-auth',
+  DELETE_WALLET_AUTH: 'delete-wallet-auth',
 };
 
 const FROM_APP = {

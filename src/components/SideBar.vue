@@ -19,7 +19,7 @@
         <div
           class="feature"
           :class="[
-            {'active': isActive, 'deactive': feature.deactiveCondition},
+            {'active': isActive, 'inactive': feature.inactiveCondition},
             feature.className
           ]"
           @click="navigate"
@@ -70,6 +70,7 @@ import walletImg from '@/assets/images/sidebar/wallet2.svg';
 import miningImg from '@/assets/images/sidebar/pick.svg';
 import blockchainImg from '@/assets/images/sidebar/block.svg';
 import transactionsImg from '@/assets/images/sidebar/transactions.svg';
+import { TO_BG } from '@/resources/channels';
 
 export default {
   name: 'SideBar',
@@ -93,21 +94,21 @@ export default {
         className: 'blockchain',
         imgSrc: blockchainImg,
         route: 'blockchain',
-        deactiveCondition: computed(() => !serverIsUp.value),
+        inactiveCondition: computed(() => !serverIsUp.value),
       },
       {
         name: 'Transactions',
         className: 'transactions',
         imgSrc: transactionsImg,
         route: 'transactions',
-        deactiveCondition: computed(() => !serverIsUp.value),
+        inactiveCondition: computed(() => !serverIsUp.value),
       },
       {
         name: 'Wallet',
         className: 'wallet',
         imgSrc: walletImg,
         route: 'wallet',
-        deactiveCondition: computed(() => !serverIsUp.value),
+        inactiveCondition: computed(() => !serverIsUp.value),
       },
       {
         name: 'Mining',
@@ -115,14 +116,14 @@ export default {
         imgSrc: miningImg,
         route: 'mining',
         animation: true,
-        deactiveCondition: computed(() => !serverIsUp.value || !walletAuthed.value),
+        inactiveCondition: computed(() => !serverIsUp.value || !walletAuthed.value),
         indicator: true,
         indicatorCondition: miningIsUp,
       },
     ]);
 
     const logOutWallet = () => {
-      ipcRenderer.send('deleteAuth');
+      ipcRenderer.send(TO_BG.DELETE_WALLET_AUTH);
       store.commit('logOutWallet');
     };
 
@@ -246,7 +247,7 @@ export default {
     }
   }
 
-  .feature.deactive {
+  .feature.inactive {
     pointer-events: none;
 
     &:hover {

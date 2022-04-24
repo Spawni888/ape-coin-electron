@@ -99,7 +99,7 @@ export default {
         return;
       }
       if (keepLoggedIn.value) {
-        ipcRenderer.send('saveAuth', {
+        ipcRenderer.send(TO_BG.SAVE_WALLET_AUTH, {
           privKey: form.privKey.value,
           pubKey: form.pubKey.value,
         });
@@ -145,7 +145,7 @@ export default {
 
     const onAnswer = (answer) => {
       if (answer) {
-        ipcRenderer.send('saveNewWallet', {
+        ipcRenderer.send(TO_BG.SAVE_WALLET_CREDITS, {
           priv: newKeyPair.priv,
           pub: newKeyPair.pub,
         });
@@ -153,14 +153,14 @@ export default {
       modalIsShowing.value = false;
     };
 
-    ipcRenderer.on('newWalletSaved', (event, filePath) => {
+    ipcRenderer.on(FROM_BG.NEW_WALLET_SAVED, (event, filePath) => {
       store.commit('showAlert', {
         type: 'success',
         title: 'Success',
         message: `You have saved your keyPair at ${filePath} successfully.`,
       });
     });
-    ipcRenderer.on('newWalletSaveError', () => {
+    ipcRenderer.on(FROM_BG.NEW_WALLET_SAVE_ERROR, () => {
       store.commit('showAlert', {
         type: 'error',
         title: 'Error',

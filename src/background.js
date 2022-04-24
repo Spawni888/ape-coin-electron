@@ -119,7 +119,7 @@ try {
     });
 
     // TODO: CONTINUE TO CREATE CHANNELS
-    ipcMain.on('saveNewWallet', async (event, keyPair) => {
+    ipcMain.on(TO_BG.SAVE_WALLET_CREDITS, async (event, keyPair) => {
       const {
         filePath,
         canceled,
@@ -132,19 +132,20 @@ try {
 privateKey(secret key, don't share it): ${keyPair.priv}`;
         fs.writeFile(filePath, txtKeyPair, (err) => {
           if (err) {
-            mainWin.webContents.send('newWalletSaveError');
+            mainWin.webContents.send(FROM_BG.NEW_WALLET_SAVE_ERROR);
             return;
           }
-          mainWin.webContents.send('newWalletSaved', filePath);
+          mainWin.webContents.send(FROM_BG.NEW_WALLET_SAVED, filePath);
         });
       }
     });
 
-    ipcMain.on('saveAuth', async (event, keyPair) => {
+    // TODO: maybe protect it later :)
+    ipcMain.on(TO_BG.SAVE_WALLET_AUTH, async (event, keyPair) => {
       electronStore.set('walletAuth', keyPair);
     });
 
-    ipcMain.on('deleteAuth', async () => {
+    ipcMain.on(TO_BG.DELETE_WALLET_AUTH, async () => {
       electronStore.delete('walletAuth');
     });
 
