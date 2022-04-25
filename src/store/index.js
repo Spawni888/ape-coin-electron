@@ -124,6 +124,8 @@ export default createStore({
 
         state.alertQueue.push(alertInfo);
         state.alertsJournal.push(alertInfo);
+
+        ipcRenderer.send(TO_BG.SAVE_ALERTS, JSON.stringify(state.alertsJournal));
       }
 
       if (state.alertTimer) return;
@@ -179,14 +181,22 @@ export default createStore({
 
       ipcRenderer.on(FROM_P2P.SERVER_STOPPED, () => {
         commit('showAlert', {
-          type: 'info',
-          title: 'Info',
+          type: 'warning',
+          title: 'Warning',
           message: 'Server Process exited!',
         });
 
         dispatch('closeServer');
       });
 
+      // alerts
+      ipcRenderer.on(FROM_APP.ALERT, (event, data) => {
+        console.log(data.message);
+        commit('showAlert', data);
+        if (data.type === 'error') dispatch('closeServer');
+      });
+
+      // p2p-server property changes
       ipcRenderer.on(FROM_P2P.BLOCKCHAIN_CHANGED, (event, { chain }) => {
         console.log('FROM_P2P.BLOCKCHAIN_CHANGED:');
         console.log(chain);
@@ -207,14 +217,6 @@ export default createStore({
         dispatch('startMining', { silenceMode: true });
       });
 
-      // alerts
-      ipcRenderer.on(FROM_APP.ALERT, (event, data) => {
-        console.log(data.message);
-        commit('showAlert', data);
-        if (data.type === 'error') dispatch('closeServer');
-      });
-
-      // p2p-server property changes
       ipcRenderer.on(FROM_P2P.PROPERTY_CHANGED, (event, data) => {
         const {
           prop,
@@ -268,6 +270,10 @@ export default createStore({
           silentMode: true,
         });
       });
+
+      ipcRenderer.on(FROM_BG.LOAD_ALERTS, (event, alertsJournal) => {
+        state.alertsJournal = alertsJournal;
+      });
     },
     onBlockCalculated({ state, dispatch, commit }, { block, chain }) {
       console.log('new Block calculated:', block);
@@ -317,7 +323,10 @@ export default createStore({
       commit,
       dispatch,
     }, options) {
-      if (!state.backgroundListenersInitialized) dispatch('initBackgroundListeners');
+      if (!state.backgroundListenersInitialized) {
+        dispatch('initBackgroundListeners');
+        ipcRenderer.send(TO_BG.CHECK_ALERTS_SAVING);
+      }
       if (state.serverIsUp) dispatch('closeServer');
 
       let {
@@ -365,6 +374,7 @@ export default createStore({
         ngrokAuthToken: ngrok ? ngrokAuthToken : null,
       });
 
+      // check information savings
       // if keepLoggedIn was turned on the wallet will sign in
       ipcRenderer.send(TO_BG.CHECK_AUTH_SAVING);
     },

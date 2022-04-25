@@ -1,3 +1,4 @@
+// TODO: create it more understandable
 const FROM_UI = {
   TO_P2P: 'from-ui-to-p2p',
 };
@@ -42,6 +43,7 @@ const FROM_BG = {
   WALLET_CREATED: 'wallet-created',
   NEW_WALLET_SAVED: 'new-wallet-saved',
   NEW_WALLET_SAVE_ERROR: 'new-wallet-save-error',
+  LOAD_ALERTS: 'load-alerts',
 };
 
 const TO_BG = {
@@ -56,6 +58,10 @@ const TO_BG = {
   SAVE_WALLET_CREDITS: 'save-wallet-credits',
   SAVE_WALLET_AUTH: 'save-wallet-auth',
   DELETE_WALLET_AUTH: 'delete-wallet-auth',
+  CLOSE_MAIN_WINDOW: 'close-main-window',
+  HIDE_MAIN_WINDOW: 'hide-main-window',
+  CHECK_ALERTS_SAVING: 'check-alerts-saving',
+  SAVE_ALERTS: 'save-alerts',
 };
 
 const FROM_APP = {

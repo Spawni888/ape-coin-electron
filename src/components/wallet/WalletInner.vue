@@ -59,6 +59,7 @@ export default {
   setup() {
     const store = useStore();
     const myBalance = computed(() => store.getters.walletBalance);
+    const myAddress = computed(() => store.getters.walletPublicKey);
 
     const form = useForm({
       recipient: {
@@ -75,6 +76,11 @@ export default {
             priority: 2,
             func: shouldBeLength(130),
             errorMsg: 'Address should be 130 symbols length',
+          },
+          notMyAddress: {
+            priority: 3,
+            func: (val) => val !== myAddress.value,
+            errorMsg: 'You can\'t transact money to yourself',
           },
         },
       },
@@ -126,7 +132,6 @@ export default {
       },
     });
 
-    const myAddress = computed(() => store.getters.walletPublicKey);
     const modalIsShowing = ref(false);
     const modalInfo = reactive({
       title: 'Here is your crypto wallet!',

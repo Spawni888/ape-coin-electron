@@ -86,39 +86,36 @@ try {
       return false;
     });
 
-    ipcMain.on('close-window', () => {
+    ipcMain.on(TO_BG.CLOSE_MAIN_WINDOW, () => {
+      // emit close event
       mainWin.close();
     });
-    ipcMain.on('hide-window', () => {
+    ipcMain.on(TO_BG.HIDE_MAIN_WINDOW, () => {
       mainWin.minimize();
     });
 
-    bgHandlers.p2pServerHandler(mainWin, app);
-    bgHandlers.miningHandler(mainWin, app);
+    ipcMain.on(TO_BG.SAVE_ALERTS, (event, alertsJournal) => {
+      electronStore.set('alertsJournal', JSON.parse(alertsJournal));
+    });
+
+    ipcMain.on(TO_BG.CHECK_ALERTS_SAVING, () => {
+      const alertsJournal = electronStore.get('alertsJournal');
+      if (alertsJournal && Array.isArray(alertsJournal)) {
+        mainWin.webContents.send(FROM_BG.LOAD_ALERTS, alertsJournal);
+      }
+    });
 
     ipcMain.on(TO_BG.SAVE_P2P_FORM, (event, form) => {
-      console.log('FORM WAS SAVED:');
-      console.log(JSON.stringify(form, null, 2));
-      console.log('-'.repeat(10));
       electronStore.set('p2pForm', form);
     });
 
     ipcMain.on(TO_BG.CHECK_P2P_FORM_SAVING, sendP2pForm);
-
-    ipcMain.on(TO_BG.CHECK_AUTH_SAVING, async () => {
-      const keyPair = electronStore.get('walletAuth');
-
-      if (keyPair) {
-        mainWin.webContents.send(FROM_BG.SIGN_IN_WALLET, keyPair);
-      }
-    });
 
     ipcMain.on(TO_BG.CREATE_WALLET, async () => {
       const keyPair = genKeyPair();
       mainWin.webContents.send(FROM_BG.WALLET_CREATED, keyPair);
     });
 
-    // TODO: CONTINUE TO CREATE CHANNELS
     ipcMain.on(TO_BG.SAVE_WALLET_CREDITS, async (event, keyPair) => {
       const {
         filePath,
@@ -148,6 +145,17 @@ privateKey(secret key, don't share it): ${keyPair.priv}`;
     ipcMain.on(TO_BG.DELETE_WALLET_AUTH, async () => {
       electronStore.delete('walletAuth');
     });
+
+    ipcMain.on(TO_BG.CHECK_AUTH_SAVING, async () => {
+      const keyPair = electronStore.get('walletAuth');
+
+      if (keyPair) {
+        mainWin.webContents.send(FROM_BG.SIGN_IN_WALLET, keyPair);
+      }
+    });
+
+    bgHandlers.p2pServerHandler(mainWin, app);
+    bgHandlers.miningHandler(mainWin, app);
 
     // eslint-disable-next-line no-undef
     tray = new Tray(path.resolve(__static, './tray-icon.png'));

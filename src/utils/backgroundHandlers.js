@@ -64,8 +64,8 @@ const p2pServerHandler = (mainWin) => {
       p2pWin.close();
 
       mainWin.webContents.send(FROM_APP.ALERT, {
-        title: 'Info',
-        type: 'info',
+        title: 'Error',
+        type: 'error',
         timestamp: Date.now(),
         message: 'Server was already running... It was stopped now. Try again.',
       });

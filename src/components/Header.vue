@@ -62,20 +62,24 @@
 import { ipcRenderer } from 'electron';
 import { useStore } from 'vuex';
 import { computed } from 'vue';
+import { TO_BG } from '@/resources/channels';
 
 export default {
   name: 'Header',
   setup() {
     const store = useStore();
+    const { alertsJournal } = store.getters;
+
     const closeWindow = () => {
-      ipcRenderer.send('close-window');
+      ipcRenderer.send(TO_BG.CLOSE_MAIN_WINDOW);
     };
     const hideWindow = () => {
-      ipcRenderer.send('hide-window');
+      ipcRenderer.send(TO_BG.HIDE_MAIN_WINDOW);
     };
     return {
       closeWindow,
       hideWindow,
+      alertsJournal,
       serverIsUp: computed(() => store.getters.serverIsUp),
     };
   },
