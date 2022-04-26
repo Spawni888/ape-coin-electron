@@ -112,36 +112,8 @@ export default createStore({
     logOutWallet(state) {
       state.wallet = null;
     },
-    showAlert(state, alertInfo = null) {
-      if (alertInfo !== null) {
-        alertInfo.timestamp = Date.now();
-        alertInfo.id = uuid.v4();
-
-        const sameAlertAlreadyExists = state.alertQueue.find(
-          alert => (alert.message === alertInfo.message) && (alert.type === alertInfo.type),
-        );
-        if (sameAlertAlreadyExists !== undefined) return;
-
-        state.alertQueue.push(alertInfo);
-        state.alertsJournal.push(alertInfo);
-
-        ipcRenderer.send(TO_BG.SAVE_ALERTS, JSON.stringify(state.alertsJournal));
-      }
-
-      if (state.alertTimer) return;
-
-      const intervalFunc = () => {
-        if (state.alertQueue.length > 0) {
-          state.alertInfo = state.alertQueue.shift();
-        } else {
-          clearInterval(state.alertTimer);
-          state.alertTimer = null;
-          state.alertIsShowing = false;
-        }
-      };
-      intervalFunc();
-      state.alertIsShowing = true;
-      state.alertTimer = setInterval(intervalFunc, 5000);
+    saveAlertsJournal(state) {
+      ipcRenderer.send(TO_BG.SAVE_ALERTS, JSON.stringify(state.alertsJournal));
     },
     recalculateBalance(state) {
       if (state.wallet === null) return;
@@ -166,6 +138,41 @@ export default createStore({
     },
   },
   actions: {
+    clearAlertsJournal({ state, commit }) {
+      state.alertsJournal = [];
+      commit('saveAlertsJournal');
+    },
+    showAlert({ state, commit }, alertInfo = null) {
+      if (alertInfo !== null) {
+        alertInfo.timestamp = Date.now();
+        alertInfo.id = uuid.v4();
+
+        const sameAlertAlreadyExists = state.alertQueue.find(
+          alert => (alert.message === alertInfo.message) && (alert.type === alertInfo.type),
+        );
+        if (sameAlertAlreadyExists !== undefined) return;
+
+        state.alertQueue.push(alertInfo);
+        state.alertsJournal.push(alertInfo);
+
+        commit('saveAlertsJournal');
+      }
+
+      if (state.alertTimer) return;
+
+      const intervalFunc = () => {
+        if (state.alertQueue.length > 0) {
+          state.alertInfo = state.alertQueue.shift();
+        } else {
+          clearInterval(state.alertTimer);
+          state.alertTimer = null;
+          state.alertIsShowing = false;
+        }
+      };
+      intervalFunc();
+      state.alertIsShowing = true;
+      state.alertTimer = setInterval(intervalFunc, 5000);
+    },
     initBackgroundListeners({ state, commit, dispatch }) {
       state.backgroundListenersInitialized = true;
 
@@ -176,11 +183,15 @@ export default createStore({
 
       ipcRenderer.on(FROM_P2P.SERVER_STARTED, (event, { serverPort }) => {
         state.serverIsUp = true;
+
+        // check information savings
+        // if keepLoggedIn was turned on the wallet will sign in
+        ipcRenderer.send(TO_BG.CHECK_AUTH_SAVING);
         console.log(`Listening for peer-to-peer connections on: ${serverPort}`);
       });
 
       ipcRenderer.on(FROM_P2P.SERVER_STOPPED, () => {
-        commit('showAlert', {
+        dispatch('showAlert', {
           type: 'warning',
           title: 'Warning',
           message: 'Server Process exited!',
@@ -192,7 +203,7 @@ export default createStore({
       // alerts
       ipcRenderer.on(FROM_APP.ALERT, (event, data) => {
         console.log(data.message);
-        commit('showAlert', data);
+        dispatch('showAlert', data);
         if (data.type === 'error') dispatch('closeServer');
       });
 
@@ -297,7 +308,7 @@ export default createStore({
         .find(output => output.address === state.wallet.publicKey)
         .amount;
 
-      commit('showAlert', {
+      dispatch('showAlert', {
         type: 'success',
         title: 'Success',
         message: `You have mine block with difficulty: ${block.difficulty} and earn ${reward} coins!`,
@@ -309,9 +320,9 @@ export default createStore({
       });
       setTimeout(() => dispatch('startMining', { silenceMode: true }), 0);
     },
-    onMiningError({ dispatch, commit }, error) {
+    onMiningError({ dispatch }, error) {
       console.log(error);
-      commit('showAlert', {
+      dispatch('showAlert', {
         type: 'error',
         title: 'Error',
         message: 'Something went wrong with mining...',
@@ -320,7 +331,6 @@ export default createStore({
     },
     async createServer({
       state,
-      commit,
       dispatch,
     }, options) {
       if (!state.backgroundListenersInitialized) {
@@ -339,13 +349,13 @@ export default createStore({
         peers: peersString,
       } = options;
 
-      // find free port if doesn't set manually
+      // find free port if it doesn't set manually
       if (!serverPort) {
         try {
           serverPort = await portfinder.getPortPromise();
         } catch (err) {
           console.log(err);
-          commit('showAlert', {
+          dispatch('showAlert', {
             type: 'error',
             title: 'Error',
             message: 'Application can`t detect free ports.',
@@ -373,10 +383,6 @@ export default createStore({
         port: serverPort,
         ngrokAuthToken: ngrok ? ngrokAuthToken : null,
       });
-
-      // check information savings
-      // if keepLoggedIn was turned on the wallet will sign in
-      ipcRenderer.send(TO_BG.CHECK_AUTH_SAVING);
     },
     createTransaction({ state, commit, dispatch }, transactionInfo) {
       if (state.transactionPending) return;
@@ -397,13 +403,13 @@ export default createStore({
       );
 
       if (transactionObj.transaction === null) {
-        commit('showAlert', {
+        dispatch('showAlert', {
           type: 'error',
           title: 'Error',
           message: transactionObj.msg,
         });
       } else {
-        commit('showAlert', {
+        dispatch('showAlert', {
           type: 'success',
           title: 'Success',
           message: 'Transaction has been created successfully!',
@@ -419,19 +425,19 @@ export default createStore({
       if (!state.miningIsUp) return;
       dispatch('startMining', { silenceMode: true });
     },
-    closeAlert({ state, commit }) {
+    closeAlert({ state, dispatch }) {
       clearInterval(state.alertTimer);
       state.alertTimer = null;
 
       if (state.alertQueue.length > 0) {
-        commit('showAlert');
+        dispatch('showAlert');
       } else {
         state.alertIsShowing = false;
       }
     },
     signInWallet({
       state,
-      commit,
+      dispatch,
     }, {
       privKey,
       pubKey,
@@ -441,7 +447,7 @@ export default createStore({
 
       if (!isValid) {
         if (silentMode) return;
-        commit('showAlert', {
+        dispatch('showAlert', {
           type: 'error',
           title: 'Error',
           message: 'Invalid key pair.',
@@ -452,13 +458,13 @@ export default createStore({
 
       if (silentMode) return;
 
-      commit('showAlert', {
+      dispatch('showAlert', {
         type: 'success',
         title: 'Success',
         message: 'You have been authorized successfully.',
       });
     },
-    startMining({ state, commit }, { silenceMode } = { silenceMode: false }) {
+    startMining({ state, dispatch }, { silenceMode } = { silenceMode: false }) {
       state.miningIsUp = true;
 
       const pickedTransactions = state.transactionPool.pickTransactions();
@@ -478,19 +484,19 @@ export default createStore({
       // state.transactionPool.on('changed', () => dispatch('stopMining'));
 
       if (silenceMode) return;
-      commit('showAlert', {
+      dispatch('showAlert', {
         type: 'info',
         title: 'Info',
         message: 'Mining process was started!',
       });
     },
-    stopMining({ state, commit }, { silenceMode } = { silenceMode: false }) {
+    stopMining({ state, dispatch }, { silenceMode } = { silenceMode: false }) {
       state.miningIsUp = false;
 
       ipcRenderer.send(TO_BG.STOP_MINING);
 
       if (silenceMode) return;
-      commit('showAlert', {
+      dispatch('showAlert', {
         type: 'info',
         title: 'Info',
         message: 'Mining have been stopped.',
@@ -514,7 +520,7 @@ export default createStore({
     async routeHome() {
       await routeTo({ name: 'p2p' });
     },
-    updateWalletRelatedTransactions({ state, commit }) {
+    updateWalletRelatedTransactions({ state, dispatch }) {
       // TODO: unable it for a while. Remove it later maybe.
       return;
       // eslint-disable-next-line no-unreachable
@@ -538,7 +544,7 @@ export default createStore({
         // create alerts about new received tokens
         transaction.outputs.forEach(output => {
           if (output.address === state.wallet.publicKey && availableAlertsCount > 0) {
-            commit('showAlert', {
+            dispatch('showAlert', {
               type: 'info',
               title: 'Info',
               message: `You received ${output.amount} tokens. View tab 'transactions' for more info.`,

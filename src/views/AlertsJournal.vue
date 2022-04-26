@@ -1,14 +1,16 @@
 <template>
   <div class="alerts-journal">
-    <div class="chips-container">
-      <div
-        v-for="chip in chips"
-        class="chip"
-        :key="'chip' + chip.name"
-        :class="{'inactive': chip.hidden}"
-        @click="onChipClick(chip)"
-      >{{ chip.name }}</div>
-    </div>
+    <Chips
+      :chips="chips"
+      :existingTypes="existingTypes"
+    >
+      <button
+        class="clear-button"
+        @click="clearAlertsJournal"
+      >
+        Clear
+      </button>
+    </Chips>
     <div class="alerts">
       <transition-group name="list" @before-leave="onBeforeLeave">
         <Alert
@@ -30,9 +32,11 @@ import { useStore } from 'vuex';
 import Alert from '@/components/Alert';
 import gsap from 'gsap';
 
+import Chips from '@/components/Chips';
+
 export default {
   name: 'AlertsJournal',
-  components: { Alert },
+  components: { Alert, Chips },
   setup() {
     const store = useStore();
     const alertsJournal = computed(() => store.getters.alertsJournal);
@@ -47,25 +51,25 @@ export default {
     const chips = ref([
       {
         name: 'error',
-        hidden: !existingTypes.value.includes('error'),
+        active: existingTypes.value.includes('error'),
       },
       {
         name: 'info',
-        hidden: !existingTypes.value.includes('info'),
+        active: existingTypes.value.includes('info'),
       },
       {
         name: 'warning',
-        hidden: !existingTypes.value.includes('warning'),
+        active: existingTypes.value.includes('warning'),
       },
       {
         name: 'success',
-        hidden: !existingTypes.value.includes('success'),
+        active: existingTypes.value.includes('success'),
       },
     ]);
 
     const filteredJournal = computed(() => {
       const chosenTypes = chips.value
-        .filter(chip => !chip.hidden)
+        .filter(chip => chip.active)
         .map(chip => chip.name);
 
       // eslint-disable-next-line arrow-body-style
@@ -74,16 +78,12 @@ export default {
       });
     });
 
-    const onChipClick = (chip) => {
-      if (!chip.hidden) {
-        const visibleChipsNum = chips.value
-          .map(_chip => !_chip.hidden)
-          .filter(Boolean).length;
+    const clearAlertsJournal = () => {
+      store.dispatch('clearAlertsJournal');
 
-        if (visibleChipsNum <= 1) return;
-      } else if (!existingTypes.value.includes(chip.name)) return;
-
-      chip.hidden = !chip.hidden;
+      chips.value.forEach(chip => {
+        chip.active = false;
+      });
     };
 
     const onBeforeLeave = (el) => {
@@ -97,7 +97,7 @@ export default {
       existingTypes,
       filteredJournal,
       sortJournal,
-      onChipClick,
+      clearAlertsJournal,
       onBeforeLeave,
     };
   },
@@ -129,37 +129,22 @@ $successIconCol: #5CB65F;
   flex-direction: column;
   position: relative;
 
-  .chips-container {
-    padding: 25px 20px 15px;
+  .clear-button {
+    margin: 0 5px 10px;
+    cursor: pointer;
+    padding: 6px 18px;
 
-    display: flex;
-    z-index: 10;
-    border-bottom-left-radius: 20px;
-    border-bottom-right-radius: 20px;
-    background-color: $onBgColor;
+    background: $surfaceColor;
+    user-select: none;
+    color: $onSurfaceColor;
+    font-weight: 400;
+    border-radius: 10px;
+    border: none;
+    box-shadow: 0 0 6px rgba(0, 0, 0, 0.6);
+    transition: .4s ease-in-out;
 
-    .chip {
-      margin: 0 5px 10px;
-      cursor: pointer;
-      padding: 4px 12px;
-
-      background: $surfaceColor;
-      user-select: none;
-      color: $onSurfaceColor;
-      font-weight: 400;
-      border-radius: 10px;
-      border: none;
-      box-shadow: 0 0 6px rgba(0, 0, 0, 0.6);
-      transition: .4s ease-in-out;
-
-      &:hover {
-        background: lighten($surfaceColor, 10%);
-      }
-    }
-
-    .chip.inactive {
-      box-shadow: none;
-      background-color: lighten($surfaceColor, 40%);
+    &:hover {
+      background: lighten($surfaceColor, 10%);
     }
   }
 

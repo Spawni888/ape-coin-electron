@@ -1,25 +1,22 @@
 <template>
   <div class="transactions__output">
-    <div class="chips-container">
-      <div
-        v-for="chip in chips"
-        class="chip"
-        :key="'chip' + chip.name"
-        :class="{'inactive': chip.hidden}"
-        @click="onChipClick(chip)"
-      >{{ chip.name }}</div>
-    </div>
+    <Chips
+      :chips="chips"
+      :existingTypes="existingTypes"
+    />
   </div>
 </template>
 
 <script>
 import { ref, computed } from 'vue';
-import gsap from 'gsap';
 import { useStore } from 'vuex';
+
+import Chips from '@/components/Chips';
 
 export default {
   name: 'TransactionsOutput',
-  setup(props, { emit }) {
+  components: { Chips },
+  setup() {
     const store = useStore();
     const transactions = computed(() => store.getters.walletRelatedTransactions);
     const sortTransactions = (transaction) => transaction.sort((a, b) => b.timestamp - a.timestamp);
@@ -57,18 +54,6 @@ export default {
       });
     });
 
-    const onChipClick = (chip) => {
-      if (!chip.hidden) {
-        const visibleChipsNum = chips.value
-          .map(_chip => !_chip.hidden)
-          .filter(Boolean).length;
-
-        if (visibleChipsNum <= 1) return;
-      } else if (!existingTypes.value.includes(chip.name)) return;
-
-      chip.hidden = !chip.hidden;
-    };
-
     // const onBeforeLeave = (el) => {
     //   // it's just for nice animation
     //   gsap.set(el, { top: el.offsetTop });
@@ -80,7 +65,6 @@ export default {
       existingTypes,
       filteredTransactions,
       sortTransactions,
-      onChipClick,
       // onBeforeLeave,
     };
   },
@@ -88,5 +72,8 @@ export default {
 </script>
 
 <style lang="scss" scoped>
-
+.transactions__output {
+  width: 100%;
+  height: 100%;
+}
 </style>
