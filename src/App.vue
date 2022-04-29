@@ -82,6 +82,7 @@ export default {
     flex-grow: 1;
 
     .balance {
+      user-select: none;
       z-index: 10;
       color: $bgColor;
       background-color: $onBgColor;

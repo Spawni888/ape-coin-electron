@@ -1,7 +1,7 @@
 <template>
   <div
+    v-if="alertInfo"
     class="alert"
-    :key="alertInfo.message"
     :class="{
       info: alertInfo.type === 'info',
       warning: alertInfo.type === 'warning',
@@ -134,6 +134,11 @@ $successIconCol: #5CB65F;
   top: 0;
   left: 0;
   padding: 12px 50px;
+  margin-bottom: 5px;
+
+  &:last-child {
+    margin-bottom: 0;
+  }
 
   .alert-inner {
     position: relative;

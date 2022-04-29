@@ -27,7 +27,7 @@ export default {
       type: Array,
     },
   },
-  setup(props) {
+  setup(props, { emit }) {
     const { chips, existingTypes } = toRefs(props);
 
     const onChipClick = (chip) => {
@@ -39,6 +39,7 @@ export default {
         if (visibleChipsNum <= 1) return;
       } else if (!existingTypes.value.includes(chip.name)) return;
 
+      emit('updated');
       chip.active = !chip.active;
     };
 

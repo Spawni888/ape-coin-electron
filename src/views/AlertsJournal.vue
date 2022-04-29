@@ -3,6 +3,7 @@
     <Chips
       :chips="chips"
       :existingTypes="existingTypes"
+      @updated="updateList"
     >
       <button
         class="clear-button"
@@ -11,17 +12,16 @@
         Clear
       </button>
     </Chips>
-    <div class="alerts">
-      <transition-group name="list" @before-leave="onBeforeLeave">
-        <Alert
-          v-for="alertInfo in sortJournal(filteredJournal)"
-          :alert-info-prop="alertInfo"
-          :key="'alertJ' + alertInfo.id"
-          style="margin-bottom: 5px"
-        >
-        </Alert>
-      </transition-group>
-    </div>
+    <InfinityScroll
+      :listKey="listKey"
+    >
+      <Alert
+        v-for="alertInfo in sortJournal(filteredJournal)"
+        :alert-info-prop="alertInfo"
+        :key="'alertJ' + alertInfo.id"
+      >
+      </Alert>
+    </InfinityScroll>
   </div>
 </template>
 
@@ -30,13 +30,13 @@
 import { computed, ref } from 'vue';
 import { useStore } from 'vuex';
 import Alert from '@/components/Alert';
-import gsap from 'gsap';
 
 import Chips from '@/components/Chips';
+import InfinityScroll from '@/components/InfinityScroll';
 
 export default {
   name: 'AlertsJournal',
-  components: { Alert, Chips },
+  components: { Alert, Chips, InfinityScroll },
   setup() {
     const store = useStore();
     const alertsJournal = computed(() => store.getters.alertsJournal);
@@ -78,17 +78,19 @@ export default {
       });
     });
 
+    const listKey = ref('list-key:true');
+    const updateList = () => {
+      const keyValue = listKey.value.split(':')[1] === 'true';
+      listKey.value = `list-key:${!keyValue}`;
+    };
+
     const clearAlertsJournal = () => {
       store.dispatch('clearAlertsJournal');
 
       chips.value.forEach(chip => {
         chip.active = false;
       });
-    };
-
-    const onBeforeLeave = (el) => {
-      // it's just for nice animation
-      gsap.set(el, { top: el.offsetTop });
+      updateList();
     };
 
     return {
@@ -97,8 +99,9 @@ export default {
       existingTypes,
       filteredJournal,
       sortJournal,
+      listKey,
+      updateList,
       clearAlertsJournal,
-      onBeforeLeave,
     };
   },
 };
@@ -146,15 +149,6 @@ $successIconCol: #5CB65F;
     &:hover {
       background: lighten($surfaceColor, 10%);
     }
-  }
-
-  .alerts {
-    max-width: 100%;
-    overflow-y: auto;
-    overflow-x: hidden;
-    margin-top: 10px;
-
-    flex-grow: 1;
   }
 }
 </style>
