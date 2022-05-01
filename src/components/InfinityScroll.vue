@@ -5,25 +5,26 @@
       :key="listKey"
       @wheel="onWheel"
       ref="scrollContainer"
+      @mousemove="onProgressMove"
+      @mouseup="onProgressUp"
+      @mouseleave="onProgressUp"
     >
       <div
         class="scroll-content"
         ref="scrollContent"
       >
         <transition-group name="list" @before-leave="onBeforeLeave">
-          <slot />
+          <slot ref="slot"/>
         </transition-group>
       </div>
       <div
         class="progress"
         v-if="progressShown"
-        @mousedown="onMouseDown"
-        @mousemove="onMouseMove"
-        @mouseup="onMouseUp"
       >
         <div
           class="progress__bar"
           ref="progressBar"
+          @mousedown="onProgressDown"
         />
       </div>
     </div>
@@ -32,7 +33,13 @@
 
 <script>
 import gsap from 'gsap';
-import { onMounted, onBeforeUnmount, ref } from 'vue';
+import {
+  onMounted,
+  onBeforeUnmount,
+  ref,
+  toRefs,
+} from 'vue';
+import { throttle } from 'lodash';
 
 export default {
   name: 'InfinityScroll',
@@ -41,12 +48,22 @@ export default {
       type: String,
       default: 'temp-list-key',
     },
+    itemsNumBeforeReq: {
+      type: Number,
+      default: 10,
+    },
+    reqItemsNum: {
+      type: Number,
+      default: 20,
+    },
   },
-  setup() {
+  setup(props, { emit }) {
     const onBeforeLeave = (el) => {
       // it's just for nice animation
       gsap.set(el, { top: el.offsetTop });
     };
+
+    const { itemsNumBeforeReq, reqItemsNum } = toRefs(props);
 
     const scrollContainer = ref(null);
     const scrollContent = ref(null);
@@ -104,17 +121,37 @@ export default {
         gsap.set(progressBar.value, { y: progressBarY });
       }
 
+      const slotItemHeight = gsap.getProperty(scrollContent.value.children[0], 'height');
+      if (y > (contentHeight - containerHeight - slotItemHeight * itemsNumBeforeReq.value)) {
+        console.log('request-items');
+        emit('request-items', reqItemsNum);
+      }
       animationRequest = requestAnimationFrame(animateScroll);
     };
 
-    const progressPointerDown = ref(false);
-    const onMouseDown = () => {
-      progressPointerDown.value = true;
+    const progressMouseDown = ref(false);
+    const progressMouseClickY = ref(0);
+    const onProgressDown = (event) => {
+      const { clientY } = event;
+      progressMouseDown.value = true;
+      progressMouseClickY.value = clientY;
     };
-    const onMouseMove = () => {
-    };
-    const onMouseUp = () => {
-      progressPointerDown.value = false;
+    const onProgressMove = throttle((event) => {
+      if (!progressMouseDown.value) return;
+      const { clientY } = event;
+      const progressDiffY = clientY - progressMouseClickY.value;
+      progressMouseClickY.value = clientY;
+
+      const additionalDiffY = gsap.utils.mapRange(
+        0, containerHeight,
+        0, contentHeight - containerHeight,
+        progressDiffY,
+      );
+      // coefficient 1.05 to compensate smooth animation
+      diffY += additionalDiffY * 1.05;
+    }, 50);
+    const onProgressUp = () => {
+      progressMouseDown.value = false;
     };
 
     onMounted(() => {
@@ -130,9 +167,10 @@ export default {
       progressBar,
       scrollBarHeight,
       progressShown,
-      onMouseDown,
-      onMouseMove,
-      onMouseUp,
+      progressMouseDown,
+      onProgressDown,
+      onProgressMove,
+      onProgressUp,
     };
   },
 };

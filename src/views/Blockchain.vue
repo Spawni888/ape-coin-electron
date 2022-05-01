@@ -66,6 +66,7 @@ import BlockchainTransition from '@/components/blockchain/BlockchainTransition';
 import Stopwatch from '@/components/blockchain/Stopwatch';
 import BlockInfo from '@/components/blockchain/BlockInfo';
 import { useStore } from 'vuex';
+import { throttle } from "lodash";
 
 export default {
   name: 'Blockchain',
@@ -112,10 +113,10 @@ export default {
       x = -maxX * progressRate;
     };
 
-    const onProgressMove = (e) => {
+    const onProgressMove = throttle((e) => {
       if (!progressMouseDown.value) return;
       scrollToClicked(e);
-    };
+    }, 50);
 
     const increaseChainSlice = () => {
       if (chain.value.length < chainSliceLength) return;
