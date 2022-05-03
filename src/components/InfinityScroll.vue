@@ -52,9 +52,9 @@ export default {
       type: Number,
       default: 10,
     },
-    reqItemsNum: {
-      type: Number,
-      default: 20,
+    allItemsLoaded: {
+      type: Boolean,
+      default: false,
     },
   },
   setup(props, { emit }) {
@@ -63,7 +63,7 @@ export default {
       gsap.set(el, { top: el.offsetTop });
     };
 
-    const { itemsNumBeforeReq, reqItemsNum } = toRefs(props);
+    const { itemsNumBeforeReq, allItemsLoaded } = toRefs(props);
 
     const scrollContainer = ref(null);
     const scrollContent = ref(null);
@@ -90,7 +90,7 @@ export default {
       maxY = Math.max(contentHeight - containerHeight, 0);
 
       scrollBarHeight = gsap.utils.mapRange(
-        0, maxY,
+        0, maxY + containerHeight,
         0, containerHeight,
         contentHeight - (contentHeight - containerHeight),
       );
@@ -100,7 +100,7 @@ export default {
       if (progressBar.value) {
         gsap.to(progressBar.value, {
           height: scrollBarHeight,
-          duration: 0.15,
+          duration: 1,
           ease: 'power2.out',
         });
       }
@@ -121,11 +121,14 @@ export default {
         gsap.set(progressBar.value, { y: progressBarY });
       }
 
-      const slotItemHeight = gsap.getProperty(scrollContent.value.children[0], 'height');
-      if (y > (contentHeight - containerHeight - slotItemHeight * itemsNumBeforeReq.value)) {
-        console.log('request-items');
-        emit('request-items', reqItemsNum);
+      if (!allItemsLoaded.value && scrollContent.value?.children) {
+        const slotItemHeight = gsap.getProperty(scrollContent.value.children[0], 'height');
+        if (y > (contentHeight - containerHeight - slotItemHeight * itemsNumBeforeReq.value)) {
+          console.log('request-items');
+          emit('request-items');
+        }
       }
+
       animationRequest = requestAnimationFrame(animateScroll);
     };
 
@@ -144,11 +147,11 @@ export default {
 
       const additionalDiffY = gsap.utils.mapRange(
         0, containerHeight,
-        0, contentHeight - containerHeight,
+        0, contentHeight,
         progressDiffY,
       );
       // coefficient 1.05 to compensate smooth animation
-      diffY += additionalDiffY * 1.05;
+      diffY += additionalDiffY;
     }, 50);
     const onProgressUp = () => {
       progressMouseDown.value = false;

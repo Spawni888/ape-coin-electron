@@ -155,6 +155,7 @@ export default createStore({
         state.alertQueue.push(alertInfo);
         state.alertsJournal.push(alertInfo);
 
+        state.alertsJournal = state.alertsJournal.sort((a, b) => b.timestamp - a.timestamp);
         commit('saveAlertsJournal');
       }
 

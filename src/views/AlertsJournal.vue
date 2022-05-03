@@ -14,9 +14,11 @@
     </Chips>
     <InfinityScroll
       :listKey="listKey"
+      :allItemsLoaded="allItemsLoaded"
+      @request-items="addMoreAlerts"
     >
       <Alert
-        v-for="alertInfo in sortJournal(filteredJournal)"
+        v-for="alertInfo in filterJournal(alertsJournalSlice)"
         :alert-info-prop="alertInfo"
         :key="'alertJ' + alertInfo.id"
       >
@@ -26,8 +28,12 @@
 </template>
 
 <script>
-// TODO: add beautiful scrollbar later maybe
-import { computed, ref } from 'vue';
+import {
+  computed,
+  ref,
+  watch,
+  onMounted,
+} from 'vue';
 import { useStore } from 'vuex';
 import Alert from '@/components/Alert';
 
@@ -40,7 +46,7 @@ export default {
   setup() {
     const store = useStore();
     const alertsJournal = computed(() => store.getters.alertsJournal);
-    const sortJournal = (journal) => journal.sort((a, b) => b.timestamp - a.timestamp);
+    const alertsJournalSlice = ref([...store.getters.alertsJournal.slice(0, 19)]);
 
     const existingTypes = computed(
       () => alertsJournal.value
@@ -67,16 +73,16 @@ export default {
       },
     ]);
 
-    const filteredJournal = computed(() => {
+    const filterJournal = (_alertsJournalSlice) => {
       const chosenTypes = chips.value
         .filter(chip => chip.active)
         .map(chip => chip.name);
 
       // eslint-disable-next-line arrow-body-style
-      return alertsJournal.value.filter(alertInfo => {
+      return _alertsJournalSlice.filter(alertInfo => {
         return chosenTypes.includes(alertInfo.type) && existingTypes.value.includes(alertInfo.type);
       });
-    });
+    };
 
     const listKey = ref('list-key:true');
     const updateList = () => {
@@ -93,15 +99,40 @@ export default {
       updateList();
     };
 
+    const allItemsLoaded = ref(false);
+    const addMoreAlerts = () => {
+      const curSliceLength = alertsJournalSlice.value.length;
+
+      alertsJournalSlice.value.push(
+        ...alertsJournal.value.slice(curSliceLength, curSliceLength + 20),
+      );
+
+      if (alertsJournalSlice.value.length === alertsJournal.value.length) {
+        allItemsLoaded.value = true;
+      }
+    };
+
+    onMounted(() => {
+      watch(alertsJournal.value, (value) => {
+        // initial load
+        if (!alertsJournalSlice.value.length && value.length) {
+          alertsJournalSlice.value.push(...value?.slice(0, 20));
+          return;
+        }
+        alertsJournalSlice.value.unshift(value[0]);
+      });
+    });
+
     return {
       chips,
-      alertsJournal,
+      alertsJournalSlice,
       existingTypes,
-      filteredJournal,
-      sortJournal,
+      filterJournal,
       listKey,
       updateList,
       clearAlertsJournal,
+      allItemsLoaded,
+      addMoreAlerts,
     };
   },
 };
