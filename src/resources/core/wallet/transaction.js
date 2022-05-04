@@ -13,7 +13,8 @@ class Transaction {
 
     senderOutput.amount -= amount + fee;
     this.outputs.push({ amount, address: recipient });
-    this.outputs.find(output => output.address === MINER_WALLET).amount += fee;
+    // this.outputs.find(output => output.address === MINER_WALLET).amount += fee;
+    this.outputs.push({ address: MINER_WALLET, amount: fee });
 
     Transaction.signTransaction(this, senderWallet);
 

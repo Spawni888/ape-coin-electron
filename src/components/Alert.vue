@@ -1,6 +1,7 @@
 <template>
   <div
     v-if="alertInfo"
+    :key="'alert' + alertInfo.id"
     class="alert"
     :class="{
       info: alertInfo.type === 'info',

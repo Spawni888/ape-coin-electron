@@ -22,5 +22,6 @@ module.exports = {
     'array-callback-return': 'off',
     'class-methods-use-this': 'off',
     'no-bitwise': 'off',
+    'arrow-body-style': 'off',
   },
 };

@@ -5,7 +5,11 @@
         v-for="chip in chips"
         class="chip"
         :key="'chip' + chip.name"
-        :class="{'inactive': !chip.active}"
+        :class="{
+          'inactive': !chip.active,
+          'not-exist': !existingTypes?.includes(chip.name),
+          'alone': existingTypes?.includes(chip.name) && onlyOneChip,
+        }"
         @click="onChipClick(chip)"
       >{{ chip.name }}</div>
     </div>
@@ -15,7 +19,7 @@
 
 <script>
 
-import { toRefs } from 'vue';
+import { toRefs, computed } from 'vue';
 
 export default {
   name: 'Chips',
@@ -43,8 +47,13 @@ export default {
       chip.active = !chip.active;
     };
 
+    const onlyOneChip = computed(() => {
+      return existingTypes.value.length === 1;
+    });
+
     return {
       onChipClick,
+      onlyOneChip,
     };
   },
 };
@@ -89,6 +98,15 @@ export default {
     .chip.inactive {
       box-shadow: none;
       background-color: lighten($surfaceColor, 40%);
+    }
+    .chip.not-exist {
+      cursor: default;
+    }
+    .chip.alone {
+      cursor: default;
+      &:hover {
+        background: $surfaceColor;
+      }
     }
   }
 }

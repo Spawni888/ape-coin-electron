@@ -23,6 +23,7 @@ export default createStore({
   state: {
     backgroundListenersInitialized: false,
     walletRelatedTransactions: [],
+    selectedWalletAddress: null,
     p2pServer: {
       inboundsList: [],
       outboundsList: [],
@@ -129,6 +130,9 @@ export default createStore({
       bcStart,
       bcEnd,
     }) {
+      if (pubKey === null) return;
+
+      state.selectedWalletAddress = pubKey;
       state.walletRelatedTransactions = Wallet.getNewWalletRelatedTransactions(pubKey, {
         bc: state.blockchain.chain,
         tp: state.transactionPool.transactions,

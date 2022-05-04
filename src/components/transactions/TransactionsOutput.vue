@@ -3,23 +3,44 @@
     <Chips
       :chips="chips"
       :existingTypes="existingTypes"
+      @updated="updateList"
     />
+    <InfinityScroll
+      :listKey="listKey"
+      :allItemsLoaded="allItemsLoaded"
+      @request-items="addMoreTransactions"
+    >
+      <Transaction
+        v-for="transaction in filterTransactions(formattedTransactions)"
+        :transaction="transaction"
+        :key="transaction.id"
+      />
+    </InfinityScroll>
   </div>
 </template>
 
 <script>
-import { ref, computed } from 'vue';
+import {
+  ref,
+  computed,
+  onMounted,
+  watch,
+} from 'vue';
 import { useStore } from 'vuex';
 
 import Chips from '@/components/Chips';
+import InfinityScroll from '@/components/InfinityScroll';
+import Transaction from '@/components/transactions/Transaction';
+import { MINER_WALLET } from '@/resources/core/config';
+import { cloneDeep } from 'lodash';
 
 export default {
   name: 'TransactionsOutput',
-  components: { Chips },
+  components: { Chips, InfinityScroll, Transaction },
   setup() {
     const store = useStore();
     const transactions = computed(() => store.getters.walletRelatedTransactions);
-    const sortTransactions = (transaction) => transaction.sort((a, b) => b.timestamp - a.timestamp);
+    const transactionsSlice = ref([...store.getters.walletRelatedTransactions?.slice(0, 19)]);
 
     const existingTypes = computed(
       () => transactions.value
@@ -30,42 +51,130 @@ export default {
     const chips = ref([
       {
         name: 'income',
-        hidden: !existingTypes.value.includes('error'),
+        active: existingTypes.value.includes('income'),
       },
       {
         name: 'outcome',
-        hidden: !existingTypes.value.includes('info'),
+        active: existingTypes.value.includes('outcome'),
       },
       {
         name: 'reward',
-        hidden: !existingTypes.value.includes('warning'),
+        active: existingTypes.value.includes('reward'),
       },
     ]);
 
-    const filteredTransactions = computed(() => {
-      const chosenTypes = chips.value
-        .filter(chip => !chip.hidden)
-        .map(chip => chip.name);
+    const selectedAddress = computed(() => store.state.selectedWalletAddress);
+    const formattedTransactions = computed(() => {
+      const result = [];
 
-      // eslint-disable-next-line arrow-body-style
-      return transactions.value.filter(transaction => {
-        return chosenTypes.includes(transaction.type)
-          && existingTypes.value.includes(transaction.type);
+      const addMoreInfo = (output, _transaction, _index) => {
+        output.id = `${_transaction.id}-${_index}`;
+        output.type = _transaction.type;
+        output.senderAddress = _transaction.input.address;
+        output.timestamp = _transaction.input.timestamp;
+
+        output.blockHash = _transaction.blockHash;
+        output.blockIndex = _transaction.blockIndex;
+        output.confirmed = !!_transaction.confirmed;
+      };
+      return transactionsSlice.value.map(_transaction => {
+        switch (_transaction.type) {
+          case 'outcome': {
+            _transaction.outputs
+              .forEach((_output, _index, _outputs) => {
+                const output = cloneDeep(_output);
+
+                if (_output.address === MINER_WALLET) return;
+                if (_outputs[_index + 1].address === MINER_WALLET) {
+                  output.fee = _outputs[_index + 1].amount;
+                }
+
+                addMoreInfo(output, _transaction, _index);
+                result.push(output);
+              });
+            break;
+          }
+          case 'income': {
+            _transaction.outputs
+              .forEach((_output, _index) => {
+                const output = cloneDeep(_output);
+
+                if (_output.address !== selectedAddress.value) return;
+                addMoreInfo(output, _transaction, _index);
+
+                result.push(output);
+              });
+            break;
+          }
+          case 'reward': {
+            _transaction.outputs
+              .forEach((_output, _index) => {
+                const output = cloneDeep(_output);
+
+                addMoreInfo(output, _transaction, _index);
+                result.push(output);
+              });
+            break;
+          }
+          default:
+            break;
+        }
+        return result;
       });
     });
 
-    // const onBeforeLeave = (el) => {
-    //   // it's just for nice animation
-    //   gsap.set(el, { top: el.offsetTop });
-    // };
+    const filterTransactions = (_transactions) => {
+      const chosenTypes = chips.value
+        .filter(chip => chip.active)
+        .map(chip => chip.name);
+
+      return _transactions[0]?.filter(transaction => {
+        return chosenTypes.includes(transaction.type)
+          && existingTypes.value.includes(transaction.type);
+      });
+    };
+
+    const listKey = ref('list-key:true');
+    const updateList = () => {
+      const keyValue = listKey.value.split(':')[1] === 'true';
+      listKey.value = `list-key:${!keyValue}`;
+    };
+
+    const allItemsLoaded = ref(false);
+    const addMoreTransactions = () => {
+      const curSliceLength = transactionsSlice.value.length;
+
+      transactionsSlice.value.push(
+        ...transactions.value.slice(curSliceLength, curSliceLength + 20),
+      );
+
+      if (transactionsSlice.value.length === transactions.value.length) {
+        allItemsLoaded.value = true;
+      }
+    };
+
+    onMounted(() => {
+      watch(transactions.value, (value) => {
+        // initial load
+        if (!transactionsSlice.value.length && value.length) {
+          transactionsSlice.value.push(...value?.slice(0, 20));
+          return;
+        }
+        transactionsSlice.value.unshift(value[0]);
+      });
+    });
 
     return {
-      chips,
-      transactions,
+      transactionsSlice,
       existingTypes,
-      filteredTransactions,
-      sortTransactions,
-      // onBeforeLeave,
+      chips,
+      selectedAddress,
+      formattedTransactions,
+      filterTransactions,
+      listKey,
+      updateList,
+      allItemsLoaded,
+      addMoreTransactions,
     };
   },
 };
@@ -73,7 +182,14 @@ export default {
 
 <style lang="scss" scoped>
 .transactions__output {
+  background-color: #0d0d0d;
+  z-index: 9;
   width: 100%;
   height: 100%;
+  max-height: 100%;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  position: relative;
 }
 </style>

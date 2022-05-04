@@ -124,9 +124,9 @@ export default {
     });
 
     return {
-      chips,
       alertsJournalSlice,
       existingTypes,
+      chips,
       filterJournal,
       listKey,
       updateList,
