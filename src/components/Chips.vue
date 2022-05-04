@@ -8,7 +8,7 @@
         :class="{
           'inactive': !chip.active,
           'not-exist': !existingTypes?.includes(chip.name),
-          'alone': existingTypes?.includes(chip.name) && onlyOneChip,
+          'alone': chip.active && onlyOneChip,
         }"
         @click="onChipClick(chip)"
       >{{ chip.name }}</div>
@@ -48,7 +48,9 @@ export default {
     };
 
     const onlyOneChip = computed(() => {
-      return existingTypes.value.length === 1;
+      return chips.value
+        .map(_chip => _chip.active)
+        .filter(Boolean).length === 1;
     });
 
     return {
@@ -98,6 +100,9 @@ export default {
     .chip.inactive {
       box-shadow: none;
       background-color: lighten($surfaceColor, 40%);
+      &:not(.not-exist):hover {
+        background-color: lighten($surfaceColor, 30%);
+      }
     }
     .chip.not-exist {
       cursor: default;
