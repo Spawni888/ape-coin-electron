@@ -97,18 +97,18 @@ export default {
         inactiveCondition: computed(() => !serverIsUp.value),
       },
       {
-        name: 'Transactions',
-        className: 'transactions',
-        imgSrc: transactionsImg,
-        route: 'transactions',
-        inactiveCondition: computed(() => !serverIsUp.value),
-      },
-      {
         name: 'Wallet',
         className: 'wallet',
         imgSrc: walletImg,
         route: 'wallet',
         inactiveCondition: computed(() => !serverIsUp.value),
+      },
+      {
+        name: 'Transactions',
+        className: 'transactions',
+        imgSrc: transactionsImg,
+        route: 'transactions',
+        inactiveCondition: computed(() => !serverIsUp.value || !walletAuthed.value),
       },
       {
         name: 'Mining',

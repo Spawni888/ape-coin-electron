@@ -26,6 +26,8 @@ import useForm from '@/use/form/form';
 import useTooltip from '@/use/tooltip';
 import { useStore } from 'vuex';
 
+const shouldBeLength = (length) => (val) => val.length === length;
+
 export default {
   name: 'TransactionsForm',
   components: {
@@ -35,10 +37,11 @@ export default {
   setup(props, { emit }) {
     const store = useStore();
     const myPubKey = computed(() => store.getters.walletPubKey);
+    const selectedAddress = computed(() => store.state.selectedWalletAddress);
 
     const form = useForm({
       address: {
-        value: myPubKey.value === null ? '' : myPubKey.value,
+        value: selectedAddress.value ? selectedAddress.value : myPubKey.value,
         fieldName: 'Enter user address',
         placeholder: 'Paste user public key',
         validators: {
@@ -47,13 +50,21 @@ export default {
             errorMsg: 'Please, fill the field',
             priority: 1,
           },
+          shouldBeLength: {
+            priority: 2,
+            func: shouldBeLength(130),
+            errorMsg: 'Address should be 130 symbols length',
+          },
         },
       },
     });
 
     const highlightErrors = ref(false);
     const searchTransactions = () => {
-      if (!form.address.valid) {
+      const formIsValid = !Object.values(form)
+        .filter(field => !field.valid).length;
+
+      if (!formIsValid) {
         highlightErrors.value = true;
         return;
       }
