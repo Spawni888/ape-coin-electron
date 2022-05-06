@@ -37,7 +37,7 @@ export default {
   setup(props, { emit }) {
     const store = useStore();
     const myPubKey = computed(() => store.getters.walletPubKey);
-    const selectedAddress = computed(() => store.state.selectedWalletAddress);
+    const selectedAddress = computed(() => store.getters.selectedWalletAddress);
 
     const form = useForm({
       address: {
@@ -72,6 +72,8 @@ export default {
       store.commit('findWalletRelatedTransactions', {
         pubKey: form.address.value,
       });
+      store.commit('getBalanceTPIncludedOf', form.address.value);
+
       emit('show-output');
     };
 

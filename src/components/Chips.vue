@@ -77,9 +77,8 @@ export default {
 
   .chips-inner {
     display: flex;
-
     .chip {
-      margin: 0 5px 10px;
+      margin: 0 5px 0;
       cursor: pointer;
       padding: 4px 12px;
 

@@ -22,8 +22,6 @@ import Transaction from '@/resources/core/wallet/transaction';
 export default createStore({
   state: {
     backgroundListenersInitialized: false,
-    walletRelatedTransactions: [],
-    selectedWalletAddress: null,
     p2pServer: {
       inboundsList: [],
       outboundsList: [],
@@ -36,6 +34,11 @@ export default createStore({
       externalAddress: null,
       ngrokHost: null,
       peers: [],
+    },
+    transactions: {
+      walletRelatedTransactions: [],
+      selectedWalletBalance: 0,
+      selectedWalletAddress: null,
     },
     blockchain: null,
     transactionPool: null,
@@ -56,7 +59,13 @@ export default createStore({
   },
   getters: {
     walletRelatedTransactions(state) {
-      return state.walletRelatedTransactions;
+      return state.transactions.walletRelatedTransactions;
+    },
+    selectedWalletBalance(state) {
+      return state.transactions.selectedWalletBalance;
+    },
+    selectedWalletAddress(state) {
+      return state.transactions.selectedWalletAddress;
     },
     alertIsShowing(state) {
       return state.alertIsShowing;
@@ -132,13 +141,25 @@ export default createStore({
     }) {
       if (pubKey === null) return;
 
-      state.selectedWalletAddress = pubKey;
-      state.walletRelatedTransactions = Wallet.getNewWalletRelatedTransactions(pubKey, {
-        bc: state.blockchain.chain,
-        tp: state.transactionPool.transactions,
-        bcStart,
-        bcEnd,
-      });
+      state.transactions.selectedWalletAddress = pubKey;
+      state.transactions.walletRelatedTransactions = Wallet.getNewWalletRelatedTransactions(
+        pubKey,
+        {
+          bc: state.blockchain.chain,
+          tp: state.transactionPool.transactions,
+          bcStart,
+          bcEnd,
+        },
+      );
+      state.transactions.walletRelatedTransactions = state.transactions.walletRelatedTransactions
+        .sort((a, b) => b.input.timestamp - a.input.timestamp);
+    },
+    getBalanceTPIncludedOf(state, pubKey) {
+      state.transactions.selectedWalletBalance = Wallet.calculateBalanceWithTpIncluded(
+        state.transactionPool,
+        Wallet.calculateBalance(state.blockchain, pubKey),
+        pubKey,
+      );
     },
   },
   actions: {
@@ -227,7 +248,6 @@ export default createStore({
 
         state.transactionPool.clear();
         commit('recalculateBalance');
-        dispatch('updateWalletRelatedTransactions');
 
         if (!state.miningIsUp) return;
         dispatch('startMining', { silenceMode: true });
@@ -272,7 +292,6 @@ export default createStore({
         console.log('-'.repeat(10));
 
         state.transactionPool.transactions = transactions;
-        dispatch('updateWalletRelatedTransactions');
         commit('recalculateBalance');
 
         if (!state.miningIsUp) return;
@@ -305,7 +324,6 @@ export default createStore({
 
       state.transactionPool.clear();
       commit('recalculateBalance');
-      dispatch('updateWalletRelatedTransactions');
 
       const reward = block.data
         .find(transaction => transaction.input.address === BLOCKCHAIN_WALLET)
@@ -524,40 +542,6 @@ export default createStore({
     },
     async routeHome() {
       await routeTo({ name: 'p2p' });
-    },
-    updateWalletRelatedTransactions({ state, dispatch }) {
-      // TODO: unable it for a while. Remove it later maybe.
-      return;
-      // eslint-disable-next-line no-unreachable
-      if (state.wallet === null) return;
-      let availableAlertsCount = 3;
-
-      const newWalletRelatedTransactions = Wallet.getNewWalletRelatedTransactions(
-        state.wallet.publicKey,
-        {
-          oldRelatedTransactions: state.walletRelatedTransactions,
-          bc: state.blockchain.chain,
-          tp: state.transactionPool.transactions,
-        },
-      );
-      newWalletRelatedTransactions.forEach(transaction => {
-        state.walletRelatedTransactions.push(transaction);
-
-        if (transaction.input.address === state.wallet.publicKey) return;
-        if (transaction.input.address === Wallet.getBlockchainAddress()) return;
-
-        // create alerts about new received tokens
-        transaction.outputs.forEach(output => {
-          if (output.address === state.wallet.publicKey && availableAlertsCount > 0) {
-            dispatch('showAlert', {
-              type: 'info',
-              title: 'Info',
-              message: `You received ${output.amount} tokens. View tab 'transactions' for more info.`,
-            });
-            availableAlertsCount -= 1;
-          }
-        });
-      });
     },
   },
   modules: {},

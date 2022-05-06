@@ -173,6 +173,7 @@ export default {
 
   .features {
     margin-top: 40px;
+    user-select: none;
   }
 
   .feature {

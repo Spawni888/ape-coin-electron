@@ -74,6 +74,20 @@ class Wallet {
   }
 
   calculateBalance(blockchain) {
+    return Wallet.calculateBalance(blockchain, this.publicKey);
+  }
+
+  calculateBalanceWithTpIncluded(transactionPool) {
+    this.balanceWithTpIncluded = Wallet.calculateBalanceWithTpIncluded(
+      transactionPool,
+      this.balance,
+      this.publicKey,
+    );
+
+    return this.balanceWithTpIncluded;
+  }
+
+  static calculateBalance(blockchain, pubKey) {
     let balance = INITIAL_BALANCE;
     const transactions = [];
 
@@ -82,7 +96,7 @@ class Wallet {
     }));
 
     const walletInputTs = transactions
-      .filter(transaction => transaction.input.address === this.publicKey);
+      .filter(transaction => transaction.input.address === pubKey);
 
     let startTime = 0;
 
@@ -93,16 +107,16 @@ class Wallet {
           : current),
       );
 
-      balance = recentInputT.outputs.find(output => output.address === this.publicKey).amount;
+      balance = recentInputT.outputs.find(output => output.address === pubKey).amount;
       startTime = recentInputT.input.timestamp;
     }
 
     transactions.forEach(transaction => {
       if (transaction.input.timestamp <= startTime) return;
-      if (transaction.input.address === this.publicKey) return;
+      if (transaction.input.address === pubKey) return;
 
       transaction.outputs.find(output => {
-        if (output.address !== this.publicKey) return;
+        if (output.address !== pubKey) return;
         balance += output.amount;
       });
     });
@@ -110,25 +124,27 @@ class Wallet {
     return balance;
   }
 
-  calculateBalanceWithTpIncluded(transactionPool) {
-    this.balanceWithTpIncluded = this.balance;
+  static calculateBalanceWithTpIncluded(transactionPool, balance, pubKey) {
+    let balanceWithTpIncluded = balance;
 
     transactionPool.transactions
       .forEach(transaction => {
-        if (transaction.input.address === this.publicKey) {
+        if (transaction.input.address === pubKey) {
           transaction.outputs.forEach(output => {
-            if (output.address !== this.publicKey) {
-              this.balanceWithTpIncluded -= output.amount;
+            if (output.address !== pubKey) {
+              balanceWithTpIncluded -= output.amount;
             }
           });
           return;
         }
         transaction.outputs.forEach(output => {
-          if (output.address === this.publicKey) {
-            this.balanceWithTpIncluded += output.amount;
+          if (output.address === pubKey) {
+            balanceWithTpIncluded += output.amount;
           }
         });
       });
+
+    return balanceWithTpIncluded;
   }
 
   static getNewWalletRelatedTransactions(

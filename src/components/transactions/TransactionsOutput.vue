@@ -4,7 +4,14 @@
       :chips="chips"
       :existingTypes="existingTypes"
       @updated="updateList"
-    />
+    >
+      <div class="wallet-balance">
+        <div class="title">Wallet Balance:</div>
+        <div class="content">
+          {{ balance }}
+        </div>
+      </div>
+    </Chips>
     <InfinityScroll
       :listKey="listKey"
       :allItemsLoaded="allItemsLoaded"
@@ -23,8 +30,6 @@
 import {
   ref,
   computed,
-  onMounted,
-  watch,
 } from 'vue';
 import { useStore } from 'vuex';
 
@@ -41,6 +46,8 @@ export default {
     const store = useStore();
     const transactions = computed(() => store.getters.walletRelatedTransactions);
     const transactionsSlice = ref([...store.getters.walletRelatedTransactions?.slice(0, 19)]);
+    const selectedAddress = computed(() => store.getters.selectedWalletAddress);
+    const balance = computed(() => store.getters.selectedWalletBalance);
 
     const existingTypes = computed(
       () => transactions.value
@@ -63,7 +70,6 @@ export default {
       },
     ]);
 
-    const selectedAddress = computed(() => store.state.selectedWalletAddress);
     const formattedTransactions = computed(() => {
       const result = [];
 
@@ -77,6 +83,7 @@ export default {
         output.blockIndex = _transaction.blockIndex;
         output.confirmed = !!_transaction.confirmed;
       };
+
       return transactionsSlice.value.map(_transaction => {
         switch (_transaction.type) {
           case 'outcome': {
@@ -119,6 +126,7 @@ export default {
           default:
             break;
         }
+
         return result;
       });
     });
@@ -153,22 +161,23 @@ export default {
       }
     };
 
-    onMounted(() => {
-      watch(transactions.value, (value) => {
-        // initial load
-        if (!transactionsSlice.value.length && value.length) {
-          transactionsSlice.value.push(...value?.slice(0, 20));
-          return;
-        }
-        transactionsSlice.value.unshift(value[0]);
-      });
-    });
+    // onMounted(() => {
+    //   watch(transactions.value, (value) => {
+    //     // initial load
+    //     if (!transactionsSlice.value.length && value.length) {
+    //       transactionsSlice.value.push(...value?.slice(0, 20));
+    //       return;
+    //     }
+    //     transactionsSlice.value.unshift(value[0]);
+    //   });
+    // });
 
     return {
       transactionsSlice,
+      selectedAddress,
+      balance,
       existingTypes,
       chips,
-      selectedAddress,
       formattedTransactions,
       filterTransactions,
       listKey,
@@ -191,5 +200,31 @@ export default {
   display: flex;
   flex-direction: column;
   position: relative;
+
+  .wallet-balance {
+    font-weight: bold;
+    display: flex;
+
+    user-select: none;
+    z-index: 10;
+    background-color: lighten($surfaceColor, 40%);
+    color: $onSurfaceColor;
+    font-size: 16px;
+
+    //box-shadow: 0 0 6px rgba(0, 0, 0, 0.6);
+
+    overflow: hidden;
+    border: none;
+    border-radius: 5px;
+    padding: 8px 14px;
+
+    .title {
+      font-size: 14px;
+      margin-right: 5px;
+    }
+    .content {
+      font-size: 14px;
+    }
+  }
 }
 </style>
