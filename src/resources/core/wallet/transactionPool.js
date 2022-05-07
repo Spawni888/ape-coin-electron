@@ -82,8 +82,24 @@ class TransactionPool extends EventEmitter {
     return this.sortAndFilter();
   }
 
-  clear() {
-    this.transactions = [];
+  clear(chain) {
+    const transactionsMap = {};
+
+    chain.forEach(block => {
+      block.data.forEach(transaction => {
+        transactionsMap[transaction.id] = true;
+      });
+    });
+
+    this.transactions.forEach((transaction, index) => {
+      if (!transactionsMap[transaction.id]) {
+        transactionsMap[transaction.id] = true;
+        return;
+      }
+
+      this.transactions.splice(index, 1);
+    });
+
     this.emit('clear');
   }
 }

@@ -246,7 +246,7 @@ export default createStore({
           state.blockchain.chain.push(new Block(...Object.values(block)));
         });
 
-        state.transactionPool.clear();
+        state.transactionPool.clear(chain);
         commit('recalculateBalance');
 
         if (!state.miningIsUp) return;
@@ -313,7 +313,6 @@ export default createStore({
     onBlockCalculated({ state, dispatch, commit }, { block, chain }) {
       console.log('new Block calculated:', block);
 
-      // TODO: MAKE ALERTION ABOUT NEW BLOCK AND ABOUT TRANSACTIONS
       for (let i = state.blockchain.chain.length - 1; i >= 0; i--) {
         state.blockchain.chain.pop();
       }
@@ -322,7 +321,7 @@ export default createStore({
         state.blockchain.chain.push(_block);
       }
 
-      state.transactionPool.clear();
+      state.transactionPool.clear(chain);
       commit('recalculateBalance');
 
       const reward = block.data
