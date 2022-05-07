@@ -5,6 +5,7 @@
       income: transaction.type === 'income',
       outcome: transaction.type === 'outcome',
       reward: transaction.type === 'reward',
+      inactive: !transaction.confirmed,
     }"
   >
     <div class="transaction-inner">
@@ -67,7 +68,10 @@
 </template>
 
 <script>
-import { computed, toRefs } from 'vue';
+import {
+  computed,
+  toRefs,
+} from 'vue';
 import useFormattedTimestamp from '@/use/formattedTimestamp';
 
 export default {
@@ -131,6 +135,9 @@ $successIconCol: #5CB65F;
   left: 0;
   padding: 12px 50px;
   margin-bottom: 5px;
+  transition: 0.5s ease-out;
+  cursor: pointer;
+  user-select: none;
 
   &:last-child {
     margin-bottom: 0;
@@ -156,7 +163,6 @@ $successIconCol: #5CB65F;
     height: $iconSize;
 
     position: absolute;
-    fill: $errorIconCol;
     left: -36px;
     top: 0;
   }
@@ -213,6 +219,9 @@ $successIconCol: #5CB65F;
   background-color: $infoBg;
   color: $infoColor;
 
+  &:hover {
+    background-color: darken($infoBg, 15%);
+  }
   .transaction__icon {
     fill: $infoIconCol;
   }
@@ -224,6 +233,15 @@ $successIconCol: #5CB65F;
   .transaction__icon {
     transform: rotate(180deg);
     fill: $warningIconCol;
+    transition: .5s ease-in-out;
+  }
+
+  &:hover {
+    background-color: darken($warningBg, 12%);
+
+    .transaction__icon {
+      fill: darken($warningIconCol, 10%);
+    }
   }
 }
 .reward {
@@ -235,6 +253,39 @@ $successIconCol: #5CB65F;
     $iconSize: 20px;
     height: $iconSize;
     width: $iconSize;
+    fill: $successIconCol;
+    transition: .5s ease-in-out;
+  }
+
+  &:hover {
+    background-color: desaturate(darken($successBg, 20%), 45%);
+    .transaction__icon {
+      fill: darken($successIconCol, 10%);
+    }
+  }
+}
+
+.transaction.inactive {
+  cursor: initial;
+}
+.income.inactive:hover {
+  background-color: $infoBg;
+  color: $infoColor;
+  .transaction__icon {
+    fill: $infoIconCol;
+  }
+}
+.outcome.inactive:hover {
+  background-color: $warningBg;
+  color: $warningColor;
+  .transaction__icon {
+    fill: $warningIconCol;
+  }
+}
+.reward.inactive:hover {
+  background-color: $successBg;
+  color: $successColor;
+  .transaction__icon {
     fill: $successIconCol;
   }
 }

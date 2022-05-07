@@ -21,14 +21,25 @@
         v-for="transaction in filterTransactions(formattedTransactions)"
         :transaction="transaction"
         :key="transaction.id"
+        @click="showBlockInfo(transaction)"
       />
     </InfinityScroll>
+
+    <transition name="fade" mode="out-in">
+      <BlockInfo
+        v-if="blockInfo.show"
+        :block="blockInfo.block"
+        :block-position="blockInfo.blockPosition"
+        @close="blockInfo.show = false"
+      />
+    </transition>
   </div>
 </template>
 
 <script>
 import {
   ref,
+  reactive,
   computed,
 } from 'vue';
 import { useStore } from 'vuex';
@@ -36,12 +47,18 @@ import { useStore } from 'vuex';
 import Chips from '@/components/Chips';
 import InfinityScroll from '@/components/InfinityScroll';
 import Transaction from '@/components/transactions/Transaction';
+import BlockInfo from '@/components/blockchain/BlockInfo';
 import { MINER_WALLET } from '@/resources/core/config';
 import { cloneDeep } from 'lodash';
 
 export default {
   name: 'TransactionsOutput',
-  components: { Chips, InfinityScroll, Transaction },
+  components: {
+    Chips,
+    InfinityScroll,
+    Transaction,
+    BlockInfo,
+  },
   setup() {
     const store = useStore();
     const transactions = computed(() => store.getters.walletRelatedTransactions);
@@ -70,6 +87,7 @@ export default {
       },
     ]);
 
+    const blockchain = computed(() => store.getters.blockchain);
     const formattedTransactions = computed(() => {
       const result = [];
 
@@ -79,9 +97,11 @@ export default {
         output.senderAddress = _transaction.input.address;
         output.timestamp = _transaction.input.timestamp;
 
-        output.blockHash = _transaction.blockHash;
-        output.blockIndex = _transaction.blockIndex;
+        if (!_transaction.confirmed) return;
+
         output.confirmed = !!_transaction.confirmed;
+        output.blockPosition = _transaction.blockIndex;
+        output.block = blockchain.value[_transaction.blockIndex];
       };
 
       return transactionsSlice.value.map(_transaction => {
@@ -161,16 +181,18 @@ export default {
       }
     };
 
-    // onMounted(() => {
-    //   watch(transactions.value, (value) => {
-    //     // initial load
-    //     if (!transactionsSlice.value.length && value.length) {
-    //       transactionsSlice.value.push(...value?.slice(0, 20));
-    //       return;
-    //     }
-    //     transactionsSlice.value.unshift(value[0]);
-    //   });
-    // });
+    const blockInfo = reactive({
+      show: false,
+      block: null,
+      blockPosition: null,
+    });
+
+    const showBlockInfo = (transaction) => {
+      if (!transaction.confirmed) return;
+      blockInfo.block = transaction.block;
+      blockInfo.blockPosition = transaction.blockPosition;
+      blockInfo.show = true;
+    };
 
     return {
       transactionsSlice,
@@ -184,6 +206,8 @@ export default {
       updateList,
       allItemsLoaded,
       addMoreTransactions,
+      blockInfo,
+      showBlockInfo,
     };
   },
 };

@@ -66,7 +66,7 @@ import BlockchainTransition from '@/components/blockchain/BlockchainTransition';
 import Stopwatch from '@/components/blockchain/Stopwatch';
 import BlockInfo from '@/components/blockchain/BlockInfo';
 import { useStore } from 'vuex';
-import { throttle } from "lodash";
+import { throttle } from 'lodash';
 
 export default {
   name: 'Blockchain',
