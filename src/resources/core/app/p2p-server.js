@@ -189,6 +189,7 @@ class P2pServer extends EventEmitter {
       if (this.outbounds[peerAddress]) {
         this.deleteMiner(this.outbounds[peerAddress].id);
         delete this.outbounds[peerAddress];
+        this.deleteMiner(this.outbounds[peerAddress].id);
       }
 
       if (retries === 0) return;
