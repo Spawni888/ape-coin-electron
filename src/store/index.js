@@ -40,6 +40,9 @@ export default createStore({
       selectedWalletBalance: 0,
       selectedWalletAddress: null,
     },
+    mining: {
+      miners: [],
+    },
     blockchain: null,
     transactionPool: null,
     wallet: null,
@@ -117,6 +120,9 @@ export default createStore({
     blockchain(state) {
       return state.blockchain?.chain;
     },
+    minersNum(state) {
+      return state.mining.miners.length;
+    },
   },
   mutations: {
     logOutWallet(state) {
@@ -170,7 +176,7 @@ export default createStore({
     showAlert({ state, commit }, alertInfo = null) {
       if (alertInfo !== null) {
         alertInfo.timestamp = Date.now();
-        alertInfo.id = uuid.v4();
+        alertInfo.id = uuid.v1();
 
         const sameAlertAlreadyExists = state.alertQueue.find(
           alert => (alert.message === alertInfo.message) && (alert.type === alertInfo.type),
@@ -276,6 +282,10 @@ export default createStore({
       ipcRenderer.on(FROM_P2P.INBOUNDS_LIST_CHANGED, (event, data) => {
         console.log('FROM_P2P.INBOUNDS_LIST_CHANGED');
         state.p2pServer.inboundsList = data.inboundsList;
+      });
+
+      ipcRenderer.on(FROM_P2P.MINERS_LIST_CHANGED, (event, data) => {
+        state.mining.miners = data.miners;
       });
 
       // FROM_MINING
@@ -486,7 +496,7 @@ export default createStore({
         message: 'You have been authorized successfully.',
       });
     },
-    startMining({ state, dispatch }, { silenceMode } = { silenceMode: false }) {
+    startMining({ state, dispatch, commit }, { silenceMode } = { silenceMode: false }) {
       state.miningIsUp = true;
 
       const pickedTransactions = state.transactionPool.pickTransactions();
@@ -502,8 +512,9 @@ export default createStore({
         blockchain: state.blockchain,
       }));
 
-      // TODO: remove this line if app will work correctly without it:
-      // state.transactionPool.on('changed', () => dispatch('stopMining'));
+      commit('sendToP2P', {
+        channel: TO_P2P.MINING_STARTED,
+      });
 
       if (silenceMode) return;
       dispatch('showAlert', {
@@ -512,10 +523,14 @@ export default createStore({
         message: 'Mining process was started!',
       });
     },
-    stopMining({ state, dispatch }, { silenceMode } = { silenceMode: false }) {
+    stopMining({ state, dispatch, commit }, { silenceMode } = { silenceMode: false }) {
       state.miningIsUp = false;
 
       ipcRenderer.send(TO_BG.STOP_MINING);
+
+      commit('sendToP2P', {
+        channel: TO_P2P.MINING_STOPPED,
+      });
 
       if (silenceMode) return;
       dispatch('showAlert', {

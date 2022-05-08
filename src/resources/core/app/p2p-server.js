@@ -1,6 +1,9 @@
 const Websocket = require('ws');
 const { EventEmitter } = require('events');
 const ngrok = require('ngrok');
+// TODO: rewrite it using uuid later...
+// Now I'm using socket address, don't know why?!
+const uuid = require('uuid').v1;
 const {
   MAXIMUM_INBOUNDS,
   MAXIMUM_OUTBOUNDS,
@@ -15,6 +18,8 @@ const MESSAGE_TYPES = {
   peers: 'PEERS',
   serverExternalAddressReq: 'SERVER_EXTERNAL_ADDRESS_REQUEST',
   serverExternalAddressRes: 'SERVER_EXTERNAL_ADDRESS_RESPONSE',
+  miningStarted: 'MINING_STARTED',
+  miningStopped: 'MINING_STOPPED',
 };
 
 class P2pServer extends EventEmitter {
@@ -33,12 +38,8 @@ class P2pServer extends EventEmitter {
     this.externalAddress = null;
     this.ngrokHost = null;
     this.peers = [];
-  }
-
-  get myPeerLink() {
-    if (this.externalDomain === null) return null;
-
-    return `${this.protocol}://${this.externalDomain}:${this.externalPort}`;
+    this.miners = {};
+    this.id = uuid();
   }
 
   get inboundsList() {
@@ -188,18 +189,8 @@ class P2pServer extends EventEmitter {
       if (this.outbounds[peerAddress]) {
         delete this.outbounds[peerAddress];
       }
-      // if (retries === 10) {
-      //   if (this.allSocketsQuantity > 0) {
-      //     // I think users don't need alerts ab every disconnection.
-      //     // this.emit('warning', `Connection with peer ${peerAddress} was broken.`);
-      //   } else {
-      //     this.emit(
-      //       'warning',
-      //       `Connection with peer ${peerAddress} was broken. It was your last connection`,
-      //     );
-      //   }
-      // }
 
+      if (retries === 0) return;
       setTimeout(
         () => this.connectToPeer(
           peerAddress,
@@ -333,6 +324,7 @@ class P2pServer extends EventEmitter {
               domain: this.externalDomain,
               port: this.externalPort,
               address: `${this.protocol}://${this.externalDomain}:${this.externalPort}`,
+              serverID: this.id,
             },
           }));
           break;
@@ -340,6 +332,14 @@ class P2pServer extends EventEmitter {
 
         case MESSAGE_TYPES.serverExternalAddressRes:
           this.updateInbound(socket, data.serverAddressObj);
+          break;
+
+        case MESSAGE_TYPES.miningStarted:
+          this.saveMiner(data.minerID);
+          break;
+
+        case MESSAGE_TYPES.miningStopped:
+          this.deleteMiner(data.minerID);
           break;
 
         default:
@@ -383,13 +383,28 @@ class P2pServer extends EventEmitter {
     }
   }
 
+  sendMiningStarted(socket, minerID) {
+    socket.send(JSON.stringify({
+      type: MESSAGE_TYPES.miningStarted,
+      minerID,
+    }));
+  }
+
+  sendMiningStopped(socket, minerID) {
+    socket.send(JSON.stringify({
+      type: MESSAGE_TYPES.miningStopped,
+      minerID,
+    }));
+  }
+
   updateInbound(socket, serverAddressObj) {
     const {
       port: serverPort,
       address: serverAddress,
+      serverID,
     } = serverAddressObj;
 
-    console.log(serverAddress);
+    socket.id = serverID;
 
     // we don't need more than one connection with same user
     if (this.outbounds[serverAddress]) {
@@ -435,12 +450,38 @@ class P2pServer extends EventEmitter {
     };
   }
 
+  saveMiner(minerID) {
+    if (this.miners[minerID]) return;
+    this.miners[minerID] = true;
+
+    this.broadcastMiningStarted(minerID);
+  }
+
+  deleteMiner(minerID) {
+    if (!this.miners[minerID]) return;
+    delete this.miners[minerID];
+
+    this.broadcastMiningStopped(minerID);
+  }
+
   syncChains() {
     this.allSockets.forEach(socket => this.sendChain(socket));
   }
 
   broadcastTransaction(transaction) {
     this.allSockets.forEach(socket => this.sendTransaction(socket, transaction));
+  }
+
+  broadcastMiningStarted(minerID = null) {
+    if (minerID === null) minerID = this.id;
+
+    this.allSockets.forEach(socket => this.sendMiningStarted(socket, minerID));
+  }
+
+  broadcastMiningStopped(minerID = null) {
+    if (minerID === null) minerID = this.id;
+
+    this.allSockets.forEach(socket => this.sendMiningStopped(socket, minerID));
   }
 }
 

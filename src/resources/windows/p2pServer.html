@@ -61,6 +61,22 @@
           },
         });
 
+        server.miners = new Proxy(server.miners, {
+          set(target, prop, value, receiver) {
+            messageToUI(FROM_P2P.MINERS_LIST_CHANGED, {
+              miners: [...Object.keys(target), prop]
+            });
+            return Reflect.set(target, prop, value, receiver);
+          },
+          deleteProperty(target, prop) {
+            delete target[prop];
+            messageToUI(FROM_P2P.MINERS_LIST_CHANGED, {
+              miners: [...Object.keys(target)]
+            });
+            return true;
+          },
+        });
+
         // alerts
         server.on('info', (msg) => messageToUI(FROM_APP.ALERT, {
           type: 'info',
@@ -103,6 +119,14 @@
         server.blockchain.chain = chain;
         server.syncChains();
         server.transactionPool.clear(chain);
+      })
+
+      ipcRenderer.on(TO_P2P.MINING_STARTED, () => {
+        server.broadcastMiningStarted();
+      })
+
+      ipcRenderer.on(TO_P2P.MINING_STOPPED, () => {
+        server.broadcastMiningStopped();
       })
     } catch (error) {
       ipcRenderer.send(FROM_P2P.ERROR, error);

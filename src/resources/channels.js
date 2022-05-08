@@ -12,6 +12,7 @@ const FROM_P2P = {
   OUTBOUNDS_LIST_CHANGED: 'outbounds-list-changed',
   TRANSACTION_POOL_CHANGED: 'transaction-pool-changed',
   BLOCKCHAIN_CHANGED: 'from-p2p-blockchain-changed',
+  MINERS_LIST_CHANGED: 'miners-list-changed',
   TO_UI: 'from-p2p-to-ui',
   ERROR: 'p2p-server-error',
   CONSOLE_LOG: 'console-log',
@@ -21,6 +22,8 @@ const TO_P2P = {
   START_SERVER: 'to-p2p-start-server',
   NEW_BLOCK_ADDED: 'new-block-added',
   NEW_TRANSACTION_CREATED: 'new-transaction-created',
+  MINING_STARTED: 'to-p2p-mining-started',
+  MINING_STOPPED: 'to-p2p-mining-stopped',
 };
 
 const TO_MINING = {

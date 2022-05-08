@@ -1,5 +1,8 @@
 <template>
   <div class="mining-process">
+    <div class="miners-online">
+      {{ minersNum }}
+    </div>
     <CoreButton @click="stopMining">Stop Mining</CoreButton>
   </div>
 </template>
@@ -7,15 +10,18 @@
 <script>
 import CoreButton from '@/components/CoreButton';
 import { useStore } from 'vuex';
+import { computed } from 'vue';
 
 export default {
   name: 'MiningProcess',
   components: { CoreButton },
   setup() {
     const store = useStore();
+    const minersNum = computed(() => store.getters.minersNum);
 
     return {
       stopMining: () => store.dispatch('stopMining'),
+      minersNum,
     };
   },
 };
