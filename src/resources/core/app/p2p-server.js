@@ -187,10 +187,12 @@ class P2pServer extends EventEmitter {
 
     socket.on('close', () => {
       if (this.outbounds[peerAddress]) {
+        this.deleteMiner(this.outbounds[peerAddress].id);
         delete this.outbounds[peerAddress];
       }
 
       if (retries === 0) return;
+
       setTimeout(
         () => this.connectToPeer(
           peerAddress,
@@ -242,10 +244,13 @@ class P2pServer extends EventEmitter {
   }
 
   addCloseAndErrorHandler(socket) {
+    // this works only once in retries
     const handler = (err) => {
       if (err instanceof Error) console.log(err);
 
       const serverAddress = `${socket.serverProtocol}://${socket.serverDomain}:${socket.serverPort}`;
+
+      this.deleteMiner(socket.id);
 
       if (this.inbounds[serverAddress]) {
         delete this.inbounds[serverAddress];
@@ -458,7 +463,7 @@ class P2pServer extends EventEmitter {
   }
 
   deleteMiner(minerID) {
-    if (!this.miners[minerID]) return;
+    if (!minerID || !this.miners[minerID]) return;
     delete this.miners[minerID];
 
     this.broadcastMiningStopped(minerID);
@@ -475,12 +480,14 @@ class P2pServer extends EventEmitter {
   broadcastMiningStarted(minerID = null) {
     if (minerID === null) minerID = this.id;
 
+    this.saveMiner(minerID);
     this.allSockets.forEach(socket => this.sendMiningStarted(socket, minerID));
   }
 
   broadcastMiningStopped(minerID = null) {
     if (minerID === null) minerID = this.id;
 
+    this.deleteMiner(minerID);
     this.allSockets.forEach(socket => this.sendMiningStopped(socket, minerID));
   }
 }
