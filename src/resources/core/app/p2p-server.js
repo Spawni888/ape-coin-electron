@@ -20,6 +20,7 @@ const MESSAGE_TYPES = {
   serverExternalAddressRes: 'SERVER_EXTERNAL_ADDRESS_RESPONSE',
   miningStarted: 'MINING_STARTED',
   miningStopped: 'MINING_STOPPED',
+  miners: 'MINERS',
 };
 
 class P2pServer extends EventEmitter {
@@ -189,7 +190,6 @@ class P2pServer extends EventEmitter {
       if (this.outbounds[peerAddress]) {
         this.deleteMiner(this.outbounds[peerAddress].id);
         delete this.outbounds[peerAddress];
-        this.deleteMiner(this.outbounds[peerAddress].id);
       }
 
       if (retries === 0) return;
@@ -242,6 +242,7 @@ class P2pServer extends EventEmitter {
     this.addCloseAndErrorHandler(socket);
     this.sendChain(socket);
     this.sendTransactionPool(socket);
+    this.sendMiners(socket);
   }
 
   addCloseAndErrorHandler(socket) {
@@ -348,6 +349,12 @@ class P2pServer extends EventEmitter {
           this.deleteMiner(data.minerID);
           break;
 
+        case MESSAGE_TYPES.miners:
+          data.minerIDs.forEach(minerID => {
+            this.saveMiner(minerID);
+          });
+          break;
+
         default:
           break;
       }
@@ -358,6 +365,13 @@ class P2pServer extends EventEmitter {
     socket.send(JSON.stringify({
       type: MESSAGE_TYPES.chain,
       chain: this.blockchain.chain,
+    }));
+  }
+
+  sendMiners(socket) {
+    socket.send(JSON.stringify({
+      type: MESSAGE_TYPES.miners,
+      minerIDs: Object.keys(this.miners),
     }));
   }
 
