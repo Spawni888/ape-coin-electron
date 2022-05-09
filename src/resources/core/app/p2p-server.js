@@ -201,8 +201,6 @@ class P2pServer extends EventEmitter {
     }
 
     const socket = new Websocket(serverAddress);
-    console.log('serverAddress');
-    console.log(serverAddress);
 
     this.addServerAddressToSocket(socket, {
       protocol: serverProtocol,
@@ -239,8 +237,13 @@ class P2pServer extends EventEmitter {
       }
 
       if (checking) {
-        if (!socket.available) {
-          // send info about socket availability maybe ?;
+        const checkedSocket = this.inbounds
+          .find(inbound => inbound.serverAddress === serverAddress);
+        if (checkedSocket && !checkedSocket.available) {
+          checkedSocket.checking = false;
+          checkedSocket.available = false;
+          // TODO: send info about socket availability maybe?
+          // not sure ab it
         }
         retries = 0;
       }
