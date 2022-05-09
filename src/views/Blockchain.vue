@@ -205,8 +205,14 @@ export default {
     onMounted(() => {
       initValues();
       animateScroll();
+
+      window.addEventListener('resize', initValues);
     });
-    onBeforeUnmount(() => cancelAnimationFrame(animationRequest));
+    onBeforeUnmount(() => {
+      cancelAnimationFrame(animationRequest);
+
+      window.removeEventListener('resize', initValues);
+    });
 
     return {
       chainNode,
