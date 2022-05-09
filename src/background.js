@@ -19,10 +19,9 @@ const isDevelopment = process.env.NODE_ENV !== 'production';
 
 try {
   const electronStore = new ElectronStore({
-    configName: 'apecoin-preferences',
+    configName: 'ape-coin-data',
     defaults: {},
   });
-  let isQuiting = false;
   // const gotTheLock = app.requestSingleInstanceLock();
 
   // Scheme must be registered before the app is ready
@@ -75,6 +74,7 @@ try {
       await mainWin.loadURL('app://./index.html');
     }
 
+    let isQuiting = false;
     mainWin.on('close', (event) => {
       if (!isQuiting) {
         event.preventDefault();
@@ -136,10 +136,10 @@ try {
     }
   });
 
-  app.on('activate', () => {
+  app.on('activate', async () => {
     // On macOS it's common to re-create a window in the app when the
     // dock icon is clicked and there are no other windows open.
-    if (BrowserWindow.getAllWindows().length === 0) createWindow();
+    if (BrowserWindow.getAllWindows().length === 0) await createWindow();
   });
 
   // This method will be called when Electron has finished

@@ -41,7 +41,12 @@ import CoreButton from '@/components/CoreButton';
 import CoreInput from '@/components/CoreInput';
 import Modal from '@/components/Modal';
 import useForm from '@/use/form/form';
-import { ref, reactive } from 'vue';
+import {
+  ref,
+  reactive,
+  onBeforeUnmount,
+  onMounted,
+} from 'vue';
 import { useStore } from 'vuex';
 import { ipcRenderer } from 'electron';
 import CoreSwitch from '@/components/CoreSwitch';
@@ -129,20 +134,6 @@ export default {
       ipcRenderer.send(TO_BG.CREATE_WALLET);
     };
 
-    ipcRenderer.on(FROM_BG.WALLET_CREATED, (event, keyPair) => {
-      [newKeyPair.pub, newKeyPair.priv] = [keyPair.pub, keyPair.priv];
-
-      modalInfo.paragraphs = [
-        '<span style="font-weight: 500">PublicKey (your address) is:</span>',
-        `<span style="word-break: break-all">${keyPair.pub}</span> `,
-        '<span style="font-weight: 500">PrivateKey (don`t share it) is:</span>',
-        `<span style="word-break: break-all">${keyPair.priv}</span> `,
-        '<span style="font-weight: 500">Do you want to save it at your PC, so you won\'t forget it?</span>',
-      ];
-
-      modalIsShowing.value = true;
-    });
-
     const onAnswer = (answer) => {
       if (answer) {
         ipcRenderer.send(TO_BG.SAVE_WALLET_CREDITS, {
@@ -153,19 +144,25 @@ export default {
       modalIsShowing.value = false;
     };
 
-    ipcRenderer.on(FROM_BG.NEW_WALLET_SAVED, (event, filePath) => {
-      store.commit('showAlert', {
-        type: 'success',
-        title: 'Success',
-        message: `You have saved your keyPair at ${filePath} successfully.`,
+    onMounted(() => {
+      ipcRenderer.on(FROM_BG.WALLET_CREATED, (event, keyPair) => {
+        [newKeyPair.pub, newKeyPair.priv] = [keyPair.pub, keyPair.priv];
+        console.log(1);
+
+        modalInfo.paragraphs = [
+          '<span style="font-weight: 500">PublicKey (your address) is:</span>',
+          `<span style="word-break: break-all">${keyPair.pub}</span> `,
+          '<span style="font-weight: 500">PrivateKey (don`t share it) is:</span>',
+          `<span style="word-break: break-all">${keyPair.priv}</span> `,
+          '<span style="font-weight: 500">Do you want to save it at your PC, so you won\'t forget it?</span>',
+        ];
+
+        modalIsShowing.value = true;
       });
     });
-    ipcRenderer.on(FROM_BG.NEW_WALLET_SAVE_ERROR, () => {
-      store.commit('showAlert', {
-        type: 'error',
-        title: 'Error',
-        message: 'An Error occurred during saving...',
-      });
+
+    onBeforeUnmount(() => {
+      ipcRenderer.removeAllListeners(FROM_BG.WALLET_CREATED);
     });
 
     return {

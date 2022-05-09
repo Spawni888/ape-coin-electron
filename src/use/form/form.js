@@ -5,7 +5,6 @@ export default function useForm(init) {
   const form = reactive(init);
 
   for (const [key, value] of Object.entries(init)) {
-    // eslint-disable-next-line no-return-assign
     form[key] = useField(value);
   }
 

@@ -59,7 +59,7 @@ const parseUrlsAndTestRegExp = (val, regExp) => {
 };
 const validUrl = (val) => parseUrlsAndTestRegExp(
   val,
-  /https?:\/\/(www\.)?[-a-zA-Z0-9@:%._+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b([-a-zA-Z0-9()@:%_+.~#?&//=]*)/i,
+  /https?:\/\/(www\.)?[-a-zA-Z0-9@:%._+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b([-a-zA-Z0-9()@:%_+.~#?&/=]*)/i,
 );
 const hasPort = (val) => parseUrlsAndTestRegExp(val, /.+:\d+/i);
 
@@ -71,6 +71,13 @@ export default {
     CoreSwitch,
   },
   setup() {
+    const switches = reactive({
+      ngrok: {
+        name: 'ngrok',
+        value: false,
+      },
+    });
+
     const form = useForm({
       peers: {
         value: '',
@@ -114,34 +121,24 @@ export default {
         },
       },
       ngrokAuthToken: {
-        value: 'Paste your auth key if ngrok active',
+        value: '',
         fieldName: 'Ngrok Auth Token',
         placeholder: 'Paste your auth key if ngrok active',
-        validators: {},
+        validators: {
+          requiredIfOn: {
+            func: (val) => {
+              return !switches.ngrok.value || required(val);
+            },
+            errorMsg: 'Please, fill the field',
+            priority: 1,
+          },
+        },
+        watchTarget: switches.ngrok,
       },
     });
 
-    // TODO: add API later maybe
-    const switches = reactive({
-      // API: {
-      //   name: 'API',
-      //   value: false,
-      // },
-      ngrok: {
-        name: 'ngrok',
-        value: false,
-      },
-    });
-
-    // const API = ref(null);
     const ngrok = ref(null);
-    let loadedForm;
     onMounted(() => {
-      // useTooltip({
-      //   el: API.value,
-      //   id: 'API',
-      //   text: 'Turn on HTTP API if active',
-      // });
       useTooltip({
         el: ngrok.value,
         id: 'ngrok-switch',
@@ -151,10 +148,7 @@ export default {
           + 'But if you can`t port forward you can use ngrok to expose your network. '
           + 'Register for free at ngrok.com and pass ngrok AuthToken to the field above.',
       });
-      ipcRenderer.send(TO_BG.CHECK_P2P_FORM_SAVING);
-      ipcRenderer.on(FROM_BG.LOAD_P2P_FORM, (event, savedForm) => {
-        loadedForm = savedForm;
-
+      ipcRenderer.once(FROM_BG.LOAD_P2P_FORM, (event, savedForm) => {
         Object.keys(form)
           .forEach(key => {
             form[key].value = savedForm.inputs[key];
@@ -164,23 +158,8 @@ export default {
             switches[key].value = savedForm.switches[key];
           });
       });
+      ipcRenderer.send(TO_BG.CHECK_P2P_FORM_SAVING);
     });
-
-    switches.ngrok.onClick = () => {
-      if (form.ngrokAuthToken.value) return;
-
-      if (switches.ngrok.value) {
-        form.ngrokAuthToken.value = '';
-      } else {
-        form.ngrokAuthToken.value = loadedForm?.form?.ngrokAuthToken?.value
-          ?? 'Paste your auth key if ngrok active';
-      }
-    };
-    form.ngrokAuthToken.validators.requiredIfOn = {
-      func: (val) => !switches.ngrok.value || required(val),
-      errorMsg: 'Please, fill the field',
-      priority: 1,
-    };
 
     const highlightErrors = ref(false);
     const store = useStore();
@@ -225,7 +204,6 @@ export default {
     return {
       form,
       switches,
-      // API,
       ngrok,
       highlightErrors,
       connect,

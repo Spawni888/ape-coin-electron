@@ -45,7 +45,12 @@ export default function useField(field) {
     };
 
   reassign(field.value);
+
   watch(value, reassign);
+
+  if (field.watchTarget) {
+    watch(field.watchTarget, () => reassign(field.value));
+  }
 
   return result;
 }

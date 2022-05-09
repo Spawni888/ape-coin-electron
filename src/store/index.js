@@ -316,6 +316,22 @@ export default createStore({
         });
       });
 
+      ipcRenderer.on(FROM_BG.NEW_WALLET_SAVED, (event, filePath) => {
+        commit('showAlert', {
+          type: 'success',
+          title: 'Success',
+          message: `You have saved your keyPair at ${filePath} successfully.`,
+        });
+      });
+
+      ipcRenderer.on(FROM_BG.NEW_WALLET_SAVE_ERROR, () => {
+        commit('showAlert', {
+          type: 'error',
+          title: 'Error',
+          message: 'An Error occurred during saving...',
+        });
+      });
+
       ipcRenderer.on(FROM_BG.LOAD_ALERTS, (event, alertsJournal) => {
         state.alertsJournal = alertsJournal;
       });
