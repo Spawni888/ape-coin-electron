@@ -3,18 +3,15 @@ import {
   protocol,
   BrowserWindow,
   ipcMain,
-  dialog,
   Tray,
   Menu,
 } from 'electron';
 
 import { createProtocol } from 'vue-cli-plugin-electron-builder/lib';
 // eslint-disable-next-line no-unused-vars
-import installExtension, { VUEJS_DEVTOOLS } from 'electron-devtools-installer';
+import installExtension from 'electron-devtools-installer';
 import ElectronStore from '@/utils/ElectronStore';
 import path from 'path';
-import fs from 'fs';
-import { genKeyPair } from '@/utils/elliptic';
 import bgHandlers from '@/utils/backgroundHandlers';
 import { FROM_BG, TO_BG } from '@/resources/channels';
 
@@ -26,7 +23,7 @@ try {
     defaults: {},
   });
   let isQuiting = false;
-  const gotTheLock = app.requestSingleInstanceLock();
+  // const gotTheLock = app.requestSingleInstanceLock();
 
   // Scheme must be registered before the app is ready
   protocol.registerSchemesAsPrivileged([
@@ -94,68 +91,15 @@ try {
       mainWin.minimize();
     });
 
-    ipcMain.on(TO_BG.SAVE_ALERTS, (event, alertsJournal) => {
-      electronStore.set('alertsJournal', JSON.parse(alertsJournal));
-    });
-
-    ipcMain.on(TO_BG.CHECK_ALERTS_SAVING, () => {
-      const alertsJournal = electronStore.get('alertsJournal');
-      if (alertsJournal && Array.isArray(alertsJournal)) {
-        mainWin.webContents.send(FROM_BG.LOAD_ALERTS, alertsJournal);
-      }
-    });
-
     ipcMain.on(TO_BG.SAVE_P2P_FORM, (event, form) => {
       electronStore.set('p2pForm', form);
     });
-
     ipcMain.on(TO_BG.CHECK_P2P_FORM_SAVING, sendP2pForm);
 
-    ipcMain.on(TO_BG.CREATE_WALLET, async () => {
-      const keyPair = genKeyPair();
-      mainWin.webContents.send(FROM_BG.WALLET_CREATED, keyPair);
-    });
-
-    ipcMain.on(TO_BG.SAVE_WALLET_CREDITS, async (event, keyPair) => {
-      const {
-        filePath,
-        canceled,
-      } = await dialog.showSaveDialog(mainWin, {
-        defaultPath: path.resolve(app.getPath('desktop'), 'keyPair.txt'),
-      });
-
-      if (!canceled) {
-        const txtKeyPair = `publicKey(your address): ${keyPair.pub}
-privateKey(secret key, don't share it): ${keyPair.priv}`;
-        fs.writeFile(filePath, txtKeyPair, (err) => {
-          if (err) {
-            mainWin.webContents.send(FROM_BG.NEW_WALLET_SAVE_ERROR);
-            return;
-          }
-          mainWin.webContents.send(FROM_BG.NEW_WALLET_SAVED, filePath);
-        });
-      }
-    });
-
-    // TODO: maybe protect it later :)
-    ipcMain.on(TO_BG.SAVE_WALLET_AUTH, async (event, keyPair) => {
-      electronStore.set('walletAuth', keyPair);
-    });
-
-    ipcMain.on(TO_BG.DELETE_WALLET_AUTH, async () => {
-      electronStore.delete('walletAuth');
-    });
-
-    ipcMain.on(TO_BG.CHECK_AUTH_SAVING, async () => {
-      const keyPair = electronStore.get('walletAuth');
-
-      if (keyPair) {
-        mainWin.webContents.send(FROM_BG.SIGN_IN_WALLET, keyPair);
-      }
-    });
-
-    bgHandlers.p2pServerHandler(mainWin, app);
-    bgHandlers.miningHandler(mainWin, app);
+    bgHandlers.walletHandler(mainWin, electronStore);
+    bgHandlers.alertsHandler(mainWin, electronStore);
+    bgHandlers.p2pServerHandler(mainWin);
+    bgHandlers.miningHandler(mainWin);
 
     // eslint-disable-next-line no-undef
     tray = new Tray(path.resolve(__static, './tray-icon.png'));

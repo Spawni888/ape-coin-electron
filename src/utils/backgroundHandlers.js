@@ -1,4 +1,9 @@
-import { ipcMain, BrowserWindow, app } from 'electron';
+import {
+  ipcMain,
+  BrowserWindow,
+  app,
+  dialog,
+} from 'electron';
 import path from 'path';
 import {
   TO_MINING,
@@ -9,13 +14,15 @@ import {
   FROM_P2P,
   FROM_APP, FROM_UI,
 } from '@/resources/channels';
+import { genKeyPair } from '@/utils/elliptic';
+import fs from 'fs';
 
-const logToUI = (win, msg) => {
-  win.webContents.send(
-    FROM_BG.CONSOLE_LOG,
-    msg,
-  );
-};
+// const logToUI = (win, msg) => {
+//   win.webContents.send(
+//     FROM_BG.CONSOLE_LOG,
+//     msg,
+//   );
+// };
 
 const proxyLogger = (_event, payload, win) => {
   if (win === null) return;
@@ -141,7 +148,67 @@ const miningHandler = (mainWin) => {
   });
 };
 
+const walletHandler = (mainWin, electronStore) => {
+  ipcMain.on(TO_BG.CREATE_WALLET, async () => {
+    const keyPair = genKeyPair();
+    mainWin.webContents.send(FROM_BG.WALLET_CREATED, keyPair);
+  });
+
+  ipcMain.on(TO_BG.SAVE_WALLET_CREDITS, async (event, keyPair) => {
+    const {
+      filePath,
+      canceled,
+    } = await dialog.showSaveDialog(mainWin, {
+      defaultPath: path.resolve(app.getPath('desktop'), 'keyPair.txt'),
+    });
+
+    if (!canceled) {
+      const txtKeyPair = `publicKey(your address): ${keyPair.pub}
+privateKey(secret key, don't share it): ${keyPair.priv}`;
+      fs.writeFile(filePath, txtKeyPair, (err) => {
+        if (err) {
+          mainWin.webContents.send(FROM_BG.NEW_WALLET_SAVE_ERROR);
+          return;
+        }
+        mainWin.webContents.send(FROM_BG.NEW_WALLET_SAVED, filePath);
+      });
+    }
+  });
+
+  // TODO: maybe protect it later :)
+  ipcMain.on(TO_BG.SAVE_WALLET_AUTH, async (event, keyPair) => {
+    electronStore.set('walletAuth', keyPair);
+  });
+
+  ipcMain.on(TO_BG.DELETE_WALLET_AUTH, async () => {
+    electronStore.delete('walletAuth');
+  });
+
+  ipcMain.on(TO_BG.CHECK_AUTH_SAVING, async () => {
+    const keyPair = electronStore.get('walletAuth');
+
+    if (keyPair) {
+      mainWin.webContents.send(FROM_BG.SIGN_IN_WALLET, keyPair);
+    }
+  });
+};
+
+const alertsHandler = (mainWin, electronStore) => {
+  ipcMain.on(TO_BG.SAVE_ALERTS, (event, alertsJournal) => {
+    electronStore.set('alertsJournal', JSON.parse(alertsJournal));
+  });
+
+  ipcMain.on(TO_BG.CHECK_ALERTS_SAVING, () => {
+    const alertsJournal = electronStore.get('alertsJournal');
+    if (alertsJournal && Array.isArray(alertsJournal)) {
+      mainWin.webContents.send(FROM_BG.LOAD_ALERTS, alertsJournal);
+    }
+  });
+};
+
 export default {
   p2pServerHandler,
   miningHandler,
+  walletHandler,
+  alertsHandler,
 };
