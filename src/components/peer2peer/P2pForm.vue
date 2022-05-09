@@ -126,9 +126,7 @@ export default {
         placeholder: 'Paste your auth key if ngrok active',
         validators: {
           requiredIfOn: {
-            func: (val) => {
-              return !switches.ngrok.value || required(val);
-            },
+            func: (val) => !switches.ngrok.value || required(val),
             errorMsg: 'Please, fill the field',
             priority: 1,
           },
