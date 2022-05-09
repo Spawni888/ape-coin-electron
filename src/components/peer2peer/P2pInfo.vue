@@ -72,8 +72,17 @@ export default {
   setup() {
     const store = useStore();
 
-    const p2pInboundsList = computed(() => store.getters.p2pInboundsList);
-    const p2pOutboundsList = computed(() => store.getters.p2pOutboundsList);
+    const p2pInboundsStore = computed(() => store.getters.p2pInboundsList);
+    const p2pOutboundsStore = computed(() => store.getters.p2pOutboundsList);
+
+    const p2pInboundsList = computed(() => p2pInboundsStore.value
+      .filter(connection => connection.available)
+      .map(connection => connection.address));
+
+    const p2pOutboundsList = computed(() => p2pOutboundsStore.value
+      .filter(connection => connection.available)
+      .map(connection => connection.address));
+
     const p2pConnectionsExistence = computed(() => p2pOutboundsList.value.length
       || p2pInboundsList.value.length);
 

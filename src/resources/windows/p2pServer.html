@@ -32,14 +32,34 @@
         server.inbounds = new Proxy(server.inbounds, {
           set(target, prop, value, receiver) {
             messageToUI(FROM_P2P.INBOUNDS_LIST_CHANGED, {
-              inboundsList: [...Object.keys(target), prop]
+              inboundsList: [
+                ...Object.values(target)
+                  .map(socket => {
+                    return {
+                      address: socket.serverAddress,
+                      available: !!socket.available,
+                    };
+                  }),
+                {
+                  address: value.serverAddress,
+                  available: !!value.available,
+                }
+              ]
             });
             return Reflect.set(target, prop, value, receiver);
           },
           deleteProperty(target, prop) {
             delete target[prop];
             messageToUI(FROM_P2P.INBOUNDS_LIST_CHANGED, {
-              inboundsList: [...Object.keys(target)]
+              inboundsList: [
+                ...Object.values(target)
+                  .map(socket => {
+                    return {
+                      address: socket.serverAddress,
+                      available: !!socket.available,
+                    };
+                  }),
+              ]
             });
             return true;
           },
@@ -48,14 +68,34 @@
         server.outbounds = new Proxy(server.outbounds, {
           set(target, prop, value, receiver) {
             messageToUI(FROM_P2P.OUTBOUNDS_LIST_CHANGED, {
-              outboundsList: [...Object.keys(target), prop]
+              outboundsList: [
+                ...Object.values(target)
+                  .map(socket => {
+                    return {
+                      address: socket.serverAddress,
+                      available: true,
+                    };
+                  }),
+                {
+                  address: value.serverAddress,
+                  available: true,
+                }
+              ]
             });
             return Reflect.set(target, prop, value, receiver);
           },
           deleteProperty(target, prop) {
             delete target[prop];
             messageToUI(FROM_P2P.OUTBOUNDS_LIST_CHANGED, {
-              outboundsList: [...Object.keys(target)]
+              outboundsList: [
+                ...Object.values(target)
+                  .map(socket => {
+                    return {
+                      address: socket.serverAddress,
+                      available: !!socket.available,
+                    };
+                  }),
+              ]
             });
             return true;
           },
@@ -122,11 +162,11 @@
       })
 
       ipcRenderer.on(TO_P2P.MINING_STARTED, () => {
-        server.broadcastMiningStarted();
+        server.saveMiner(server.id);
       })
 
       ipcRenderer.on(TO_P2P.MINING_STOPPED, () => {
-        server.broadcastMiningStopped();
+        server.deleteMiner(server.id);
       })
     } catch (error) {
       ipcRenderer.send(FROM_P2P.ERROR, error);
