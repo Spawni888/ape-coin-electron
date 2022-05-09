@@ -80,7 +80,7 @@ try {
         event.preventDefault();
         mainWin.hide();
       }
-      return false;
+      app.quit();
     });
 
     ipcMain.on(TO_BG.CLOSE_MAIN_WINDOW, () => {
@@ -116,21 +116,16 @@ try {
         click: () => {
           isQuiting = true;
           mainWin.close();
-          app.quit();
         },
       },
     ]));
 
-    tray.setToolTip('Ape-coin application');
+    tray.setToolTip('Ape-coin');
     tray.on('double-click', () => {
       mainWin.show();
     });
     // tray.setContextMenu(contextMenu);
   };
-
-  app.on('before-quit', () => {
-    isQuiting = true;
-  });
 
   // Quit when all windows are closed.
   app.on('window-all-closed', () => {
