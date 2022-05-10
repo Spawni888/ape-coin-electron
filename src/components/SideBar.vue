@@ -2,7 +2,7 @@
   <nav class="sidebar">
     <div class="logo">
       <div class="logo__container">
-        <img :src="require('@/assets/images/sidebar/gorilla1.png')" alt="logotype">
+        <img :src="require('@/resources/gorilla.png')" alt="logotype">
       </div>
       <div class="logo__name">
         Ape-coin

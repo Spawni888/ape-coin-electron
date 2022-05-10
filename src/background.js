@@ -13,6 +13,7 @@ import installExtension from 'electron-devtools-installer';
 import ElectronStore from '@/utils/ElectronStore';
 import path from 'path';
 import bgHandlers from '@/utils/backgroundHandlers';
+import winFade from '@/utils/winAnimation';
 import { FROM_BG, TO_BG } from '@/resources/channels';
 
 const isDevelopment = process.env.NODE_ENV !== 'production';
@@ -45,34 +46,73 @@ try {
     }
   };
 
-  const createWindow = async () => {
-    // Create the browser window.
-    mainWin = new BrowserWindow({
-      width: 1000,
-      height: 650,
+  const createMainWin = async () => {
+    const loadingWin = new BrowserWindow({
+      width: 300,
+      height: 360,
       icon: path.resolve(__dirname, './assets/icon.ico'),
       titleBarStyle: 'hiddenInset',
       frame: false,
-      webPreferences: {
-        enableRemoteModule: true,
-        contextIsolation: false,
-        // Use pluginOptions.nodeIntegration, leave this alone
-        // eslint-disable-next-line max-len
-        // See nklayman.github.io/vue-cli-plugin-electron-builder/guide/security.html#node-integration
-        // for more info
-        nodeIntegration: process.env.ELECTRON_NODE_INTEGRATION,
-      },
+      show: false,
+      resizable: false,
     });
 
-    if (process.env.WEBPACK_DEV_SERVER_URL) {
-      // Load the url of the dev server if in development mode
-      await mainWin.loadURL(process.env.WEBPACK_DEV_SERVER_URL);
-      if (!process.env.IS_TEST) mainWin.webContents.openDevTools();
-    } else {
-      createProtocol('app');
-      // Load the index.html when not in development
-      await mainWin.loadURL('app://./index.html');
-    }
+    loadingWin.once('show', () => {
+      mainWin = new BrowserWindow({
+        width: 1000,
+        height: 650,
+        icon: path.resolve(__dirname, './assets/icon.ico'),
+        titleBarStyle: 'hiddenInset',
+        frame: false,
+        webPreferences: {
+          enableRemoteModule: true,
+          contextIsolation: false,
+          // Use pluginOptions.nodeIntegration, leave this alone
+          // eslint-disable-next-line max-len
+          // See nklayman.github.io/vue-cli-plugin-electron-builder/guide/security.html#node-integration
+          // for more info
+          nodeIntegration: process.env.ELECTRON_NODE_INTEGRATION,
+        },
+        show: false,
+      });
+
+      // const MIN_LOADING_TIME = 2000;
+      // let readyToShow = false;
+
+      const showMainWin = () => {
+        // if (!readyToShow) {
+        //   readyToShow = true;
+        //   return;
+        // }
+        console.log('main win loaded!');
+        mainWin.show();
+        loadingWin.hide();
+        loadingWin.close();
+      };
+      // setTimeout(showMainWin, MIN_LOADING_TIME);
+      mainWin.webContents.once('ready-to-show', showMainWin);
+
+      // long loading html
+      if (process.env.WEBPACK_DEV_SERVER_URL) {
+        // Load the url of the dev server if in development mode
+        mainWin.loadURL(process.env.WEBPACK_DEV_SERVER_URL);
+        if (!process.env.IS_TEST) mainWin.webContents.openDevTools();
+      } else {
+        createProtocol('app');
+        // Load the index.html when not in development
+        mainWin.loadURL('app://./index.html');
+      }
+    });
+
+    const isProd = process.env.NODE_ENV === 'production';
+    const RESOURCES_PATH = isProd
+      ? path.resolve(app.getAppPath(), '../')
+      : path.resolve(app.getAppPath(), '../src/resources');
+    const WINDOWS_PATH = isProd
+      ? path.resolve(app.getAppPath(), './windows')
+      : path.resolve(RESOURCES_PATH, './windows');
+    await loadingWin.loadFile(path.resolve(WINDOWS_PATH, 'loading.html'));
+    loadingWin.show();
 
     let isQuiting = false;
     mainWin.on('close', (event) => {
@@ -83,12 +123,22 @@ try {
       app.quit();
     });
 
+    //  window is restored from a minimized state
+    mainWin.on('restore', async () => {
+      // TODO: continue here
+      // await winFade(mainWin, null, 0);
+    });
+
+    mainWin.on('minimize', async () => {
+      // await winFade(mainWin, null, 0);
+    });
+
     ipcMain.on(TO_BG.CLOSE_MAIN_WINDOW, () => {
       // emit close event
       mainWin.close();
     });
-    ipcMain.on(TO_BG.HIDE_MAIN_WINDOW, () => {
-      mainWin.minimize();
+    ipcMain.on(TO_BG.HIDE_MAIN_WINDOW, async () => {
+      await winFade(mainWin, (win) => win.minimize(), 1);
     });
 
     ipcMain.on(TO_BG.SAVE_P2P_FORM, (event, form) => {
@@ -139,7 +189,7 @@ try {
   app.on('activate', async () => {
     // On macOS it's common to re-create a window in the app when the
     // dock icon is clicked and there are no other windows open.
-    if (BrowserWindow.getAllWindows().length === 0) await createWindow();
+    if (BrowserWindow.getAllWindows().length === 0) await createMainWin();
   });
 
   // This method will be called when Electron has finished
@@ -172,7 +222,7 @@ try {
   //         console.error('Vue Devtools failed to install:', e.toString());
   //       }
   //     }
-  //     await createWindow();
+  //     await createMainWin();
   //     sendP2pForm();
   //   });
   // }
@@ -191,7 +241,7 @@ try {
         console.error('Vue Devtools failed to install:', e.toString());
       }
     }
-    await createWindow();
+    await createMainWin();
     sendP2pForm();
   });
 

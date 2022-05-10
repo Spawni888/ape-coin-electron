@@ -48,7 +48,7 @@ const WINDOWS_PATH = isProd
 
 const createWindow = async fileName => {
   const win = new BrowserWindow({
-    // show: false,
+    show: !isProd,
     webPreferences: {
       nodeIntegration: true,
       contextIsolation: false,
