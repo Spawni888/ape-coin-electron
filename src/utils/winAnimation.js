@@ -32,4 +32,6 @@ const winFade = (
   });
 };
 
+const fadeOut = () =>
+
 module.exports = winFade;

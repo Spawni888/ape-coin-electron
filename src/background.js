@@ -15,6 +15,7 @@ import path from 'path';
 import bgHandlers from '@/utils/backgroundHandlers';
 import winFade from '@/utils/winAnimation';
 import { FROM_BG, TO_BG } from '@/resources/channels';
+// import ffi from 'ffi';
 
 const isDevelopment = process.env.NODE_ENV !== 'production';
 
@@ -47,6 +48,14 @@ try {
   };
 
   const createMainWin = async () => {
+    const isProd = process.env.NODE_ENV === 'production';
+    const RESOURCES_PATH = isProd
+      ? path.resolve(app.getAppPath(), '../')
+      : path.resolve(app.getAppPath(), '../src/resources');
+    const WINDOWS_PATH = isProd
+      ? path.resolve(app.getAppPath(), './windows')
+      : path.resolve(RESOURCES_PATH, './windows');
+
     const loadingWin = new BrowserWindow({
       width: 300,
       height: 360,
@@ -64,6 +73,7 @@ try {
         icon: path.resolve(__dirname, './assets/icon.ico'),
         titleBarStyle: 'hiddenInset',
         frame: false,
+        resizable: !isProd,
         webPreferences: {
           enableRemoteModule: true,
           contextIsolation: false,
@@ -102,15 +112,19 @@ try {
         // Load the index.html when not in development
         mainWin.loadURL('app://./index.html');
       }
+      // let Animatro = ffi.Library('User32.dll', {
+      //   'AnimateWindow': ['bool', ['int', 'int', 'int']],
+      // });
+      // let handle = mainWin.getNativeWindowHandle().readInt32LE(0);
+      // setTimeout(() => {
+      //   Animatro.AnimateWindow(handle, 1000, 589824); // 0x00080000 | 0x00010000 (hide the window, blend + hide)
+      // }, 3000);
+      // setTimeout(() => {
+      //   Animatro.AnimateWindow(handle, 1000, 524288); // 0x00080000 shows the window (blend only)
+      // }, 6000);
+
     });
 
-    const isProd = process.env.NODE_ENV === 'production';
-    const RESOURCES_PATH = isProd
-      ? path.resolve(app.getAppPath(), '../')
-      : path.resolve(app.getAppPath(), '../src/resources');
-    const WINDOWS_PATH = isProd
-      ? path.resolve(app.getAppPath(), './windows')
-      : path.resolve(RESOURCES_PATH, './windows');
     await loadingWin.loadFile(path.resolve(WINDOWS_PATH, 'loading.html'));
     loadingWin.show();
 
@@ -129,7 +143,9 @@ try {
       // await winFade(mainWin, null, 0);
     });
 
-    mainWin.on('minimize', async () => {
+    mainWin.on('minimize', async (event) => {
+      event.preventDefault();
+      console.log('minimize');
       // await winFade(mainWin, null, 0);
     });
 
@@ -138,7 +154,8 @@ try {
       mainWin.close();
     });
     ipcMain.on(TO_BG.HIDE_MAIN_WINDOW, async () => {
-      await winFade(mainWin, (win) => win.minimize(), 1);
+      mainWin.minimize();
+      // await winFade(mainWin, (win) => win.minimize(), 1);
     });
 
     ipcMain.on(TO_BG.SAVE_P2P_FORM, (event, form) => {

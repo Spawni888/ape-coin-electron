@@ -23,5 +23,6 @@ module.exports = {
     'class-methods-use-this': 'off',
     'no-bitwise': 'off',
     'arrow-body-style': 'off',
+    'vue/script-setup-uses-vars': 'off',
   },
 };

@@ -6,6 +6,9 @@ export default function useTooltip({
   id,
 }) {
   el = el.$el ? el.$el : el;
+  // it needs because in vue3 template refs in v-for return arrays
+  if (Array.isArray(el)) el = el[0]?.input;
+
   let timer;
 
   el.onmouseover = () => {
