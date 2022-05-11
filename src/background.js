@@ -134,7 +134,7 @@ try {
             type: 'info',
             title: 'Info',
             message: 'Checking for update...',
-          }, false);
+          }, true);
         });
         autoUpdater.on('update-available', () => {
           console.log('Update available!');
@@ -148,7 +148,7 @@ try {
             type: 'success',
             title: 'Success',
             message: 'Application is up to date.',
-          }, false);
+          }, true);
         });
 
         autoUpdater.on('error', err => {
@@ -157,7 +157,7 @@ try {
             type: 'error',
             title: 'Error',
             message: err.message,
-          }, false);
+          }, true);
         });
 
         autoUpdater.on('download-progress', progressObj => {
@@ -165,7 +165,7 @@ try {
             type: 'info',
             title: 'Info',
             message: `Download speed: ${progressObj.bytesPerSecond} - Downloaded ${progressObj.percent}% (${progressObj.transferred}/${progressObj.total})`,
-          }, false);
+          }, true);
 
           mainWin.webContents.send(
             FROM_BG.APP_UPDATE_PROGRESS,
