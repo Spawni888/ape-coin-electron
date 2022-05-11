@@ -12,7 +12,7 @@
           Downloading update...
         </div>
         <div class="updating__speed">
-          ({{ updateSpeed }} kb/s)
+          ({{ updateSpeed }})
         </div>
       </div>
     </div>
@@ -39,11 +39,13 @@ export default {
 
     const realProgress = computed(() => store.getters.updatingProgress);
     const realUpdateSpeed = computed(() => store.getters.updateSpeed);
-    const updateSpeed = ref(0);
+    const updateSpeed = ref('kb/s');
     const progressNode = ref(null);
 
     watch(realUpdateSpeed, throttle((value) => {
-      updateSpeed.value = Math.round(value);
+      let units = 'kb/s';
+      if (Math.round(value) >= 1000) units = 'mb/s';
+      updateSpeed.value = `${Math.round(value)} ${units}`;
     }, 2000));
 
     let progress = 0;

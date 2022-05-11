@@ -1,6 +1,6 @@
 <template>
   <div class="mining-process">
-    <div class="miners-online">
+    <div class="online">
       {{ minersNum }}
     </div>
     <CoreButton @click="stopMining">Stop Mining</CoreButton>
@@ -29,6 +29,10 @@ export default {
 
 <style scoped lang="scss">
 .mining-process {
-
+  .online {
+    font-size: 30px;
+    font-weight: bold;
+    color: #0D3C61FF;
+  }
 }
 </style>

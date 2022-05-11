@@ -138,10 +138,7 @@ try {
         });
         autoUpdater.on('update-available', () => {
           console.log('Update available!');
-          mainWin.webContents.send(
-            FROM_BG.APP_UPDATE_AVAILABLE,
-            alert,
-          );
+          mainWin.webContents.send(FROM_BG.APP_UPDATE_AVAILABLE);
         });
         autoUpdater.on('update-not-available', () => {
           alertUI({

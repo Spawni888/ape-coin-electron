@@ -122,7 +122,7 @@ $warningBg: #ffe8aa;
 $warningColor: #7D3C00;
 $warningIconCol: #FFA117;
 $infoBg: #E8F4FD;
-$infoColor: #0D3C61;
+$infoColor: #0d3c61;
 $infoIconCol: #359FF4;
 $successBg: #b3ffb3;
 $successColor: #1E4640;

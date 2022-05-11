@@ -1,2 +1,2 @@
-$env:GH_TOKEN = "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"
+$env:GH_TOKEN = "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"
 vue-cli-service electron:build -p always
