@@ -6,7 +6,7 @@ import {
   Tray,
   Menu,
 } from 'electron';
-
+// import { autoUpdater } from 'electron-updater';
 import { createProtocol } from 'vue-cli-plugin-electron-builder/lib';
 // eslint-disable-next-line no-unused-vars
 import installExtension from 'electron-devtools-installer';
@@ -46,11 +46,10 @@ try {
   };
 
   const createMainWin = async () => {
-    const isProd = process.env.NODE_ENV === 'production';
-    const RESOURCES_PATH = isProd
+    const RESOURCES_PATH = !isDevelopment
       ? path.resolve(app.getAppPath(), '../')
       : path.resolve(app.getAppPath(), '../src/resources');
-    const WINDOWS_PATH = isProd
+    const WINDOWS_PATH = !isDevelopment
       ? path.resolve(app.getAppPath(), './windows')
       : path.resolve(RESOURCES_PATH, './windows');
 
@@ -71,7 +70,8 @@ try {
         icon: path.resolve(__dirname, './assets/icon.ico'),
         titleBarStyle: 'hiddenInset',
         frame: false,
-        resizable: !isProd,
+        minWidth: 650,
+        minHeight: 600,
         webPreferences: {
           enableRemoteModule: true,
           contextIsolation: false,
@@ -116,22 +116,19 @@ try {
     loadingWin.show();
 
     let isQuiting = false;
-    mainWin.on('close', (event) => {
+    mainWin.on('close', async (event) => {
       if (!isQuiting) {
         event.preventDefault();
-        winFade(mainWin, (win) => win.hide(), 1);
+        await winFade(mainWin, (win) => win.hide(), 1);
       }
       app.quit();
     });
 
-    ipcMain.on(TO_BG.CLOSE_MAIN_WINDOW, () => {
-      // emit close event
-      mainWin.close();
-      // mainWin.hide();
+    ipcMain.on(TO_BG.CLOSE_MAIN_WINDOW, async () => {
+      await winFade(mainWin, (win) => win.hide(), 1);
     });
     ipcMain.on(TO_BG.HIDE_MAIN_WINDOW, async () => {
       mainWin.minimize();
-      // await winFade(mainWin, (win) => win.minimize(), 1);
     });
 
     ipcMain.on(TO_BG.SAVE_P2P_FORM, (event, form) => {
@@ -147,11 +144,11 @@ try {
     // eslint-disable-next-line no-undef
     tray = new Tray(path.resolve(__static, './tray-icon.png'));
 
-    const openFromTray = (win) => {
+    const openFromTray = async (win) => {
       if (!win.isVisible()) {
         win.setOpacity(0);
         win.show();
-        winFade(win);
+        await winFade(win);
       } else if (!win.isFocused()) {
         win.focus();
       }
@@ -159,8 +156,8 @@ try {
     tray.setContextMenu(Menu.buildFromTemplate([
       {
         label: 'Show App',
-        click: () => {
-          openFromTray(mainWin);
+        click: async () => {
+          await openFromTray(mainWin);
         },
       },
       {
@@ -173,20 +170,11 @@ try {
     ]));
 
     tray.setToolTip('Ape-coin');
-    tray.on('double-click', () => {
-      openFromTray(mainWin);
+    tray.on('double-click', async () => {
+      await openFromTray(mainWin);
     });
     // tray.setContextMenu(contextMenu);
   };
-
-  // Quit when all windows are closed.
-  app.on('window-all-closed', () => {
-    // On macOS it is common for applications and their menu bar
-    // to stay active until the user quits explicitly with Cmd + Q
-    if (process.platform !== 'darwin') {
-      app.quit();
-    }
-  });
 
   app.on('activate', async () => {
     // On macOS it's common to re-create a window in the app when the
