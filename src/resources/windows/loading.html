@@ -47,6 +47,10 @@
           margin-top: 20px;
           font-style: italic;
           margin-bottom: 40px;
+          text-transform: uppercase;
+          width: 70%;
+          text-align: center;
+          line-height: 1.3em;
       }
       .connecting {
           position: absolute;
@@ -67,15 +71,37 @@
         Ape-coin
       </div>
     </div>
-    <div class="quote">
-      LEEEEEEROY JENKINS!
-<!--      STARTING...-->
+    <div class="quote" id="quote">
+<!--      Just looking for a road home...-->
+<!--      LEEEEEEROY JENKINS!-->
+<!--      I am your worst nightmare!-->
+<!--      Ooh, I've never been here before.-->
+<!--      Do not deny me.-->
+<!--      I am the thing under the bed...-->
+<!--      Orcs work to live, dwarfs live to work!-->
+<!--      What an uncommon denominator!-->
+<!--      Strength is not a lack of weakness...-->
     </div>
     <div class="connecting" id="connecting">
       STARTING
     </div>
   </div>
   <script>
+    const quote = document.getElementById('quote');
+    const quotes = [
+      'Just looking for a road home...',
+      'LEEEEEEROY JENKINS!',
+      'I am your worst nightmare!',
+      'Ooh, I\'ve never been here before.',
+      'Do not deny me!',
+      'I am the thing under the bed...',
+      'Orcs work to live, dwarfs live to work!',
+      'What an uncommon denominator!',
+      'Strength is not a lack of weakness...',
+    ];
+    const getRandomInt = (max) => Math.floor(Math.random() * max);
+    quote.innerText = quotes[getRandomInt(quotes.length)];
+
     const connecting = document.getElementById('connecting');
     let dotsNum = 0;
 

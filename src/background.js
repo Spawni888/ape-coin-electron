@@ -84,7 +84,7 @@ try {
         show: false,
       });
 
-      const MIN_LOADING_TIME = 3000;
+      const MIN_LOADING_TIME = 4000;
       let readyToShow = false;
 
       const showMainWin = () => {
