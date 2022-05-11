@@ -33,6 +33,7 @@ const TO_MINING = {
 
 const FROM_MINING = {
   BLOCK_HAS_CALCULATED: 'block-has-calculated',
+  HASH_RATE: 'hash-rate',
   ERROR: 'mining-error',
   TO_UI: 'from-mining-to-ui',
   MINING_STOPPED: 'mining_stopped',

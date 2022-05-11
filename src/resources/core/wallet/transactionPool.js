@@ -85,6 +85,7 @@ class TransactionPool extends EventEmitter {
   clear(chain) {
     const transactionsMap = {};
 
+    console.log(chain);
     chain.forEach(block => {
       block.data.forEach(transaction => {
         transactionsMap[transaction.id] = true;

@@ -6,7 +6,10 @@
         <span class="separator">:</span>
         <span class="seconds">{{miningTime.seconds}}</span>
       </div>
-      <div class="stopwatch__title">
+      <div
+        class="stopwatch__title"
+        :class="{ active: minersNum }"
+      >
         Mining
       </div>
     </div>
@@ -22,10 +25,9 @@ export default {
   name: 'Stopwatch',
   setup() {
     const store = useStore();
-    const lastTimestamp = computed(
-      () => store.getters.blockchain[store.getters.blockchain.length - 1].timestamp,
-    );
+    const lastTimestamp = computed(() => store.getters.lastBlock.timestamp);
     const timeNow = ref(DateTime.now());
+    const minersNum = computed(() => store.getters.minersNum);
 
     const interval = setInterval(() => {
       timeNow.value = DateTime.now();
@@ -45,6 +47,7 @@ export default {
     return {
       miningTime,
       timeNow,
+      minersNum,
     };
   },
 };
@@ -56,31 +59,34 @@ $borderColor: rgba(255, 255, 255, 0.6);
   position: static;
   font-size: 40px;
 
-  $size: 7em;
-  width: 280px;
-  height: 320px;
+  width: 8em;
+  height: 8em;
   color: $onBgColor;
   text-align: center;
   display: flex;
   justify-content: center;
   align-items: center;
   overflow: hidden;
+  user-select: none;
 }
 .stopwatch {
   border-radius: 50%;
-  border: 2px solid $borderColor;
-  height: 224px;
-  width: 224px;
+  border: 0.05em solid $borderColor;
+  height: 5.6em;
+  width: 5.6em;
   display: flex;
   justify-content: center;
   align-items: center;
   flex-direction: column;
   animation: flash 1s infinite alternate ease-in-out;
   &__title {
-    margin-bottom: 5px;
+    margin-bottom: 0.125em;
 
-    color: rgb(2, 116, 2);
+    color: rgba(233, 26, 26, 0.4);
     font-size: 0.65em;
+  }
+  &__title.active {
+    color: rgb(2, 116, 2);
   }
   &__time {
     font-size: 1em;
@@ -95,10 +101,10 @@ $borderColor: rgba(255, 255, 255, 0.6);
 
 @keyframes flash {
   from {
-    box-shadow: 0 0 25px 5px $borderColor;
+    box-shadow: 0 0 0.625em 0.125em $borderColor;
   }
   to {
-    box-shadow: 0 0 0.25em 5px $borderColor;
+    box-shadow: 0 0 0.25em 0.125em $borderColor;
   }
 }
 </style>

@@ -95,7 +95,7 @@ export default {
 
     return {
       alertIsShowing: computed(() => store.getters.alertIsShowing),
-      myBalance: computed(() => store.getters.walletBalance),
+      myBalance: computed(() => Math.floor(store.getters.walletBalance * 100) / 100),
       walletAuthed: computed(() => store.getters.walletAuthed),
       updateModalIsUp,
       updateReleaseName,

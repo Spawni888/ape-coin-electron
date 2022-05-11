@@ -5,7 +5,17 @@ class Blockchain {
     this.chain = [Block.genesis()];
   }
 
-  static addBlock(bc, data) {
+  get lastBlock() {
+    return this.chain[this.chain.length - 1];
+  }
+
+  static async addBlock(bc, data) {
+    // return new Promise((resolve) => {
+    //   const block = new Block();
+    //
+    //   block.mineBlock(bc, data);
+    //   block.on('block-mined', resolve);
+    // });
     return Block.mineBlock(bc, data);
   }
 

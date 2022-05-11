@@ -90,6 +90,7 @@ $blockConnectionColor: rgba(255, 255, 255, 0.6);
 .block-container {
   padding: 20px;
   width: 340px;
+  user-select: none;
 
   position: relative;
   .block-connection {

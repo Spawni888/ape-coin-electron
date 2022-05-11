@@ -1,6 +1,9 @@
+const { ipcRenderer } = require('electron');
+const { EventEmitter } = require('events');
 const ChainUtil = require('../chain-util');
 const Transaction = require('../wallet/transaction');
 const { DIFFICULTY, MINE_RATE } = require('../config');
+const { FROM_MINING } = require('../../channels');
 
 class Block {
   constructor(timestamp, lastHash, hash, data, nonce, difficulty) {
@@ -26,31 +29,86 @@ class Block {
     return new this(Date.now(), '------', 'GENESIS', [], 0, DIFFICULTY);
   }
 
-  static mineBlock(bc, data) {
-    const lastBlock = bc.chain[bc.chain.length - 1];
+  static randomIntFromInterval(min, max) {
+    return Math.floor(Math.random() * (max - min + 1) + min);
+  }
 
+  static calculateHashRate() {
+    const messageToUI = (channel, data) => {
+      ipcRenderer.send(FROM_MINING.TO_UI, JSON.stringify({ channel, data }));
+    };
+    const hashesPerSec = {
+      count: 0,
+    };
+    setInterval(() => {
+      console.log(hashesPerSec.count);
+      messageToUI(FROM_MINING.HASH_RATE, hashesPerSec.count);
+      hashesPerSec.count = 0;
+    }, 1000);
+    return hashesPerSec;
+  }
+
+  static rollNonce(lastBlock, data, eventEmitter, hashCounter, nonceCache = {}, nonce = 0) {
     const lastHash = lastBlock.hash;
-    let timestamp = 0;
     let hash = '';
     let { difficulty } = lastBlock;
-    let nonce = 0;
+    let timestamp = 0;
+    nonce = this.randomIntFromInterval(0, Number.MAX_SAFE_INTEGER);
+    hashCounter.count++;
 
-    const randomIntFromInterval = (min, max) => {
-      return Math.floor(Math.random() * (max - min + 1) + min);
-    };
-    const nonceCache = {};
+    if (!nonceCache[nonce]) {
+      timestamp = Date.now();
+      difficulty = Block.adjustDifficulty(lastBlock, timestamp);
+      hash = this.createHash(timestamp, lastHash, data, nonce, difficulty);
+    }
+    // cache nonce values
+    nonceCache[nonce] = true;
 
-    do {
-      nonce = randomIntFromInterval(Number.MIN_SAFE_INTEGER, Number.MAX_SAFE_INTEGER);
-      if (!nonceCache[nonce]) {
-        timestamp = Date.now();
-        difficulty = Block.adjustDifficulty(lastBlock, timestamp);
-        hash = this.createHash(timestamp, lastHash, data, nonce, difficulty);
-      }
-      nonceCache[nonce] = true;
-    } while (hash.substring(0, difficulty) !== '0'.repeat(difficulty));
+    if (hash.substring(0, difficulty) === '0'.repeat(difficulty)) {
+      const newBlock = new this(timestamp, lastHash, hash, data, nonce, difficulty);
+      eventEmitter.emit('block-mined', newBlock);
+      return;
+    }
+    setImmediate(
+      () => Block.rollNonce(lastBlock, data, eventEmitter, hashCounter, nonceCache, nonce),
+    );
+  }
 
-    return new this(timestamp, lastHash, hash, data, nonce, difficulty);
+  static async mineBlock(bc, data) {
+    return new Promise(resolve => {
+      const eventEmitter = new EventEmitter();
+      eventEmitter.on('block-mined', resolve);
+
+      const lastBlock = bc.chain[bc.chain.length - 1];
+
+      const hashCounter = this.calculateHashRate();
+      setImmediate(() => Block.rollNonce(lastBlock, data, eventEmitter, hashCounter));
+    });
+    // const lastBlock = bc.chain[bc.chain.length - 1];
+    //
+    // const lastHash = lastBlock.hash;
+    // let timestamp = 0;
+    // let hash = '';
+    // let { difficulty } = lastBlock;
+    // let nonce = 0;
+    // const nonceCache = {};
+    // const hashCounter = this.calculateHashRate();
+    //
+    // do {
+    //   nonce = this.randomIntFromInterval(Number.MIN_SAFE_INTEGER, Number.MAX_SAFE_INTEGER);
+    //   hashCounter.count++;
+    //   console.log('here');
+    //
+    //   if (!nonceCache[nonce]) {
+    //     timestamp = Date.now();
+    //     difficulty = Block.adjustDifficulty(lastBlock, timestamp);
+    //     hash = this.createHash(timestamp, lastHash, data, nonce, difficulty);
+    //   }
+    //   // cache nonce values
+    //   nonceCache[nonce] = true;
+    // } while (hash.substring(0, difficulty) !== '0'.repeat(difficulty));
+    //
+    // return new this(timestamp, lastHash, hash, data, nonce, difficulty);
   }
 
   static createHash(timestamp, lastHash, data, nonce, difficulty) {

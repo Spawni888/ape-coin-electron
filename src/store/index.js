@@ -40,6 +40,8 @@ export default createStore({
     },
     mining: {
       miners: [],
+      difficulty: 4,
+      hashRate: 0,
     },
     appUpdate: {
       isUpdating: false,
@@ -70,7 +72,7 @@ export default createStore({
       return state.transactions.walletRelatedTransactions;
     },
     selectedWalletBalance(state) {
-      return state.transactions.selectedWalletBalance;
+      return Math.floor(state.transactions.selectedWalletBalance * 100) / 100;
     },
     selectedWalletAddress(state) {
       return state.transactions.selectedWalletAddress;
@@ -113,7 +115,7 @@ export default createStore({
       return state.wallet.publicKey;
     },
     walletBalance(state) {
-      return state.wallet.balanceWithTpIncluded;
+      return Math.floor(state.wallet.balanceWithTpIncluded) / 100;
     },
     walletPubKey(state) {
       if (state.wallet === null) return null;
@@ -127,6 +129,12 @@ export default createStore({
     },
     minersNum(state) {
       return state.mining.miners.length;
+    },
+    miningDifficulty(state) {
+      return state.mining.difficulty;
+    },
+    hashRate(state) {
+      return state.mining.hashRate;
     },
     appIsUpdating(state) {
       return state.appUpdate.isUpdating;
@@ -143,8 +151,14 @@ export default createStore({
     updateReleaseName(state) {
       return state.appUpdate.releaseName;
     },
+    lastBlock(state) {
+      return state.blockchain.lastBlock;
+    },
   },
   mutations: {
+    adjustDifficulty(state) {
+      state.mining.difficulty = Block.adjustDifficulty(state.blockchain.lastBlock, Date.now());
+    },
     logOutWallet(state) {
       state.wallet = null;
     },
@@ -320,6 +334,19 @@ export default createStore({
         state.mining.miners = data.miners;
       });
 
+      // restart MINING process if new transaction was created
+      ipcRenderer.on(FROM_P2P.TRANSACTION_POOL_CHANGED, (event, { transactions }) => {
+        console.log('FROM_P2P.TRANSACTION_POOL_CHANGED:');
+        console.log(transactions);
+        console.log('-'.repeat(10));
+
+        state.transactionPool.transactions = transactions;
+        commit('recalculateBalance');
+
+        if (!state.miningIsUp) return;
+        dispatch('startMining', { silenceMode: true });
+      });
+
       // -------------------------------------------------------------------------------------------
       // Alerts
       // -------------------------------------------------------------------------------------------
@@ -340,17 +367,9 @@ export default createStore({
       );
       ipcRenderer.on(FROM_MINING.ERROR, (event, { error }) => dispatch('onMiningError', error));
 
-      // restart MINING process if new transaction was created
-      ipcRenderer.on(FROM_P2P.TRANSACTION_POOL_CHANGED, (event, { transactions }) => {
-        console.log('FROM_P2P.TRANSACTION_POOL_CHANGED:');
-        console.log(transactions);
-        console.log('-'.repeat(10));
-
-        state.transactionPool.transactions = transactions;
-        commit('recalculateBalance');
-
-        if (!state.miningIsUp) return;
-        dispatch('startMining', { silenceMode: true });
+      ipcRenderer.on(FROM_MINING.HASH_RATE, (event, hashRate) => {
+        state.mining.hashRate = hashRate;
+        console.log(hashRate);
       });
 
       // -------------------------------------------------------------------------------------------

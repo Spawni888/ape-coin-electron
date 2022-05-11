@@ -77,6 +77,9 @@ class ChainUtil {
   }
 
   static miningRewardAmount(chain) {
+    // const roundFloat = (value) => {
+    //   return Math.floor(value * 100) / 100;
+    // };
     // eslint-disable-next-line no-restricted-properties
     return FIRST_MINING_REWARD * Math.pow(0.8, Math.floor((chain.length - 1) / 20));
   }
