@@ -30,6 +30,7 @@ export default {
   color: $onSurfaceColor;
   box-shadow: 0 0 6px rgba(0, 0, 0, 0.6);
   font-size: 16px;
+  user-select: none;
 
   transition: .2s ease-in-out;
   &:hover {

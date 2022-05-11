@@ -47,6 +47,9 @@ const FROM_BG = {
   NEW_WALLET_SAVED: 'new-wallet-saved',
   NEW_WALLET_SAVE_ERROR: 'new-wallet-save-error',
   LOAD_ALERTS: 'load-alerts',
+  APP_UPDATE_AVAILABLE: 'app-update-available',
+  APP_UPDATE_PROGRESS: 'app-update-progress',
+  APP_UPDATE_DOWNLOADED: 'app-update-downloaded',
 };
 
 const TO_BG = {
@@ -57,6 +60,8 @@ const TO_BG = {
   CHECK_AUTH_SAVING: 'check-auth-saving',
   SAVE_P2P_FORM: 'save-p2p-form',
   CHECK_P2P_FORM_SAVING: 'check-p2p-form-saving',
+  CHECK_APP_UPDATES: 'check-app-updates',
+  UPDATE_APP: 'update-app',
   CREATE_WALLET: 'create-wallet',
   SAVE_WALLET_CREDITS: 'save-wallet-credits',
   SAVE_WALLET_AUTH: 'save-wallet-auth',

@@ -47,7 +47,7 @@ const router = createRouter({
 });
 
 router.beforeEach((to, from, next) => {
-  if (to.name === 'p2p') {
+  if (to.name === 'p2p' || to.name === 'alertJournal') {
     return next();
   }
   if (!store.getters.serverIsUp) {

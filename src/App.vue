@@ -5,6 +5,7 @@
     <SideBar/>
 
     <div id="content" class="content">
+      <AppUpdating />
 
       <transition name="scale-fade"  mode="out-in">
         <div
@@ -29,6 +30,12 @@
           <component :is="Component"/>
         </transition>
       </router-view>
+
+      <Modal
+        v-if="updateModalIsUp"
+        :modal-info="modalInfo"
+        @answer="onAnswer"
+      />
     </div>
   </div>
 </template>
@@ -37,22 +44,63 @@
 import SideBar from '@/components/SideBar';
 import Alert from '@/components/Alert';
 import { useStore } from 'vuex';
-import { computed } from 'vue';
+import { computed, onMounted, reactive } from 'vue';
 import Header from '@/components/Header';
+import AppUpdating from '@/components/AppUpdating';
+import Modal from '@/components/Modal';
+import { ipcRenderer } from 'electron';
+import { TO_BG } from '@/resources/channels';
 
 export default {
   components: {
+    AppUpdating,
     Header,
     SideBar,
     Alert,
+    Modal,
   },
   setup() {
     const store = useStore();
+    const updateModalIsUp = computed(() => store.getters.updateModalIsUp);
+    const updateReleaseName = computed(() => store.getters.updateReleaseName);
+
+    const modalInfo = reactive({
+      title: 'Update downloaded',
+      paragraphs: [
+        `
+          <div style="font-weight:bold;font-size:12px;line-height:1.8em;">Release Name:</div>
+          <div style="font-weight: bold;color: #579bde">${updateReleaseName.value}</div>
+        `,
+        '<span>Install now?</span>',
+      ],
+      buttons: [
+        {
+          name: 'Disagree',
+          answer: false,
+        },
+        {
+          name: 'Agree',
+          answer: true,
+        },
+      ],
+    });
+    const onAnswer = (answer) => {
+      ipcRenderer.send(TO_BG.UPDATE_APP, answer);
+      store.commit('finishAppUpdate');
+    };
+
+    onMounted(() => {
+      store.dispatch('initStore');
+    });
 
     return {
       alertIsShowing: computed(() => store.getters.alertIsShowing),
       myBalance: computed(() => store.getters.walletBalance),
       walletAuthed: computed(() => store.getters.walletAuthed),
+      updateModalIsUp,
+      updateReleaseName,
+      modalInfo,
+      onAnswer,
     };
   },
 };
@@ -64,6 +112,7 @@ export default {
   height: 100%;
   background-color: $bgColor;
   flex-wrap: wrap;
+  overflow: hidden;
 
   .header {
     flex: 1 1 100%;

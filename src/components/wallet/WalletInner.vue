@@ -29,13 +29,11 @@
     <div class="address">
       <CoreButton @click="modalIsShowing = true">My Address</CoreButton>
     </div>
-    <transition name="fade" mode="out-in">
-      <Modal
-        v-if="modalIsShowing"
-        :modal-info="modalInfo"
-        @answer="modalIsShowing = false"
-      />
-    </transition>
+    <Modal
+      v-if="modalIsShowing"
+      :modal-info="modalInfo"
+      @answer="modalIsShowing = false"
+    />
   </div>
 </template>
 

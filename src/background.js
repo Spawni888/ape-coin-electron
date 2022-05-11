@@ -6,7 +6,7 @@ import {
   Tray,
   Menu,
 } from 'electron';
-// import { autoUpdater } from 'electron-updater';
+import { autoUpdater } from 'electron-updater';
 import { createProtocol } from 'vue-cli-plugin-electron-builder/lib';
 // eslint-disable-next-line no-unused-vars
 import installExtension from 'electron-devtools-installer';
@@ -14,7 +14,7 @@ import ElectronStore from '@/utils/ElectronStore';
 import path from 'path';
 import bgHandlers from '@/utils/backgroundHandlers';
 import winFade from '@/utils/winAnimation';
-import { FROM_BG, TO_BG } from '@/resources/channels';
+import { FROM_APP, FROM_BG, TO_BG } from '@/resources/channels';
 
 const isDevelopment = process.env.NODE_ENV !== 'production';
 
@@ -37,6 +37,7 @@ try {
 
   let tray = null;
   let mainWin = null;
+  let shouldBeUpdated = false;
 
   const sendP2pForm = () => {
     const form = electronStore.get('p2pForm');
@@ -96,6 +97,7 @@ try {
         mainWin.show();
         loadingWin.hide();
         loadingWin.close();
+        sendP2pForm();
       };
       setTimeout(showMainWin, MIN_LOADING_TIME);
       mainWin.webContents.once('ready-to-show', showMainWin);
@@ -110,6 +112,81 @@ try {
         // Load the index.html when not in development
         mainWin.loadURL('app://./index.html');
       }
+
+      // --------------------------------------------------------------------------
+      // Auto updates
+      // --------------------------------------------------------------------------
+      ipcMain.once(TO_BG.CHECK_APP_UPDATES, () => {
+        const alertUI = (alert, onlyLog = false) => {
+          mainWin.webContents.send(
+            FROM_BG.CONSOLE_LOG,
+            alert.message,
+          );
+          if (onlyLog) return;
+          mainWin.webContents.send(
+            FROM_APP.ALERT,
+            alert,
+          );
+        };
+
+        autoUpdater.on('checking-for-update', () => {
+          alertUI({
+            type: 'info',
+            title: 'Info',
+            message: 'Checking for update...',
+          }, false);
+        });
+        autoUpdater.on('update-available', () => {
+          console.log('Update available!');
+          mainWin.webContents.send(
+            FROM_BG.APP_UPDATE_AVAILABLE,
+            alert,
+          );
+        });
+        autoUpdater.on('update-not-available', () => {
+          alertUI({
+            type: 'success',
+            title: 'Success',
+            message: 'Application is up to date.',
+          }, false);
+        });
+
+        autoUpdater.on('error', err => {
+          console.log(err);
+          alertUI({
+            type: 'error',
+            title: 'Error',
+            message: err.message,
+          }, false);
+        });
+
+        autoUpdater.on('download-progress', progressObj => {
+          alertUI({
+            type: 'info',
+            title: 'Info',
+            message: `Download speed: ${progressObj.bytesPerSecond} - Downloaded ${progressObj.percent}% (${progressObj.transferred}/${progressObj.total})`,
+          }, false);
+
+          mainWin.webContents.send(
+            FROM_BG.APP_UPDATE_PROGRESS,
+            {
+              percent: progressObj.percent,
+              bytesPerSecond: progressObj.bytesPerSecond,
+            },
+          );
+          mainWin.setProgressBar(progressObj.percent / 100);
+        });
+
+        autoUpdater.on('update-downloaded', ({ releaseName }) => {
+          ipcMain.on(TO_BG.UPDATE_APP, (event, updateNow) => {
+            if (updateNow) autoUpdater.quitAndInstall();
+          });
+          mainWin.webContents.send(FROM_BG.APP_UPDATE_DOWNLOADED, { releaseName });
+          shouldBeUpdated = true;
+        });
+
+        autoUpdater.checkForUpdatesAndNotify();
+      });
     });
 
     await loadingWin.loadFile(path.resolve(WINDOWS_PATH, 'loading.html'));
@@ -120,6 +197,11 @@ try {
       if (!isQuiting) {
         event.preventDefault();
         await winFade(mainWin, (win) => win.hide(), 1);
+        return;
+      }
+      if (shouldBeUpdated) {
+        event.preventDefault();
+        autoUpdater.quitAndInstall(true, false);
       }
       app.quit();
     });
@@ -232,7 +314,6 @@ try {
       }
     }
     await createMainWin();
-    sendP2pForm();
   });
 
   // Exit cleanly on request from parent process in development mode.

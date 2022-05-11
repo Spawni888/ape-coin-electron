@@ -1,28 +1,30 @@
 <template>
-  <div class="modal">
-    <div class="modal-inner">
-      <div class="modal__title">
-        {{ modalInfo.title }}
-      </div>
-      <div class="modal__text">
-        <p
-          v-for="paragraph in modalInfo.paragraphs"
-          v-html="paragraph"
-          :key="paragraph"
-        >
-        </p>
-      </div>
-      <div class="modal__buttons">
-        <CoreButton
-          v-for="btn in modalInfo.buttons"
-          :key="btn.name"
-          @click="answerModal(btn.answer)"
-        >
-          {{ btn.name }}
-        </CoreButton>
+  <transition name="fade" mode="out-in">
+    <div class="modal">
+      <div class="modal-inner">
+        <div class="modal__title">
+          {{ modalInfo.title }}
+        </div>
+        <div class="modal__text">
+          <p
+            v-for="paragraph in modalInfo.paragraphs"
+            v-html="paragraph"
+            :key="paragraph"
+          >
+          </p>
+        </div>
+        <div class="modal__buttons">
+          <CoreButton
+            v-for="btn in modalInfo.buttons"
+            :key="btn.name"
+            @click="answerModal(btn.answer)"
+          >
+            {{ btn.name }}
+          </CoreButton>
+        </div>
       </div>
     </div>
-  </div>
+  </transition>
 </template>
 
 <script>

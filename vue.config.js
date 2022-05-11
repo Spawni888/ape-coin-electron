@@ -8,6 +8,11 @@ module.exports = {
       externals: ['ngrok', 'ws', 'elliptic'],
       nodeIntegration: true,
       builderOptions: {
+        publish: [{
+          provider: 'github',
+          owner: 'spawni888',
+          repo: 'ape-coin-dist',
+        }],
         asar: false,
         // asarUnpack: ['./node_modules'],
         // unpackDir: './test',

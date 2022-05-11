@@ -12,7 +12,6 @@
           :to="{name: 'alertJournal'}"
           tag="div"
           class="header__button exclamation"
-          v-if="serverIsUp"
         >
           <svg class="exclamation-svg" viewBox="0 0 41.49 24">
             <path

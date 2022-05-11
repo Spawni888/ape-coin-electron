@@ -144,6 +144,7 @@ export default {
   position: relative;
   box-shadow: 0 0 5px rgba(0, 0, 0, 0.5);
   background-color: $surfaceColor;
+  z-index: 1;
 
   .logo {
     display: flex;

@@ -21,11 +21,9 @@ import Transaction from '@/resources/core/wallet/transaction';
 
 export default createStore({
   state: {
-    backgroundListenersInitialized: false,
     p2pServer: {
       inboundsList: [],
       outboundsList: [],
-      server: null,
       host: null,
       port: null,
       protocol: 'http',
@@ -42,6 +40,13 @@ export default createStore({
     },
     mining: {
       miners: [],
+    },
+    appUpdate: {
+      isUpdating: false,
+      bytesPerSecond: 0,
+      percent: 0,
+      releaseName: 'Turbo Update',
+      modalIsShowing: false,
     },
     blockchain: null,
     transactionPool: null,
@@ -123,6 +128,21 @@ export default createStore({
     minersNum(state) {
       return state.mining.miners.length;
     },
+    appIsUpdating(state) {
+      return state.appUpdate.isUpdating;
+    },
+    updateSpeed(state) {
+      return state.appUpdate.bytesPerSecond;
+    },
+    updatingProgress(state) {
+      return state.appUpdate.percent;
+    },
+    updateModalIsUp(state) {
+      return state.appUpdate.modalIsShowing;
+    },
+    updateReleaseName(state) {
+      return state.appUpdate.releaseName;
+    },
   },
   mutations: {
     logOutWallet(state) {
@@ -167,6 +187,10 @@ export default createStore({
         pubKey,
       );
     },
+    finishAppUpdate(state) {
+      state.appUpdate.modalIsShowing = false;
+      state.appUpdate.isUpdating = false;
+    },
   },
   actions: {
     clearAlertsJournal({ state, commit }) {
@@ -206,16 +230,31 @@ export default createStore({
       state.alertTimer = setInterval(intervalFunc, 5000);
     },
     initBackgroundListeners({ state, commit, dispatch }) {
-      state.backgroundListenersInitialized = true;
-
       // console logs
       ipcRenderer.on(FROM_BG.CONSOLE_LOG, (event, data) => {
         console.log(JSON.stringify(data));
       });
 
+      // -------------------------------------------------------------------------------------------
+      // Updates
+      // -------------------------------------------------------------------------------------------
+      ipcRenderer.on(FROM_BG.APP_UPDATE_AVAILABLE, () => {
+        state.appUpdate.isUpdating = true;
+      });
+      ipcRenderer.on(FROM_BG.APP_UPDATE_PROGRESS, (event, { percent, bytesPerSecond }) => {
+        if (percent) state.appUpdate.percent = percent;
+        if (bytesPerSecond) state.appUpdate.bytesPerSecond = bytesPerSecond;
+      });
+      ipcRenderer.on(FROM_BG.APP_UPDATE_DOWNLOADED, (event, { releaseName }) => {
+        if (releaseName) state.appUpdate.releaseName = releaseName;
+        state.appUpdate.modalIsShowing = true;
+      });
+
+      // -------------------------------------------------------------------------------------------
+      // Server info
+      // -------------------------------------------------------------------------------------------
       ipcRenderer.on(FROM_P2P.SERVER_STARTED, (event, { serverPort }) => {
         state.serverIsUp = true;
-
         // check information savings
         // if keepLoggedIn was turned on the wallet will sign in
         ipcRenderer.send(TO_BG.CHECK_AUTH_SAVING);
@@ -230,13 +269,6 @@ export default createStore({
         });
 
         dispatch('closeServer');
-      });
-
-      // alerts
-      ipcRenderer.on(FROM_APP.ALERT, (event, data) => {
-        console.log(data.message);
-        dispatch('showAlert', data);
-        if (data.type === 'error') dispatch('closeServer');
       });
 
       // p2p-server property changes
@@ -288,7 +320,20 @@ export default createStore({
         state.mining.miners = data.miners;
       });
 
-      // FROM_MINING
+      // -------------------------------------------------------------------------------------------
+      // Alerts
+      // -------------------------------------------------------------------------------------------
+      ipcRenderer.on(FROM_APP.ALERT, (event, data) => {
+        dispatch('showAlert', data);
+        if (data.type === 'error') dispatch('closeServer');
+      });
+
+      ipcRenderer.on(FROM_BG.LOAD_ALERTS, (event, alertsJournal) => {
+        state.alertsJournal = alertsJournal;
+      });
+      // -------------------------------------------------------------------------------------------
+      // MINING
+      // -------------------------------------------------------------------------------------------
       ipcRenderer.on(
         FROM_MINING.BLOCK_HAS_CALCULATED,
         (event, { chain, block }) => dispatch('onBlockCalculated', { chain, block }),
@@ -308,8 +353,11 @@ export default createStore({
         dispatch('startMining', { silenceMode: true });
       });
 
-      // if keepLoggedIn was turned on
+      // -------------------------------------------------------------------------------------------
+      // Wallet
+      // -------------------------------------------------------------------------------------------
       ipcRenderer.on(FROM_BG.SIGN_IN_WALLET, (event, keyPair) => {
+        // if keepLoggedIn was turned on
         dispatch('signInWallet', {
           ...keyPair,
           silentMode: true,
@@ -331,10 +379,11 @@ export default createStore({
           message: 'An Error occurred during saving...',
         });
       });
-
-      ipcRenderer.on(FROM_BG.LOAD_ALERTS, (event, alertsJournal) => {
-        state.alertsJournal = alertsJournal;
-      });
+    },
+    initStore({ dispatch }) {
+      dispatch('initBackgroundListeners');
+      ipcRenderer.send(TO_BG.CHECK_ALERTS_SAVING);
+      ipcRenderer.send(TO_BG.CHECK_APP_UPDATES);
     },
     onBlockCalculated({ state, dispatch, commit }, { block, chain }) {
       console.log('new Block calculated:', block);
@@ -381,10 +430,6 @@ export default createStore({
       state,
       dispatch,
     }, options) {
-      if (!state.backgroundListenersInitialized) {
-        dispatch('initBackgroundListeners');
-        ipcRenderer.send(TO_BG.CHECK_ALERTS_SAVING);
-      }
       if (state.serverIsUp) dispatch('closeServer');
 
       let {

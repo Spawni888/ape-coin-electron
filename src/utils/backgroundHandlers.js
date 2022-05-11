@@ -12,7 +12,7 @@ import {
   TO_BG,
   TO_P2P,
   FROM_P2P,
-  FROM_APP, FROM_UI,
+  FROM_UI,
 } from '@/resources/channels';
 import { genKeyPair } from '@/utils/elliptic';
 import fs from 'fs';
@@ -69,14 +69,7 @@ const p2pServerHandler = (mainWin) => {
   ipcMain.on(TO_BG.START_P2P_SERVER, async (event, serverOptions) => {
     if (p2pWin !== null) {
       p2pWin.close();
-
-      mainWin.webContents.send(FROM_APP.ALERT, {
-        title: 'Error',
-        type: 'error',
-        timestamp: Date.now(),
-        message: 'Server was already running... It was stopped now. Try again.',
-      });
-      return;
+      p2pWin = null;
     }
 
     p2pWin = await createWindow('p2pServer.html');
