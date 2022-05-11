@@ -20,5 +20,10 @@ npm run build
 npm run lint
 ```
 
-### Customize configuration
+### Problems
 See [Configuration Reference](https://cli.vuejs.org/config/).
+If you have problems with node-gyp (because of ffi module) read this
+[node-gyp requirements](https://github.com/nodejs/node-gyp#installation)
+
+
+

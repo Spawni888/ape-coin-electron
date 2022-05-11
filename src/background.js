@@ -15,7 +15,6 @@ import path from 'path';
 import bgHandlers from '@/utils/backgroundHandlers';
 import winFade from '@/utils/winAnimation';
 import { FROM_BG, TO_BG } from '@/resources/channels';
-// import ffi from 'ffi';
 
 const isDevelopment = process.env.NODE_ENV !== 'production';
 
@@ -24,7 +23,6 @@ try {
     configName: 'ape-coin-data',
     defaults: {},
   });
-  // const gotTheLock = app.requestSingleInstanceLock();
 
   // Scheme must be registered before the app is ready
   protocol.registerSchemesAsPrivileged([
@@ -86,20 +84,20 @@ try {
         show: false,
       });
 
-      // const MIN_LOADING_TIME = 2000;
-      // let readyToShow = false;
+      const MIN_LOADING_TIME = 3000;
+      let readyToShow = false;
 
       const showMainWin = () => {
-        // if (!readyToShow) {
-        //   readyToShow = true;
-        //   return;
-        // }
+        if (!readyToShow) {
+          readyToShow = true;
+          return;
+        }
         console.log('main win loaded!');
         mainWin.show();
         loadingWin.hide();
         loadingWin.close();
       };
-      // setTimeout(showMainWin, MIN_LOADING_TIME);
+      setTimeout(showMainWin, MIN_LOADING_TIME);
       mainWin.webContents.once('ready-to-show', showMainWin);
 
       // long loading html
@@ -112,17 +110,6 @@ try {
         // Load the index.html when not in development
         mainWin.loadURL('app://./index.html');
       }
-      // let Animatro = ffi.Library('User32.dll', {
-      //   'AnimateWindow': ['bool', ['int', 'int', 'int']],
-      // });
-      // let handle = mainWin.getNativeWindowHandle().readInt32LE(0);
-      // setTimeout(() => {
-      //   Animatro.AnimateWindow(handle, 1000, 589824); // 0x00080000 | 0x00010000 (hide the window, blend + hide)
-      // }, 3000);
-      // setTimeout(() => {
-      //   Animatro.AnimateWindow(handle, 1000, 524288); // 0x00080000 shows the window (blend only)
-      // }, 6000);
-
     });
 
     await loadingWin.loadFile(path.resolve(WINDOWS_PATH, 'loading.html'));
@@ -132,26 +119,15 @@ try {
     mainWin.on('close', (event) => {
       if (!isQuiting) {
         event.preventDefault();
-        mainWin.hide();
+        winFade(mainWin, (win) => win.hide(), 1);
       }
       app.quit();
-    });
-
-    //  window is restored from a minimized state
-    mainWin.on('restore', async () => {
-      // TODO: continue here
-      // await winFade(mainWin, null, 0);
-    });
-
-    mainWin.on('minimize', async (event) => {
-      event.preventDefault();
-      console.log('minimize');
-      // await winFade(mainWin, null, 0);
     });
 
     ipcMain.on(TO_BG.CLOSE_MAIN_WINDOW, () => {
       // emit close event
       mainWin.close();
+      // mainWin.hide();
     });
     ipcMain.on(TO_BG.HIDE_MAIN_WINDOW, async () => {
       mainWin.minimize();
@@ -171,11 +147,20 @@ try {
     // eslint-disable-next-line no-undef
     tray = new Tray(path.resolve(__static, './tray-icon.png'));
 
+    const openFromTray = (win) => {
+      if (!win.isVisible()) {
+        win.setOpacity(0);
+        win.show();
+        winFade(win);
+      } else if (!win.isFocused()) {
+        win.focus();
+      }
+    };
     tray.setContextMenu(Menu.buildFromTemplate([
       {
         label: 'Show App',
         click: () => {
-          mainWin.show();
+          openFromTray(mainWin);
         },
       },
       {
@@ -189,7 +174,7 @@ try {
 
     tray.setToolTip('Ape-coin');
     tray.on('double-click', () => {
-      mainWin.show();
+      openFromTray(mainWin);
     });
     // tray.setContextMenu(contextMenu);
   };

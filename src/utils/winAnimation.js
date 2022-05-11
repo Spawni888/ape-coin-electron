@@ -2,7 +2,7 @@ const winFade = (
   win,
   cb = null,
   initialOpacity = null,
-  duration = 200,
+  duration = 140,
   fadeEveryXMs = 5,
 ) => {
   return new Promise((resolve) => {
@@ -31,7 +31,5 @@ const winFade = (
     }, fadeEveryXMs);
   });
 };
-
-const fadeOut = () =>
 
 module.exports = winFade;
