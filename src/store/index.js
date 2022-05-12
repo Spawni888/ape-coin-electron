@@ -115,7 +115,7 @@ export default createStore({
       return state.wallet.publicKey;
     },
     walletBalance(state) {
-      return Math.floor(state.wallet.balanceWithTpIncluded) / 100;
+      return Math.floor(state.wallet.balanceWithTpIncluded * 100) / 100;
     },
     walletPubKey(state) {
       if (state.wallet === null) return null;
