@@ -47,6 +47,7 @@ import useForm from '@/use/form/form';
 import CoreButton from '@/components/CoreButton';
 import Modal from '@/components/Modal';
 import useTooltip from '@/use/tooltip';
+import { debounce } from 'lodash';
 
 const required = (val) => !!val;
 const shouldBeLength = (length) => (val) => val.length === length;
@@ -147,7 +148,7 @@ export default {
     });
 
     const highlightErrors = ref(false);
-    const createTransaction = () => {
+    const createTransaction = debounce(() => {
       const formIsValid = !Object.values(form)
         .filter(field => !field.valid).length;
 
@@ -161,7 +162,7 @@ export default {
         amount: form.amount.value,
         fee: formFee.fee.value.length !== 0 ? formFee.fee.value : 0,
       });
-    };
+    }, 200);
 
     const feeNode = ref(null);
     onMounted(() => {

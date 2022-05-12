@@ -11,19 +11,19 @@
       :show-error="!field.valid && highlightErrors"
       v-model:value="field.value"
     />
-    <div
-      class="switch-box"
-      v-for="item in switches"
-      :key="item.name"
-    >
-      <p>{{ item.name }}</p>
-      <CoreSwitch
-        @click="item.onClick"
-        :ref="item.ref"
-        v-model:checked="item.value"
-        :inactive="item.inactive"
-      />
-    </div>
+<!--    <div-->
+<!--      class="switch-box"-->
+<!--      v-for="item in switches"-->
+<!--      :key="item.name"-->
+<!--    >-->
+<!--      <p>{{ item.name }}</p>-->
+<!--      <CoreSwitch-->
+<!--        @click="item.onClick"-->
+<!--        :ref="item.ref"-->
+<!--        v-model:checked="item.value"-->
+<!--        :inactive="item.inactive"-->
+<!--      />-->
+<!--    </div>-->
 <!--    <Stopwatch-->
 <!--      key="mining-stopwatch"-->
 <!--      class="stopwatch"-->
@@ -34,16 +34,14 @@
 
 <script>
 import CoreButton from '@/components/CoreButton';
-import Stopwatch from '@/components/blockchain/Stopwatch';
+// import Stopwatch from '@/components/blockchain/Stopwatch';
+// import CoreSwitch from '@/components/CoreSwitch';
 import CoreInput from '@/components/CoreInput';
-import CoreSwitch from '@/components/CoreSwitch';
 import useTooltip from '@/use/tooltip';
 import {
   ref,
   onMounted,
   computed,
-  reactive,
-  watch,
 } from 'vue';
 import { useStore } from 'vuex';
 import useForm from '@/use/form/form';
@@ -52,38 +50,36 @@ export default {
   name: 'MiningLobby',
   components: {
     CoreButton,
-    Stopwatch,
     CoreInput,
-    CoreSwitch,
   },
   setup() {
     const store = useStore();
     const myBalance = computed(() => store.getters.walletBalance);
 
-    const switch1 = reactive({
-      name: 'GPU',
-      value: false,
-      ref: 'gpuNode',
-    });
-    const switch2 = reactive({
-      name: 'Parallel',
-      value: false,
-      ref: 'parallelNode',
-      inactive: true,
-    });
-
-    watch(switch1, (_switch) => {
-      switch2.inactive = !_switch.value;
-    });
-
-    const switches = computed(() => [switch1, switch2]);
+    // const switch1 = reactive({
+    //   name: 'GPU',
+    //   value: false,
+    //   ref: 'gpuNode',
+    // });
+    // const switch2 = reactive({
+    //   name: 'Parallel',
+    //   value: false,
+    //   ref: 'parallelNode',
+    //   inactive: true,
+    // });
+    //
+    // watch(switch1, (_switch) => {
+    //   switch2.inactive = !_switch.value;
+    // });
+    //
+    // const switches = computed(() => [switch1, switch2]);
 
     const form = useForm({
-      minFee: {
+      feeThreshold: {
         value: '',
         fieldName: 'Minimum Fee',
         placeholder: '',
-        ref: 'minFeeNode',
+        ref: 'feeThresholdNode',
         validators: {
           LessThanBalance: {
             priority: 1,
@@ -104,17 +100,18 @@ export default {
         return;
       }
 
+      store.commit('setFeeThreshold', form.feeThreshold.value || 0);
       store.dispatch('startMining');
     };
 
-    const minFeeNode = ref(null);
+    const feeThresholdNode = ref(null);
     const gpuNode = ref(null);
     const parallelNode = ref(null);
     const mineBtn = ref(null);
     onMounted(() => {
       useTooltip({
-        el: minFeeNode.value,
-        id: 'minFeeNode',
+        el: feeThresholdNode.value,
+        id: 'feeThresholdNode',
         text: 'Blockchain users pay miners for including transactions to the block\n\n'
           + 'Miners can set a fee threshold.\n\n'
           + 'Threshold determines minimum transaction fee to be included to the block.\n\n'
@@ -122,19 +119,20 @@ export default {
           + 'Subject to there are enough pending transactions.',
         maxWidth: 500,
       });
-      useTooltip({
-        el: gpuNode.value,
-        id: 'gpuNode',
-        text: 'Use GPU instead of CPU for hash calculation. (GPU.js)\n\n'
-          + 'GPU.js automatically transpiles simple JavaScript functions into shader language and compiles them so they run on your GPU.',
-        maxWidth: 400,
-      });
-      useTooltip({
-        el: parallelNode.value,
-        id: 'parallelNode',
-        text: 'Use GPU in parallel with CPU for hash calculation.',
-        maxWidth: 400,
-      });
+      // useTooltip({
+      //   el: gpuNode.value,
+      //   id: 'gpuNode',
+      //   text: 'Use GPU instead of CPU for hash calculation. (GPU.js)\n\n'
+      //     + 'GPU.js automatically transpiles simple JavaScript functions into shader language '
+      //     + 'and compiles them, so they run on your GPU.',
+      //   maxWidth: 400,
+      // });
+      // useTooltip({
+      //   el: parallelNode.value,
+      //   id: 'parallelNode',
+      //   text: 'Use GPU in parallel with CPU for hash calculation.',
+      //   maxWidth: 400,
+      // });
 
       useTooltip({
         el: mineBtn.value,
@@ -152,12 +150,12 @@ export default {
     });
 
     return {
-      switch1,
-      switch2,
-      minFeeNode,
+      // switch1,
+      // switch2,
+      // switches,
+      feeThresholdNode,
       gpuNode,
       parallelNode,
-      switches,
       form,
       highlightErrors,
       startMining,
@@ -208,7 +206,7 @@ export default {
   .core-input {
   }
   .core-button {
-    margin-top: 40px;
+    margin-top: 30px;
   }
 }
 </style>

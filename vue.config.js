@@ -8,6 +8,7 @@ module.exports = {
       externals: ['ngrok', 'ws', 'elliptic'],
       nodeIntegration: true,
       builderOptions: {
+
         publish: [{
           provider: 'github',
           owner: 'spawni888',

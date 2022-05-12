@@ -84,31 +84,6 @@ class Block {
       const hashCounter = this.calculateHashRate();
       setImmediate(() => Block.rollNonce(lastBlock, data, eventEmitter, hashCounter));
     });
-    // const lastBlock = bc.chain[bc.chain.length - 1];
-    //
-    // const lastHash = lastBlock.hash;
-    // let timestamp = 0;
-    // let hash = '';
-    // let { difficulty } = lastBlock;
-    // let nonce = 0;
-    // const nonceCache = {};
-    // const hashCounter = this.calculateHashRate();
-    //
-    // do {
-    //   nonce = this.randomIntFromInterval(Number.MIN_SAFE_INTEGER, Number.MAX_SAFE_INTEGER);
-    //   hashCounter.count++;
-    //   console.log('here');
-    //
-    //   if (!nonceCache[nonce]) {
-    //     timestamp = Date.now();
-    //     difficulty = Block.adjustDifficulty(lastBlock, timestamp);
-    //     hash = this.createHash(timestamp, lastHash, data, nonce, difficulty);
-    //   }
-    //   // cache nonce values
-    //   nonceCache[nonce] = true;
-    // } while (hash.substring(0, difficulty) !== '0'.repeat(difficulty));
-    //
-    // return new this(timestamp, lastHash, hash, data, nonce, difficulty);
   }
 
   static createHash(timestamp, lastHash, data, nonce, difficulty) {

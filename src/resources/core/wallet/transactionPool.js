@@ -44,42 +44,46 @@ class TransactionPool extends EventEmitter {
     });
   }
 
-  sortAndFilter() {
-    const sortedTransactions = this.transactions.sort((a, b) => {
-      let aFee = 0;
-      let bFee = 0;
+  sortAndFilter(feeThreshold) {
+    const selectedTransactions = this.transactions
+      .filter(transaction => {
+        return transaction.outputs.find(output => output.address === MINER_WALLET) >= feeThreshold;
+      })
+      .sort((a, b) => {
+        let aFee = 0;
+        let bFee = 0;
 
-      a.outputs.forEach(output => {
-        if (output.address === MINER_WALLET) {
-          aFee = output.amount;
-        }
+        a.outputs.forEach(output => {
+          if (output.address === MINER_WALLET) {
+            aFee = output.amount;
+          }
+        });
+        b.outputs.forEach(output => {
+          if (output.address === MINER_WALLET) {
+            bFee = output.amount;
+          }
+        });
+
+        return aFee - bFee;
       });
-      b.outputs.forEach(output => {
-        if (output.address === MINER_WALLET) {
-          bFee = output.amount;
-        }
-      });
 
-      return aFee - bFee;
-    });
-
-    this.transactions = cloneDeep(sortedTransactions);
-    const filteredTransactions = [];
+    this.transactions = cloneDeep(selectedTransactions);
+    const suitableTransactions = [];
 
     while (
-      ChainUtil.sizeOfObjectInMb(filteredTransactions) < 1
-      && sortedTransactions.length > 0
+      ChainUtil.sizeOfObjectInMb(suitableTransactions) < 1
+      && selectedTransactions.length > 0
     ) {
-      filteredTransactions.push(sortedTransactions.pop());
+      suitableTransactions.push(selectedTransactions.pop());
     }
 
-    return filteredTransactions;
+    return suitableTransactions;
   }
 
-  pickTransactions() {
+  pickTransactions(feeThreshold) {
     this.transactions = this.validTransactions();
 
-    return this.sortAndFilter();
+    return this.sortAndFilter(feeThreshold);
   }
 
   clear(chain) {

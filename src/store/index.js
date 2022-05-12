@@ -42,6 +42,7 @@ export default createStore({
       miners: [],
       difficulty: 4,
       hashRate: 0,
+      feeThreshold: 0,
     },
     appUpdate: {
       isUpdating: false,
@@ -156,6 +157,9 @@ export default createStore({
     },
   },
   mutations: {
+    setFeeThreshold(state, feeThreshold) {
+      state.mining.feeThreshold = feeThreshold;
+    },
     adjustDifficulty(state) {
       state.mining.difficulty = Block.adjustDifficulty(state.blockchain.lastBlock, Date.now());
     },
@@ -580,7 +584,7 @@ export default createStore({
     startMining({ state, dispatch, commit }, { silenceMode } = { silenceMode: false }) {
       state.miningIsUp = true;
 
-      const pickedTransactions = state.transactionPool.pickTransactions();
+      const pickedTransactions = state.transactionPool.pickTransactions(state.mining.feeThreshold);
       const rewardTransaction = Transaction.rewardTransaction(
         state.wallet,
         pickedTransactions,
