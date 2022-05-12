@@ -6,6 +6,7 @@ class Blockchain {
   }
 
   get lastBlock() {
+    if (!this.chain.length) return null;
     return this.chain[this.chain.length - 1];
   }
 

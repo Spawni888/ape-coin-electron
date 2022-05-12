@@ -118,7 +118,7 @@ export default {
     text-align: center;
   }
   .core-input {
-    margin-top: 20px;
+    margin-top: 40px;
   }
   .core-button {
     margin-top: 20px;

@@ -115,7 +115,7 @@ export default createStore({
       return state.wallet.publicKey;
     },
     walletBalance(state) {
-      return Math.floor(state.wallet.balanceWithTpIncluded * 100) / 100;
+      return Math.floor(state.wallet?.balanceWithTpIncluded * 100) / 100;
     },
     walletPubKey(state) {
       if (state.wallet === null) return null;
@@ -152,7 +152,7 @@ export default createStore({
       return state.appUpdate.releaseName;
     },
     lastBlock(state) {
-      return state.blockchain.lastBlock;
+      return state.blockchain?.lastBlock;
     },
   },
   mutations: {
@@ -406,6 +406,7 @@ export default createStore({
     },
     onBlockCalculated({ state, dispatch, commit }, { block, chain }) {
       console.log('new Block calculated:', block);
+      if (!state.blockchain) return;
 
       for (let i = state.blockchain.chain.length - 1; i >= 0; i--) {
         state.blockchain.chain.pop();

@@ -21,6 +21,7 @@ html, body {
 }
 
 .tooltip {
+    user-select: none;
     position: absolute;
     opacity: 0;
     border-radius: 3px;

@@ -1,5 +1,9 @@
 <template>
-  <div class="checkbox" v-bind="$attrs">
+  <div
+    class="checkbox"
+    v-bind="$attrs"
+    :class="{ inactive }"
+  >
     <input
       ref="input"
       @click.stop="$event.target.value = !$event.target.value"
@@ -22,6 +26,10 @@ export default {
     checked: {
       type: Boolean,
     },
+    inactive: {
+      type: Boolean,
+      default: false,
+    },
   },
   emits: ['update:checked'],
   setup() {
@@ -42,6 +50,7 @@ $bgKnobColorActive: lighten($secondaryColor, 16%);
 
 .checkbox {
   transform: translateX(-34px) translateY(-7px);
+  transition: opacity .4s ease-in-out;
 }
 .switch-input {
   display: none;
@@ -117,4 +126,9 @@ $bgKnobColorActive: lighten($secondaryColor, 16%);
   display: none;
 }
 
+.inactive {
+  cursor: default;
+  pointer-events: none;
+  opacity: 0.2;
+}
 </style>
