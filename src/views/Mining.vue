@@ -15,7 +15,7 @@
 import MiningLobby from '@/components/mining/MiningLobby';
 import MiningProcess from '@/components/mining/MiningProcess';
 import { useStore } from 'vuex';
-import { computed, onBeforeUnmount } from 'vue';
+import { computed } from 'vue';
 
 export default {
   name: 'Mining',
@@ -25,15 +25,6 @@ export default {
   },
   setup() {
     const store = useStore();
-
-    const interval = setInterval(() => {
-      store.commit('adjustDifficulty');
-    }, 4000);
-
-    onBeforeUnmount(() => {
-      clearInterval(interval);
-    });
-
     return {
       miningIsUp: computed(() => store.getters.miningIsUp),
     };

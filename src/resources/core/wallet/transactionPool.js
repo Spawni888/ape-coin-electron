@@ -44,10 +44,12 @@ class TransactionPool extends EventEmitter {
     });
   }
 
-  sortAndFilter(feeThreshold) {
+  sortAndFilter(feeThreshold = 0) {
     const selectedTransactions = this.transactions
       .filter(transaction => {
-        return transaction.outputs.find(output => output.address === MINER_WALLET) >= feeThreshold;
+        return transaction.outputs
+          .find(output => output.address === MINER_WALLET)
+          .amount >= feeThreshold;
       })
       .sort((a, b) => {
         let aFee = 0;

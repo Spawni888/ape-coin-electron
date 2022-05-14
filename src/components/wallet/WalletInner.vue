@@ -42,9 +42,9 @@ import { useStore } from 'vuex';
 import {
   computed, onMounted, reactive, ref,
 } from 'vue';
-import CoreInput from '@/components/CoreInput';
+import CoreInput from '@/components/main/CoreInput';
 import useForm from '@/use/form/form';
-import CoreButton from '@/components/CoreButton';
+import CoreButton from '@/components/main/CoreButton';
 import Modal from '@/components/Modal';
 import useTooltip from '@/use/tooltip';
 import { debounce } from 'lodash';

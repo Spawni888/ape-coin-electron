@@ -1,11 +1,13 @@
 <template>
   <div class="stopwatch-container">
     <div class="stopwatch" ref="stopwatch" id="stopwatch">
-      <div class="stopwatch__time">
-        <span class="minutes">{{miningTime.minutes}}</span>
-        <span class="separator">:</span>
-        <span class="seconds">{{miningTime.seconds}}</span>
-      </div>
+      <transition name="fade" mode="out-in">
+        <div class="stopwatch__time" :key="'sw'+lastTimestamp">
+          <span class="minutes">{{miningTime.minutes}}</span>
+          <span class="separator">:</span>
+          <span class="seconds">{{miningTime.seconds}}</span>
+        </div>
+      </transition>
       <div
         class="stopwatch__title"
         :class="{ active: minersNum }"
@@ -45,6 +47,7 @@ export default {
     });
 
     return {
+      lastTimestamp,
       miningTime,
       timeNow,
       minersNum,

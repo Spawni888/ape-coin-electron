@@ -45,7 +45,7 @@ import SideBar from '@/components/SideBar';
 import Alert from '@/components/Alert';
 import { useStore } from 'vuex';
 import { computed, onMounted, reactive } from 'vue';
-import Header from '@/components/Header';
+import Header from '@/components/main/Header';
 import AppUpdating from '@/components/AppUpdating';
 import Modal from '@/components/Modal';
 import { ipcRenderer } from 'electron';

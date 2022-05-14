@@ -60,7 +60,7 @@
 <script>
 import { useStore } from 'vuex';
 import { computed, reactive, ref } from 'vue';
-import CoreButton from '@/components/CoreButton';
+import CoreButton from '@/components/main/CoreButton';
 import Modal from '@/components/Modal';
 
 export default {

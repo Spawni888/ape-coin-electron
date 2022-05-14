@@ -37,8 +37,8 @@
 </template>
 
 <script>
-import CoreButton from '@/components/CoreButton';
-import CoreInput from '@/components/CoreInput';
+import CoreButton from '@/components/main/CoreButton';
+import CoreInput from '@/components/main/CoreInput';
 import Modal from '@/components/Modal';
 import useForm from '@/use/form/form';
 import {
@@ -49,7 +49,7 @@ import {
 } from 'vue';
 import { useStore } from 'vuex';
 import { ipcRenderer } from 'electron';
-import CoreSwitch from '@/components/CoreSwitch';
+import CoreSwitch from '@/components/main/CoreSwitch';
 import { FROM_BG, TO_BG } from '@/resources/channels';
 
 const required = (val) => !!val;

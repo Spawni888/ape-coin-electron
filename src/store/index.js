@@ -39,10 +39,12 @@ export default createStore({
       selectedWalletAddress: null,
     },
     mining: {
-      miners: [],
+      miners: [1],
       difficulty: 4,
       hashRate: 0,
       feeThreshold: 0,
+      startTime: 0,
+      rewardTransaction: null,
     },
     appUpdate: {
       isUpdating: false,
@@ -137,6 +139,12 @@ export default createStore({
     hashRate(state) {
       return state.mining.hashRate;
     },
+    miningStartTime(state) {
+      return state.mining.startTime;
+    },
+    miningReward(state) {
+      return state.mining.rewardTransaction.outputs[0].amount;
+    },
     appIsUpdating(state) {
       return state.appUpdate.isUpdating;
     },
@@ -153,7 +161,7 @@ export default createStore({
       return state.appUpdate.releaseName;
     },
     lastBlock(state) {
-      return state.blockchain?.lastBlock;
+      return state.blockchain?.getLastBlock();
     },
   },
   mutations: {
@@ -161,7 +169,7 @@ export default createStore({
       state.mining.feeThreshold = feeThreshold;
     },
     adjustDifficulty(state) {
-      state.mining.difficulty = Block.adjustDifficulty(state.blockchain.lastBlock, Date.now());
+      state.mining.difficulty = Block.adjustDifficulty(state.blockchain.getLastBlock(), Date.now());
     },
     logOutWallet(state) {
       state.wallet = null;
@@ -208,6 +216,9 @@ export default createStore({
     finishAppUpdate(state) {
       state.appUpdate.modalIsShowing = false;
       state.appUpdate.isUpdating = false;
+    },
+    setMiningStartTime(state) {
+      state.mining.startTime = Date.now();
     },
   },
   actions: {
@@ -373,7 +384,6 @@ export default createStore({
 
       ipcRenderer.on(FROM_MINING.HASH_RATE, (event, hashRate) => {
         state.mining.hashRate = hashRate;
-        console.log(hashRate);
       });
 
       // -------------------------------------------------------------------------------------------
@@ -582,7 +592,10 @@ export default createStore({
       });
     },
     startMining({ state, dispatch, commit }, { silenceMode } = { silenceMode: false }) {
-      state.miningIsUp = true;
+      if (!state.miningIsUp) {
+        commit('setMiningStartTime');
+        state.miningIsUp = true;
+      }
 
       const pickedTransactions = state.transactionPool.pickTransactions(state.mining.feeThreshold);
       const rewardTransaction = Transaction.rewardTransaction(
@@ -591,6 +604,7 @@ export default createStore({
         state.blockchain,
       );
       pickedTransactions.push(rewardTransaction);
+      state.mining.rewardTransaction = rewardTransaction;
 
       ipcRenderer.send(TO_BG.START_MINING, JSON.stringify({
         pickedTransactions,

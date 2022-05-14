@@ -75,6 +75,7 @@ class Block {
   }
 
   static async mineBlock(bc, data) {
+    // TODO: create here hash calculation with C++ CUDA SDK
     return new Promise(resolve => {
       const eventEmitter = new EventEmitter();
       eventEmitter.on('block-mined', resolve);

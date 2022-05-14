@@ -28,7 +28,7 @@
 </template>
 
 <script>
-import CoreButton from '@/components/CoreButton';
+import CoreButton from '@/components/main/CoreButton';
 
 export default {
   name: 'Modal',

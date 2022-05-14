@@ -33,10 +33,10 @@
 </template>
 
 <script>
-import CoreButton from '@/components/CoreButton';
+import CoreButton from '@/components/main/CoreButton';
 // import Stopwatch from '@/components/blockchain/Stopwatch';
 // import CoreSwitch from '@/components/CoreSwitch';
-import CoreInput from '@/components/CoreInput';
+import CoreInput from '@/components/main/CoreInput';
 import useTooltip from '@/use/tooltip';
 import {
   ref,

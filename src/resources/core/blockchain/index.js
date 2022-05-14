@@ -5,19 +5,13 @@ class Blockchain {
     this.chain = [Block.genesis()];
   }
 
-  get lastBlock() {
-    if (!this.chain.length) return null;
-    return this.chain[this.chain.length - 1];
+  static async addBlock(bc, data) {
+    return Block.mineBlock(bc, data);
   }
 
-  static async addBlock(bc, data) {
-    // return new Promise((resolve) => {
-    //   const block = new Block();
-    //
-    //   block.mineBlock(bc, data);
-    //   block.on('block-mined', resolve);
-    // });
-    return Block.mineBlock(bc, data);
+  getLastBlock() {
+    if (!this.chain.length) return null;
+    return this.chain[this.chain.length - 1];
   }
 
   isValidChain(chain) {
@@ -57,7 +51,7 @@ class Blockchain {
     return true;
   }
 
-  replaceChain(newChain, tp) {
+  replaceChain(newChain) {
     if (newChain.length <= this.chain.length) {
       console.log('Received chain is not longer than the current chain');
       return false;

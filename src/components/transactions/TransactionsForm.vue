@@ -18,8 +18,8 @@
 </template>
 
 <script>
-import CoreInput from '@/components/CoreInput';
-import CoreButton from '@/components/CoreButton';
+import CoreInput from '@/components/main/CoreInput';
+import CoreButton from '@/components/main/CoreButton';
 
 import { onMounted, ref, computed } from 'vue';
 import useForm from '@/use/form/form';

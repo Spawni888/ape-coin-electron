@@ -33,9 +33,9 @@ import {
   ref, onMounted, reactive,
 } from 'vue';
 import { useStore } from 'vuex';
-import CoreInput from '@/components/CoreInput';
-import CoreButton from '@/components/CoreButton';
-import CoreSwitch from '@/components/CoreSwitch';
+import CoreInput from '@/components/main/CoreInput';
+import CoreButton from '@/components/main/CoreButton';
+import CoreSwitch from '@/components/main/CoreSwitch';
 import useForm from '@/use/form/form';
 import useTooltip from '@/use/tooltip';
 import { ipcRenderer } from 'electron';
