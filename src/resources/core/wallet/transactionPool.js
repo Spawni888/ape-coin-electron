@@ -1,5 +1,6 @@
 const { EventEmitter } = require('events');
 const cloneDeep = require('lodash/cloneDeep');
+const Wallet = require('./index');
 const Transaction = require('./transaction');
 const { MINER_WALLET } = require('../config');
 const ChainUtil = require('../chain-util');
@@ -88,25 +89,73 @@ class TransactionPool extends EventEmitter {
     return this.sortAndFilter(feeThreshold);
   }
 
-  clear(chain) {
+  clean(chain) {
+    if (!this.transactions.length || !chain.length) return;
+
+    const userBalanceMap = {};
+    const deleteIndexes = [];
+
+    this.transactions = this.transactions.sort((a, b) => a.input.timestamp - b.input.timestamp);
+    this.transactions.forEach((trans, index) => {
+      const userPubKey = trans.input.address;
+
+      if (!userBalanceMap[userPubKey]) {
+        userBalanceMap[userPubKey] = Wallet.calculateBalance(chain, userPubKey);
+      }
+
+      const transAmount = trans.outputs.reduce((acc, output) => {
+        if (output.address === userPubKey) return acc;
+        return acc + parseInt(output.amount, 10);
+      }, 0);
+
+      if (userBalanceMap[userPubKey] >= transAmount) {
+        userBalanceMap[userPubKey] -= transAmount;
+        return;
+      }
+      deleteIndexes.push(index);
+    });
+
+    [...new Set(deleteIndexes)].forEach(index => {
+      console.log('-'.repeat(30));
+      console.log('INVALID TRANSACTIONS REMOVED:');
+      console.log(this.transactions.splice(index, 1));
+      console.log('-'.repeat(30));
+    });
+
+    this.removeDuplicates(chain);
+  }
+
+  removeDuplicates(chain) {
+    if (!this.transactions.length || !chain.length) return false;
+
     const transactionsMap = {};
 
     chain.forEach(block => {
+      if (!block.data) return;
       block.data.forEach(transaction => {
         transactionsMap[transaction.id] = true;
       });
     });
 
+    const deleteIndexes = [];
     this.transactions.forEach((transaction, index) => {
       if (!transactionsMap[transaction.id]) {
         transactionsMap[transaction.id] = true;
         return;
       }
 
-      this.transactions.splice(index, 1);
+      deleteIndexes.push(index);
     });
 
-    this.emit('clear');
+    deleteIndexes.forEach(index => {
+      console.log('-'.repeat(30));
+      console.log('INVALID TRANSACTIONS REMOVED:');
+      console.log(this.transactions.splice(index, 1));
+      console.log('-'.repeat(30));
+    });
+
+    // this.emit('clear');
+    return deleteIndexes?.length !== 0;
   }
 }
 

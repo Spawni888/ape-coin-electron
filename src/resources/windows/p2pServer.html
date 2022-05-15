@@ -31,19 +31,18 @@
 
         server.inbounds = new Proxy(server.inbounds, {
           set(target, prop, value, receiver) {
+            const inbounds = Object.assign({}, target);
+            inbounds[prop] = value;
+
             messageToUI(FROM_P2P.INBOUNDS_LIST_CHANGED, {
               inboundsList: [
-                ...Object.values(target)
+                ...Object.values(inbounds)
                   .map(socket => {
                     return {
                       address: socket.serverAddress,
                       available: !!socket.available,
                     };
                   }),
-                {
-                  address: value.serverAddress,
-                  available: !!value.available,
-                }
               ]
             });
             return Reflect.set(target, prop, value, receiver);
@@ -150,6 +149,10 @@
         if (server === null) return;
 
         server.transactionPool.replaceOrAddTransaction(transaction);
+        server.transactionPool.clean(server.blockchain.chain);
+        server.emit('transaction-pool-changed', {
+          transactions: server.transactionPool.transactions,
+        })
         server.broadcastTransaction(transaction);
       })
 

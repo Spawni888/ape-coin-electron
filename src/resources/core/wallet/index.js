@@ -32,7 +32,7 @@ class Wallet {
 
     amount = parseInt(amount, 10);
     fee = parseInt(fee, 10);
-    this.balance = this.calculateBalance(blockchain);
+    this.balance = this.calculateBalance(blockchain.chain);
 
     if (amount + fee > this.balance) {
       return {
@@ -73,8 +73,8 @@ class Wallet {
     return { transaction };
   }
 
-  calculateBalance(blockchain) {
-    return Wallet.calculateBalance(blockchain, this.publicKey);
+  calculateBalance(chain) {
+    return Wallet.calculateBalance(chain, this.publicKey);
   }
 
   calculateBalanceWithTpIncluded(transactionPool) {
@@ -87,11 +87,11 @@ class Wallet {
     return this.balanceWithTpIncluded;
   }
 
-  static calculateBalance(blockchain, pubKey) {
+  static calculateBalance(chain, pubKey) {
     let balance = INITIAL_BALANCE;
     const transactions = [];
 
-    blockchain.chain.forEach(block => block.data.forEach(transaction => {
+    chain.forEach(block => block.data.forEach(transaction => {
       transactions.push(transaction);
     }));
 

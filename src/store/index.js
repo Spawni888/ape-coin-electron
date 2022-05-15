@@ -40,7 +40,7 @@ export default createStore({
       selectedWalletAddress: null,
     },
     mining: {
-      miners: [1],
+      miners: [],
       difficulty: 4,
       hashRate: 0,
       feeThreshold: 0,
@@ -181,7 +181,7 @@ export default createStore({
     recalculateBalance(state) {
       if (state.wallet === null) return;
 
-      state.wallet.balance = state.wallet.calculateBalance(state.blockchain);
+      state.wallet.balance = state.wallet.calculateBalance(state.blockchain.chain);
       state.wallet.calculateBalanceWithTpIncluded(state.transactionPool);
     },
     sendToP2P(state, { channel, data }) {
@@ -210,7 +210,7 @@ export default createStore({
     getBalanceTPIncludedOf(state, pubKey) {
       state.transactions.selectedWalletBalance = Wallet.calculateBalanceWithTpIncluded(
         state.transactionPool,
-        Wallet.calculateBalance(state.blockchain, pubKey),
+        Wallet.calculateBalance(state.blockchain.chain, pubKey),
         pubKey,
       );
     },
@@ -325,7 +325,7 @@ export default createStore({
 
       // p2p-server property changes
       ipcRenderer.on(FROM_P2P.BLOCKCHAIN_CHANGED, (event, { chain }) => {
-        if (!chain) return;
+        if (!chain || !chain[0]) return;
         console.log('FROM_P2P.BLOCKCHAIN_CHANGED:');
         console.log(chain);
         console.log('-'.repeat(10));
@@ -337,7 +337,6 @@ export default createStore({
           state.blockchain.chain.push(new Block(...Object.values(block)));
         });
 
-        state.transactionPool.clear(chain);
         commit('recalculateBalance');
 
         // alert if you farmed this block

@@ -111,8 +111,9 @@ export default {
               .forEach((_output, _index, _outputs) => {
                 const output = cloneDeep(_output);
 
+                if (_output.address === selectedAddress.value) return;
                 if (_output.address === MINER_WALLET) return;
-                if (_outputs[_index + 1].address === MINER_WALLET) {
+                if (_outputs[_index + 1]?.address === MINER_WALLET) {
                   output.fee = _outputs[_index + 1].amount;
                 }
 

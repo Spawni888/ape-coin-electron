@@ -164,7 +164,7 @@ export default {
       numNodeW.value = gsap.getProperty(numContainerNode.value[0], 'width');
       gsap.set(animNumNode.value, { width: String(animNumNodeW.value) });
       prevNumLength = numsArray.value.length;
-      setTimeout(() => updateNumsArray(number.value), 1000);
+      updateNumsArray(number.value);
     });
 
     return {

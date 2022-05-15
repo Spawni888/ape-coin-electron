@@ -235,10 +235,6 @@ class P2pServer extends EventEmitter {
     });
 
     socket.on('close', () => {
-      if (!checking && this.outbounds[socket.id]) {
-        delete this.outbounds[socket.id];
-      }
-
       if (checking) {
         const checkedSocket = Object.values(this.inbounds)
           .find(inbound => inbound.serverAddress === serverAddress);
@@ -328,8 +324,8 @@ class P2pServer extends EventEmitter {
     }
     if (
       newChain.length === this.blockchain.chain.length
-      && newChain.length
-      && this.blockchain.chain.length
+      && newChain.length !== 0
+      && this.blockchain.chain.length !== 0
     ) {
       console.log('+'.repeat(10));
       console.log('BLOCK CONFLICT DETECTED!');
@@ -364,16 +360,23 @@ class P2pServer extends EventEmitter {
           mostAppearedBlock = _block;
         });
 
-        this.blockchain.chain[this.blockchain.chain.length - 1] = mostAppearedBlock;
+        if (mostAppearedBlock) {
+          this.blockchain.chain[this.blockchain.chain.length - 1] = mostAppearedBlock;
+        }
         this.blockchain.check = [];
-
         this.emit('blockchain-changed', { chain: this.blockchain.chain });
-        this.transactionPool.clear(this.blockchain.chain);
+
+        const tpUpdated = this.transactionPool.removeDuplicates(this.blockchain.chain);
 
         console.log('+'.repeat(10));
         console.log('CHECKING BLOCK COMPLETE');
-        console.log(mostAppearedBlock);
+        console.log(mostAppearedBlock || null);
         console.log('+'.repeat(10));
+        if (!tpUpdated) return;
+
+        this.emit('transaction-pool-changed', {
+          transactions: this.transactionPool.transactions,
+        });
       }, 5000);
       return;
     }
@@ -381,9 +384,15 @@ class P2pServer extends EventEmitter {
     clearTimeout(this.blockchain.checkTimer);
     this.blockchain.check = [];
     this.blockchain.checking = false;
-    this.blockchain.chain = newChain || [];
+    this.blockchain.chain = newChain;
     this.emit('blockchain-changed', { chain: this.blockchain.chain });
-    this.transactionPool.clear(this.blockchain.chain);
+
+    const tpUpdated = this.transactionPool.removeDuplicates(this.blockchain.chain);
+    if (!tpUpdated) return;
+
+    this.emit('transaction-pool-changed', {
+      transactions: this.transactionPool.transactions,
+    });
   }
 
   addMsgHandler(socket) {
@@ -419,6 +428,7 @@ class P2pServer extends EventEmitter {
         case MESSAGE_TYPES.transaction:
           console.log('New transaction was received');
           this.transactionPool.replaceOrAddTransaction(data.transaction);
+          this.transactionPool.clean(this.blockchain.chain);
 
           this.emit('transaction-pool-changed', {
             transactions: this.transactionPool.transactions,
@@ -429,6 +439,8 @@ class P2pServer extends EventEmitter {
           for (const transaction of data.transactionPool) {
             this.transactionPool.replaceOrAddTransaction(transaction);
           }
+          this.transactionPool.clean(this.blockchain.chain);
+
           this.emit('transaction-pool-changed', {
             transactions: this.transactionPool.transactions,
           });
@@ -486,8 +498,6 @@ class P2pServer extends EventEmitter {
             checkedSocket.available = true;
             checkedSocket.checking = false;
             await socket.close();
-            // this is for triggering this.inbounds proxy
-            delete this.inbounds[socketID];
             this.inbounds[socketID] = checkedSocket;
             console.log(`~PEER CHECKED: ${checkedSocket.serverAddress}: AVAILABLE: ${true}~`);
             return;
@@ -637,8 +647,6 @@ class P2pServer extends EventEmitter {
 
     // we don't need more than one connection with same user
     if (this.outbounds[socketID] || this.inbounds[socketID]) {
-      console.log(this.outbounds[socketID], this.inbounds[socketID]);
-      console.log('Closed!');
       await socket.close();
       return false;
     }
