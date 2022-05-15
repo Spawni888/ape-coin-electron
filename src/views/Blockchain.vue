@@ -23,10 +23,7 @@
             :block-position="getBlockPosition(index, chainSlice.length, chain.length)"
             :chain-length="chain.length"
             :is-first="index === 0"
-            :key="block.hash.slice(10, 20) +
-              chain.length +
-              block.nonce +
-              block.lastHash.slice(10, 20)"
+            :key="block.hash.slice(240) + index"
             @click="showBlockInfo(block, getBlockPosition(index, chainSlice.length, chain.length))"
           />
         </BlockchainTransition>

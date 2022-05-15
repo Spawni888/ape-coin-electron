@@ -21,6 +21,8 @@ const MESSAGE_TYPES = {
   miningStarted: 'MINING_STARTED',
   miningStopped: 'MINING_STOPPED',
   miners: 'MINERS',
+  reqChainCheck: 'REQUEST_CHAIN_CHECK',
+  resChainCheck: 'RESPONSE_CHAIN_CHECK',
 };
 
 class P2pServer extends EventEmitter {
@@ -191,6 +193,7 @@ class P2pServer extends EventEmitter {
     console.log('-'.repeat(10));
     console.log(`Trying to connect to peer ${serverAddress}`);
     console.log(`Retries remain ${retries}`);
+    console.log(`It is socket checking: ${checking}`);
     console.log('-'.repeat(10));
 
     if (!checking) {
@@ -232,16 +235,17 @@ class P2pServer extends EventEmitter {
     });
 
     socket.on('close', () => {
-      if (this.outbounds[socket.id]) {
+      if (!checking && this.outbounds[socket.id]) {
         delete this.outbounds[socket.id];
       }
 
       if (checking) {
-        const checkedSocket = this.inbounds
+        const checkedSocket = Object.values(this.inbounds)
           .find(inbound => inbound.serverAddress === serverAddress);
         if (checkedSocket && !checkedSocket.available) {
           checkedSocket.checking = false;
           checkedSocket.available = false;
+          console.log(`~PEER CHECKED: ${checkedSocket.serverAddress}: AVAILABLE: ${false}~`);
           // TODO: send info about socket availability maybe?
           // not sure ab it
         }
@@ -282,7 +286,7 @@ class P2pServer extends EventEmitter {
 
   sendData(socket) {
     this.sendPeers(socket);
-    this.sendChain(socket);
+    this.sendChain(socket, this.blockchain.chain);
     this.sendTransactionPool(socket);
     this.sendMiners(socket);
   }
@@ -294,10 +298,10 @@ class P2pServer extends EventEmitter {
 
       this.deleteMiner(socket.id);
 
-      if (this.inbounds[socket.id]) {
+      if (this.inbounds[socket.id] && this.inbounds[socket.id] === socket) {
         delete this.inbounds[socket.id];
       }
-      if (this.outbounds[socket.id]) {
+      if (this.outbounds[socket.id] && this.outbounds[socket.id] === socket) {
         delete this.outbounds[socket.id];
       }
 
@@ -313,20 +317,101 @@ class P2pServer extends EventEmitter {
     socket.on('error', handler);
   }
 
+  replaceChain(newChain) {
+    if (newChain.length < this.blockchain.chain.length) {
+      console.log('Received chain is not longer than the current chain');
+      return;
+    }
+    if (!this.blockchain.isValidChain(newChain)) {
+      console.log('The received chain is not valid');
+      return;
+    }
+    if (newChain.length === this.blockchain.chain.length) {
+      console.log('+'.repeat(10));
+      console.log('BLOCK CONFLICT DETECTED!');
+      console.log('CHECKING BLOCK START!');
+      console.log('+'.repeat(10));
+
+      this.blockchain.checking = true;
+      this.blockchain.check.push(this.blockchain.chain[this.blockchain.chain.length - 1]);
+      this.blockchain.check.push(newChain[newChain.length - 1]);
+      this.broadcastReqChainCheck();
+
+      this.blockchain.checkTimer = setTimeout(() => {
+        this.blockchain.checking = false;
+
+        // get the item that appears the most times in an array
+        const checkMap = {};
+        let maxCount = 0;
+        let mostAppearedBlock = this.blockchain.check[0];
+
+        this.blockchain.check.forEach(_block => {
+          let count = 1;
+
+          if (checkMap[_block.hash]) {
+            checkMap[_block.hash]++;
+            count = checkMap[_block.hash];
+          } else {
+            checkMap[_block.hash] = 1;
+          }
+
+          if (maxCount > count) return;
+          maxCount = count;
+          mostAppearedBlock = _block;
+        });
+
+        this.blockchain.chain[this.blockchain.chain.length - 1] = mostAppearedBlock;
+        this.blockchain.check = [];
+
+        this.emit('blockchain-changed', { chain: this.blockchain.chain });
+        this.transactionPool.clear(this.blockchain.chain);
+
+        console.log('+'.repeat(10));
+        console.log('CHECKING BLOCK COMPLETE');
+        console.log(mostAppearedBlock);
+        console.log('+'.repeat(10));
+      }, 5000);
+      return;
+    }
+
+    clearTimeout(this.blockchain.checkTimer);
+    this.blockchain.check = [];
+    this.blockchain.checking = false;
+    this.blockchain.chain = newChain || [];
+    this.emit('blockchain-changed', { chain: this.blockchain.chain });
+    this.transactionPool.clear(this.blockchain.chain);
+  }
+
   addMsgHandler(socket) {
-    socket.on('message', message => {
+    socket.on('message', async message => {
       const req = JSON.parse(message);
       const { data } = req;
 
       switch (req.type) {
         case MESSAGE_TYPES.chain: {
-          console.log('on MESSAGE_TYPES.chain in p2p-server.js:');
-          const chainReplaced = this.blockchain.replaceChain(data.chain, this.transactionPool);
-          if (chainReplaced) {
-            this.emit('blockchain-changed', { chain: this.blockchain.chain });
-          }
+          this.replaceChain(data.chain);
           break;
         }
+
+        case MESSAGE_TYPES.reqChainCheck: {
+          if (data.chainLength > this.blockchain.chain.length) return;
+
+          socket.send(JSON.stringify({
+            type: MESSAGE_TYPES.reqChainCheck,
+            data: {
+              block: this.blockchain.chain[data.chainLength - 1],
+            },
+          }));
+          break;
+        }
+
+        case MESSAGE_TYPES.resChainCheck: {
+          if (!this.blockchain.checking) return;
+
+          this.blockchain.check.push(data.block);
+          break;
+        }
+
         case MESSAGE_TYPES.transaction:
           console.log('New transaction was received');
           this.transactionPool.replaceOrAddTransaction(data.transaction);
@@ -396,18 +481,20 @@ class P2pServer extends EventEmitter {
           if (data.connection === 'outbound' && checkedSocket?.checking) {
             checkedSocket.available = true;
             checkedSocket.checking = false;
-            socket.close();
-
+            await socket.close();
             // this is for triggering this.inbounds proxy
             delete this.inbounds[socketID];
             this.inbounds[socketID] = checkedSocket;
+            console.log(`~PEER CHECKED: ${checkedSocket.serverAddress}: AVAILABLE: ${true}~`);
             return;
           }
           /// /////////////////////////////////////////// //
-          this.saveSocket(socket, data);
+          const saved = await this.saveSocket(socket, data);
+          if (!saved) return;
           this.sendData(socket);
 
           if (data.connection === 'inbound') {
+            console.log('CHECK ACCESSIBILITY SEND');
             this.checkAccessibility(socket);
           }
 
@@ -439,11 +526,21 @@ class P2pServer extends EventEmitter {
     });
   }
 
-  sendChain(socket) {
+  sendChain(socket, chain) {
     socket.send(JSON.stringify({
       type: MESSAGE_TYPES.chain,
       data: {
-        chain: this.blockchain.chain,
+        chain,
+      },
+    }));
+  }
+
+  sendReqChainCheck(socket) {
+    socket.send(JSON.stringify({
+      type: MESSAGE_TYPES.reqChainCheck,
+      data: {
+        chainLength: this.blockchain.chain.length,
+        socketID: this.id,
       },
     }));
   }
@@ -509,6 +606,7 @@ class P2pServer extends EventEmitter {
 
   checkAccessibility(socket) {
     socket.checking = true;
+    console.log('socket.checking: ', socket.checking);
 
     const parsedAddress = this.parsePeerAddress(socket.serverAddress);
     if (!parsedAddress) return;
@@ -523,7 +621,7 @@ class P2pServer extends EventEmitter {
     });
   }
 
-  saveSocket(socket, data) {
+  async saveSocket(socket, data) {
     const { serverAddressObj } = data;
     const { socketID, connection } = data;
 
@@ -535,8 +633,10 @@ class P2pServer extends EventEmitter {
 
     // we don't need more than one connection with same user
     if (this.outbounds[socketID] || this.inbounds[socketID]) {
-      socket.close();
-      return;
+      console.log(this.outbounds[socketID], this.inbounds[socketID]);
+      console.log('Closed!');
+      await socket.close();
+      return false;
     }
 
     if (connection === 'outbound') {
@@ -546,6 +646,7 @@ class P2pServer extends EventEmitter {
     }
 
     console.log(`Socket was connected: ${socket.serverAddress}`);
+    return true;
   }
 
   parseSocketExternalAddressObj(req) {
@@ -575,8 +676,13 @@ class P2pServer extends EventEmitter {
     this.broadcastMiningStopped(minerID);
   }
 
-  syncChains() {
-    this.allSockets.forEach(socket => this.sendChain(socket));
+  syncChains(chain) {
+    this.allSockets.forEach(socket => this.sendChain(socket, chain));
+    this.replaceChain(chain);
+  }
+
+  broadcastReqChainCheck() {
+    this.allSockets.forEach(socket => this.sendReqChainCheck(socket));
   }
 
   broadcastTransaction(transaction) {

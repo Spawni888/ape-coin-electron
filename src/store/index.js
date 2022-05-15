@@ -316,8 +316,24 @@ export default createStore({
         state.transactionPool.clear(chain);
         commit('recalculateBalance');
 
+        // alert if you farmed this block
+        const lastBlock = chain[chain.length - 1];
+        const reward = lastBlock.data
+          .find(transaction => transaction.input.address === BLOCKCHAIN_WALLET)
+          ?.outputs
+          .find(output => output.address === state.wallet.publicKey)
+          ?.amount;
+
+        if (reward) {
+          dispatch('showAlert', {
+            type: 'success',
+            title: 'Success',
+            message: `You have mine block with difficulty: ${lastBlock.difficulty} and earn ${reward} coins!`,
+          });
+        }
+
         if (!state.miningIsUp) return;
-        dispatch('startMining', { silenceMode: true });
+        setTimeout(() => dispatch('startMining', { silenceMode: true }), 0);
       });
 
       ipcRenderer.on(FROM_P2P.PROPERTY_CHANGED, (event, data) => {
@@ -418,38 +434,14 @@ export default createStore({
       ipcRenderer.send(TO_BG.CHECK_ALERTS_SAVING);
       ipcRenderer.send(TO_BG.CHECK_APP_UPDATES);
     },
-    onBlockCalculated({ state, dispatch, commit }, { block, chain }) {
-      console.log('new Block calculated:', block);
+    onBlockCalculated({ state, commit }, { block, chain }) {
       if (!state.blockchain) return;
-
-      for (let i = state.blockchain.chain.length - 1; i >= 0; i--) {
-        state.blockchain.chain.pop();
-      }
-      // eslint-disable-next-line no-underscore-dangle
-      for (const _block of chain) {
-        state.blockchain.chain.push(_block);
-      }
-
-      state.transactionPool.clear(chain);
-      commit('recalculateBalance');
-
-      const reward = block.data
-        .find(transaction => transaction.input.address === BLOCKCHAIN_WALLET)
-        .outputs
-        .find(output => output.address === state.wallet.publicKey)
-        .amount;
-
-      dispatch('showAlert', {
-        type: 'success',
-        title: 'Success',
-        message: `You have mine block with difficulty: ${block.difficulty} and earn ${reward} coins!`,
-      });
+      console.log('new Block calculated:', block);
 
       commit('sendToP2P', {
         channel: TO_P2P.NEW_BLOCK_ADDED,
         data: { block, chain },
       });
-      setTimeout(() => dispatch('startMining', { silenceMode: true }), 0);
     },
     onMiningError({ dispatch }, error) {
       console.log(error);

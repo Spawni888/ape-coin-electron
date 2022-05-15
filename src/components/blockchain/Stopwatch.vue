@@ -83,6 +83,7 @@ $borderColor: rgba(255, 255, 255, 0.6);
   flex-direction: column;
   animation: flash 1s infinite alternate ease-in-out;
   &__title {
+    transition: .4s ease-out;
     margin-bottom: 0.125em;
 
     color: rgba(233, 26, 26, 0.4);

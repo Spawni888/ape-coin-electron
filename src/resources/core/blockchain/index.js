@@ -3,6 +3,9 @@ const Block = require('./block');
 class Blockchain {
   constructor() {
     this.chain = [Block.genesis()];
+    this.checking = false;
+    this.check = [];
+    this.checkTimer = null;
   }
 
   static async addBlock(bc, data) {
@@ -51,23 +54,23 @@ class Blockchain {
     return true;
   }
 
-  replaceChain(newChain) {
-    if (newChain.length <= this.chain.length) {
-      console.log('Received chain is not longer than the current chain');
-      return false;
-    }
-    if (!this.isValidChain(newChain)) {
-      console.log('The received chain is not valid');
-      return false;
-    }
-
-    console.log('Replacing blockchain with the new chain');
-    this.chain = newChain;
-
-    // tp.clear();
-
-    return true;
-  }
+  // replaceChain(newChain, tp) {
+  //   if (newChain.length < this.chain.length) {
+  //     console.log('Received chain is not longer than the current chain');
+  //     return false;
+  //   }
+  //   if (!this.isValidChain(newChain)) {
+  //     console.log('The received chain is not valid');
+  //     return false;
+  //   }
+  //
+  //   console.log('Replacing blockchain with the new chain');
+  //   this.chain = newChain;
+  //
+  //   tp.clear(this.chain);
+  //
+  //   return true;
+  // }
 }
 
 module.exports = Blockchain;

@@ -156,9 +156,7 @@
       ipcRenderer.on(TO_P2P.NEW_BLOCK_ADDED, (event, { chain }) => {
         if (server === null) return;
 
-        server.blockchain.chain = chain;
-        server.syncChains();
-        server.transactionPool.clear(chain);
+        server.syncChains(chain);
       })
 
       ipcRenderer.on(TO_P2P.MINING_STARTED, () => {

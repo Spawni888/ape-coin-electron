@@ -147,7 +147,7 @@ export default {
       store.commit('adjustDifficulty');
 
       if (miningHoursShow.value) return;
-      if (miningTime.value.hours === '00') {
+      if (miningTime.value.hours !== '00') {
         miningHoursShow.value = true;
       }
     }, 1000);
