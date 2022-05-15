@@ -209,12 +209,29 @@ try {
     ipcMain.on(TO_BG.HIDE_MAIN_WINDOW, async () => {
       mainWin.minimize();
     });
-
+    // --------------------------------------------------------------------------------------------
+    // P2P-Form saving
+    // --------------------------------------------------------------------------------------------
     ipcMain.on(TO_BG.SAVE_P2P_FORM, (event, form) => {
       electronStore.set('p2pForm', form);
     });
     ipcMain.on(TO_BG.CHECK_P2P_FORM_SAVING, sendP2pForm);
 
+    // --------------------------------------------------------------------------------------------
+    // Peers saving
+    // --------------------------------------------------------------------------------------------
+    ipcMain.on(TO_BG.SAVE_PEERS, (event, peers) => {
+      electronStore.set('peers', JSON.parse(peers));
+    });
+    ipcMain.on(TO_BG.CHECK_PEERS_SAVING, () => {
+      const peers = electronStore.get('peers');
+      if (peers) {
+        mainWin.webContents.send(FROM_BG.LOAD_PEERS, peers);
+      }
+    });
+    // --------------------------------------------------------------------------------------------
+    // Main Handlers
+    // --------------------------------------------------------------------------------------------
     bgHandlers.walletHandler(mainWin, electronStore);
     bgHandlers.alertsHandler(mainWin, electronStore);
     bgHandlers.p2pServerHandler(mainWin);

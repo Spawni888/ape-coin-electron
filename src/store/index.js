@@ -32,6 +32,7 @@ export default createStore({
       externalAddress: null,
       ngrokHost: null,
       peers: [],
+      savedPeers: [],
     },
     transactions: {
       walletRelatedTransactions: [],
@@ -220,6 +221,16 @@ export default createStore({
     setMiningStartTime(state) {
       state.mining.startTime = Date.now();
     },
+    savePeers(state) {
+      state.p2pServer.savedPeers = [
+        ...state.p2pServer.inboundsList
+          .filter(peer => peer.available)
+          .map(peer => peer.address),
+        ...state.p2pServer.outboundsList
+          .map(peer => peer.address),
+      ];
+      ipcRenderer.send(TO_BG.SAVE_PEERS, JSON.stringify(state.p2pServer.savedPeers));
+    },
   },
   actions: {
     clearAlertsJournal({ state, commit }) {
@@ -259,9 +270,21 @@ export default createStore({
       state.alertTimer = setInterval(intervalFunc, 5000);
     },
     initBackgroundListeners({ state, commit, dispatch }) {
-      // console logs
+      // JUST LOGS
       ipcRenderer.on(FROM_BG.CONSOLE_LOG, (event, data) => {
         console.log(JSON.stringify(data));
+      });
+
+      // -------------------------------------------------------------------------------------------
+      // Preload saves
+      // -------------------------------------------------------------------------------------------
+      // peers
+      ipcRenderer.on(FROM_BG.LOAD_PEERS, (event, peers) => {
+        state.p2pServer.savedPeers = peers;
+      });
+      // alerts
+      ipcRenderer.on(FROM_BG.LOAD_ALERTS, (event, alertsJournal) => {
+        state.alertsJournal = alertsJournal;
       });
 
       // -------------------------------------------------------------------------------------------
@@ -302,6 +325,7 @@ export default createStore({
 
       // p2p-server property changes
       ipcRenderer.on(FROM_P2P.BLOCKCHAIN_CHANGED, (event, { chain }) => {
+        if (!chain) return;
         console.log('FROM_P2P.BLOCKCHAIN_CHANGED:');
         console.log(chain);
         console.log('-'.repeat(10));
@@ -355,10 +379,12 @@ export default createStore({
       ipcRenderer.on(FROM_P2P.OUTBOUNDS_LIST_CHANGED, (event, data) => {
         console.log('FROM_P2P.OUTBOUNDS_LIST_CHANGED');
         state.p2pServer.outboundsList = data.outboundsList;
+        commit('savePeers');
       });
       ipcRenderer.on(FROM_P2P.INBOUNDS_LIST_CHANGED, (event, data) => {
         console.log('FROM_P2P.INBOUNDS_LIST_CHANGED');
         state.p2pServer.inboundsList = data.inboundsList;
+        commit('savePeers');
       });
 
       ipcRenderer.on(FROM_P2P.MINERS_LIST_CHANGED, (event, data) => {
@@ -384,10 +410,6 @@ export default createStore({
       ipcRenderer.on(FROM_APP.ALERT, (event, data) => {
         dispatch('showAlert', data);
         if (data.type === 'error') dispatch('closeServer');
-      });
-
-      ipcRenderer.on(FROM_BG.LOAD_ALERTS, (event, alertsJournal) => {
-        state.alertsJournal = alertsJournal;
       });
       // -------------------------------------------------------------------------------------------
       // MINING
@@ -431,6 +453,7 @@ export default createStore({
     },
     initStore({ dispatch }) {
       dispatch('initBackgroundListeners');
+      ipcRenderer.send(TO_BG.CHECK_PEERS_SAVING);
       ipcRenderer.send(TO_BG.CHECK_ALERTS_SAVING);
       ipcRenderer.send(TO_BG.CHECK_APP_UPDATES);
     },
@@ -492,6 +515,9 @@ export default createStore({
       } else {
         peers = [];
       }
+      peers = peers.concat(state.p2pServer.savedPeers);
+      console.log(peers);
+
       state.transactionPool = new TransactionPool();
       state.blockchain = new Blockchain();
 

@@ -51,6 +51,7 @@ const FROM_BG = {
   APP_UPDATE_AVAILABLE: 'app-update-available',
   APP_UPDATE_PROGRESS: 'app-update-progress',
   APP_UPDATE_DOWNLOADED: 'app-update-downloaded',
+  LOAD_PEERS: 'load-peers',
 };
 
 const TO_BG = {
@@ -71,6 +72,8 @@ const TO_BG = {
   HIDE_MAIN_WINDOW: 'hide-main-window',
   CHECK_ALERTS_SAVING: 'check-alerts-saving',
   SAVE_ALERTS: 'save-alerts',
+  SAVE_PEERS: 'save-peers',
+  CHECK_PEERS_SAVING: 'checl-peers-saving',
 };
 
 const FROM_APP = {

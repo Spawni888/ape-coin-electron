@@ -326,7 +326,11 @@ class P2pServer extends EventEmitter {
       console.log('The received chain is not valid');
       return;
     }
-    if (newChain.length === this.blockchain.chain.length) {
+    if (
+      newChain.length === this.blockchain.chain.length
+      && newChain.length
+      && this.blockchain.chain.length
+    ) {
       console.log('+'.repeat(10));
       console.log('BLOCK CONFLICT DETECTED!');
       console.log('CHECKING BLOCK START!');
