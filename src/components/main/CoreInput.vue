@@ -4,7 +4,7 @@
     class="core-input"
     :class="{
       'compressed': compressedPlaceholder,
-      'show-error': showError,
+      'show-error': showError
     }"
   >
     <div
@@ -105,7 +105,6 @@ $fontSize: 18px;
   display: inline-block;
 
   .placeholder {
-    user-select: none;
     cursor: pointer;
     height: 100%;
     width: 100%;

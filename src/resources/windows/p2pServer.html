@@ -156,10 +156,10 @@
         server.broadcastTransaction(transaction);
       })
 
-      ipcRenderer.on(TO_P2P.NEW_BLOCK_ADDED, (event, { chain }) => {
+      ipcRenderer.on(TO_P2P.NEW_BLOCK_ADDED, async (event, { chain }) => {
         if (server === null) return;
 
-        server.syncChains(chain);
+        await server.syncChains(chain);
       })
 
       ipcRenderer.on(TO_P2P.MINING_STARTED, () => {

@@ -12,10 +12,11 @@ import {
   TO_BG,
   TO_P2P,
   FROM_P2P,
-  FROM_UI,
+  FROM_UI, FROM_APP,
 } from '@/resources/channels';
 import { genKeyPair } from '@/utils/elliptic';
 import fs from 'fs';
+import { autoUpdater } from 'electron-updater';
 
 // const logToUI = (win, msg) => {
 //   win.webContents.send(
@@ -199,9 +200,81 @@ const alertsHandler = (mainWin, electronStore) => {
   });
 };
 
+const autoUpdaterHandler = async (mainWin, shouldBeUpdated) => {
+  ipcMain.once(TO_BG.CHECK_APP_UPDATES, () => {
+    const alertUI = (alert, onlyLog = false) => {
+      mainWin.webContents.send(
+        FROM_BG.CONSOLE_LOG,
+        alert.message,
+      );
+      if (onlyLog) return;
+      mainWin.webContents.send(
+        FROM_APP.ALERT,
+        alert,
+      );
+    };
+
+    autoUpdater.on('checking-for-update', () => {
+      alertUI({
+        type: 'info',
+        title: 'Info',
+        message: 'Checking for update...',
+      }, true);
+    });
+    autoUpdater.on('update-available', () => {
+      console.log('Update available!');
+      mainWin.webContents.send(FROM_BG.APP_UPDATE_AVAILABLE);
+    });
+    autoUpdater.on('update-not-available', () => {
+      alertUI({
+        type: 'success',
+        title: 'Success',
+        message: 'Application is up to date.',
+      }, true);
+    });
+
+    autoUpdater.on('error', err => {
+      console.log(err);
+      alertUI({
+        type: 'error',
+        title: 'Error',
+        message: err.message,
+      }, true);
+    });
+
+    autoUpdater.on('download-progress', progressObj => {
+      alertUI({
+        type: 'info',
+        title: 'Info',
+        message: `Download speed: ${progressObj.bytesPerSecond} - Downloaded ${progressObj.percent}% (${progressObj.transferred}/${progressObj.total})`,
+      }, true);
+
+      mainWin.webContents.send(
+        FROM_BG.APP_UPDATE_PROGRESS,
+        {
+          percent: progressObj.percent,
+          bytesPerSecond: progressObj.bytesPerSecond,
+        },
+      );
+      mainWin.setProgressBar(progressObj.percent / 100);
+    });
+
+    autoUpdater.on('update-downloaded', ({ releaseName }) => {
+      ipcMain.on(TO_BG.UPDATE_APP, (event, updateNow) => {
+        if (updateNow) autoUpdater.quitAndInstall();
+      });
+      mainWin.webContents.send(FROM_BG.APP_UPDATE_DOWNLOADED, { releaseName });
+      shouldBeUpdated.value = true;
+    });
+
+    autoUpdater.checkForUpdatesAndNotify();
+  });
+};
+
 export default {
   p2pServerHandler,
   miningHandler,
   walletHandler,
   alertsHandler,
+  autoUpdaterHandler,
 };

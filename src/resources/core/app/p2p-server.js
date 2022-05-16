@@ -148,11 +148,12 @@ class P2pServer extends EventEmitter {
   }
 
   parsePeerAddress(peerAddress) {
-    const parsedPeerLink = /(.+):\/\/([\d\w.\-_]+?):(.+)$/gi.exec(peerAddress);
+    const parsedPeerLink = /(\w*?)[:/]*([.\d\w\-_]+):+(\d+)$/gi
+      .exec(peerAddress);
 
-    const [, serverProtocol, serverDomain, serverPort] = parsedPeerLink;
+    const [,, serverDomain, serverPort] = parsedPeerLink;
     return {
-      serverProtocol,
+      serverProtocol: this.protocol,
       serverDomain,
       serverPort,
     };
@@ -313,85 +314,88 @@ class P2pServer extends EventEmitter {
     socket.on('error', handler);
   }
 
-  replaceChain(newChain) {
-    if (newChain.length < this.blockchain.chain.length) {
-      console.log('Received chain is not longer than the current chain');
-      return;
-    }
-    if (!this.blockchain.isValidChain(newChain)) {
-      console.log('The received chain is not valid');
-      return;
-    }
-    if (
-      newChain.length === this.blockchain.chain.length
-      && newChain.length !== 0
-      && this.blockchain.chain.length !== 0
-    ) {
-      console.log('+'.repeat(10));
-      console.log('BLOCK CONFLICT DETECTED!');
-      console.log('CHECKING BLOCK START!');
-      console.log('+'.repeat(10));
+  async replaceChain(newChain) {
+    return new Promise(resolve => {
+      if (newChain.length < this.blockchain.chain.length) {
+        console.log('Received chain is not longer than the current chain');
+        resolve(false);
+        return;
+      }
+      if (!this.blockchain.isValidChain(newChain)) {
+        console.log('The received chain is not valid');
+        resolve(false);
+        return;
+      }
+      if (
+        newChain.length === this.blockchain.chain.length
+        && newChain.length !== 0
+        && this.blockchain.chain.length !== 0
+      ) {
+        console.log('+'.repeat(10));
+        console.log('BLOCK CONFLICT DETECTED!');
+        console.log('CHECKING BLOCK START!');
+        console.log('+'.repeat(10));
 
-      this.blockchain.checking = true;
-      this.blockchain.check.push(this.blockchain.chain[this.blockchain.chain.length - 1]);
-      this.blockchain.check.push(newChain[newChain.length - 1]);
-      this.broadcastReqChainCheck();
+        this.blockchain.checking = true;
+        this.blockchain.check.push(this.blockchain.chain[this.blockchain.chain.length - 1]);
+        this.blockchain.check.push(newChain[newChain.length - 1]);
+        this.broadcastReqChainCheck();
 
-      this.blockchain.checkTimer = setTimeout(() => {
-        this.blockchain.checking = false;
+        this.blockchain.checkTimer = setTimeout(() => {
+          this.blockchain.checking = false;
 
-        // get the item that appears the most times in an array
-        const checkMap = {};
-        let maxCount = 0;
-        let mostAppearedBlock = this.blockchain.check[0];
+          // get the item that appears the most times in an array
+          const checkMap = {};
+          let maxCount = 0;
+          let mostAppearedBlock = this.blockchain.check[0];
 
-        this.blockchain.check.forEach(_block => {
-          let count = 1;
+          this.blockchain.check.forEach(_block => {
+            let count = 1;
 
-          if (checkMap[_block.hash]) {
-            checkMap[_block.hash]++;
-            count = checkMap[_block.hash];
-          } else {
-            checkMap[_block.hash] = 1;
+            if (checkMap[_block.hash]) {
+              checkMap[_block.hash]++;
+              count = checkMap[_block.hash];
+            } else {
+              checkMap[_block.hash] = 1;
+            }
+
+            if (maxCount > count) return;
+            maxCount = count;
+            mostAppearedBlock = _block;
+          });
+
+          if (mostAppearedBlock) {
+            this.blockchain.chain[this.blockchain.chain.length - 1] = mostAppearedBlock;
           }
+          this.blockchain.check = [];
+          this.emit('blockchain-changed', { chain: this.blockchain.chain });
 
-          if (maxCount > count) return;
-          maxCount = count;
-          mostAppearedBlock = _block;
-        });
+          this.transactionPool.removeDuplicates(this.blockchain.chain);
 
-        if (mostAppearedBlock) {
-          this.blockchain.chain[this.blockchain.chain.length - 1] = mostAppearedBlock;
-        }
-        this.blockchain.check = [];
-        this.emit('blockchain-changed', { chain: this.blockchain.chain });
+          console.log('+'.repeat(10));
+          console.log('CHECKING BLOCK COMPLETE');
+          console.log(mostAppearedBlock || null);
+          console.log('+'.repeat(10));
 
-        const tpUpdated = this.transactionPool.removeDuplicates(this.blockchain.chain);
+          this.emit('transaction-pool-changed', {
+            transactions: this.transactionPool.transactions,
+          });
+          resolve(true);
+        }, 5000);
+      }
 
-        console.log('+'.repeat(10));
-        console.log('CHECKING BLOCK COMPLETE');
-        console.log(mostAppearedBlock || null);
-        console.log('+'.repeat(10));
-        if (!tpUpdated) return;
+      clearTimeout(this.blockchain.checkTimer);
+      this.blockchain.check = [];
+      this.blockchain.checking = false;
+      this.blockchain.chain = newChain;
+      this.emit('blockchain-changed', { chain: this.blockchain.chain });
 
-        this.emit('transaction-pool-changed', {
-          transactions: this.transactionPool.transactions,
-        });
-      }, 5000);
-      return;
-    }
+      const tpUpdated = this.transactionPool.removeDuplicates(this.blockchain.chain);
+      if (!tpUpdated) return;
 
-    clearTimeout(this.blockchain.checkTimer);
-    this.blockchain.check = [];
-    this.blockchain.checking = false;
-    this.blockchain.chain = newChain;
-    this.emit('blockchain-changed', { chain: this.blockchain.chain });
-
-    const tpUpdated = this.transactionPool.removeDuplicates(this.blockchain.chain);
-    if (!tpUpdated) return;
-
-    this.emit('transaction-pool-changed', {
-      transactions: this.transactionPool.transactions,
+      this.emit('transaction-pool-changed', {
+        transactions: this.transactionPool.transactions,
+      });
     });
   }
 
@@ -402,7 +406,7 @@ class P2pServer extends EventEmitter {
 
       switch (req.type) {
         case MESSAGE_TYPES.chain: {
-          this.replaceChain(data.chain);
+          await this.replaceChain(data.chain);
           break;
         }
 
@@ -688,9 +692,15 @@ class P2pServer extends EventEmitter {
     this.broadcastMiningStopped(minerID);
   }
 
-  syncChains(chain) {
+  async syncChains(chain) {
     this.allSockets.forEach(socket => this.sendChain(socket, chain));
-    this.replaceChain(chain);
+
+    const replaced = await this.replaceChain(chain);
+    if (replaced) return;
+    // this is for continue mining
+    this.emit('transaction-pool-changed', {
+      transactions: this.transactionPool.transactions,
+    });
   }
 
   broadcastReqChainCheck() {

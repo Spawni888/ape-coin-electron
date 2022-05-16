@@ -14,7 +14,7 @@ import ElectronStore from '@/utils/ElectronStore';
 import path from 'path';
 import bgHandlers from '@/utils/backgroundHandlers';
 import winFade from '@/utils/winAnimation';
-import { FROM_APP, FROM_BG, TO_BG } from '@/resources/channels';
+import { FROM_BG, TO_BG } from '@/resources/channels';
 
 const isDevelopment = process.env.NODE_ENV !== 'production';
 
@@ -37,7 +37,7 @@ try {
 
   let tray = null;
   let mainWin = null;
-  let shouldBeUpdated = false;
+  const shouldBeUpdated = { value: false };
 
   const sendP2pForm = () => {
     const form = electronStore.get('p2pForm');
@@ -71,8 +71,8 @@ try {
         icon: path.resolve(__dirname, './assets/icon.ico'),
         titleBarStyle: 'hiddenInset',
         frame: false,
-        minWidth: 650,
-        minHeight: 600,
+        minWidth: 1000,
+        minHeight: 650,
         webPreferences: {
           enableRemoteModule: true,
           contextIsolation: false,
@@ -116,74 +116,7 @@ try {
       // --------------------------------------------------------------------------
       // Auto updates
       // --------------------------------------------------------------------------
-      ipcMain.once(TO_BG.CHECK_APP_UPDATES, () => {
-        const alertUI = (alert, onlyLog = false) => {
-          mainWin.webContents.send(
-            FROM_BG.CONSOLE_LOG,
-            alert.message,
-          );
-          if (onlyLog) return;
-          mainWin.webContents.send(
-            FROM_APP.ALERT,
-            alert,
-          );
-        };
-
-        autoUpdater.on('checking-for-update', () => {
-          alertUI({
-            type: 'info',
-            title: 'Info',
-            message: 'Checking for update...',
-          }, true);
-        });
-        autoUpdater.on('update-available', () => {
-          console.log('Update available!');
-          mainWin.webContents.send(FROM_BG.APP_UPDATE_AVAILABLE);
-        });
-        autoUpdater.on('update-not-available', () => {
-          alertUI({
-            type: 'success',
-            title: 'Success',
-            message: 'Application is up to date.',
-          }, true);
-        });
-
-        autoUpdater.on('error', err => {
-          console.log(err);
-          alertUI({
-            type: 'error',
-            title: 'Error',
-            message: err.message,
-          }, true);
-        });
-
-        autoUpdater.on('download-progress', progressObj => {
-          alertUI({
-            type: 'info',
-            title: 'Info',
-            message: `Download speed: ${progressObj.bytesPerSecond} - Downloaded ${progressObj.percent}% (${progressObj.transferred}/${progressObj.total})`,
-          }, true);
-
-          mainWin.webContents.send(
-            FROM_BG.APP_UPDATE_PROGRESS,
-            {
-              percent: progressObj.percent,
-              bytesPerSecond: progressObj.bytesPerSecond,
-            },
-          );
-          mainWin.setProgressBar(progressObj.percent / 100);
-        });
-
-        autoUpdater.on('update-downloaded', ({ releaseName }) => {
-          ipcMain.on(TO_BG.UPDATE_APP, (event, updateNow) => {
-            if (updateNow) autoUpdater.quitAndInstall();
-          });
-          mainWin.webContents.send(FROM_BG.APP_UPDATE_DOWNLOADED, { releaseName });
-          shouldBeUpdated = true;
-        });
-
-        autoUpdater.checkForUpdatesAndNotify();
-      });
+      bgHandlers.autoUpdaterHandler(mainWin, shouldBeUpdated);
     });
 
     await loadingWin.loadFile(path.resolve(WINDOWS_PATH, 'loading.html'));
@@ -196,7 +129,7 @@ try {
         await winFade(mainWin, (win) => win.hide(), 1);
         return;
       }
-      if (shouldBeUpdated) {
+      if (shouldBeUpdated.value) {
         event.preventDefault();
         autoUpdater.quitAndInstall(true, false);
       }
