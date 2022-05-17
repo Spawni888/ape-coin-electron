@@ -33,6 +33,11 @@ export default createStore({
       ngrokHost: null,
       peers: [],
       savedPeers: [],
+      defaultPeers: [
+        'ws://ape-coin.herokuapp.com:80',
+        'ws://flying-warp-clef.glitch.me:80',
+        'ws://disco-remarkable-nasturtium.glitch.me:80',
+      ],
     },
     transactions: {
       walletRelatedTransactions: [],
@@ -487,6 +492,7 @@ export default createStore({
         serverHost,
         ngrokAuthToken,
         ngrok,
+        defaultPeers,
         peers: peersString,
       } = options;
 
@@ -514,7 +520,12 @@ export default createStore({
       } else {
         peers = [];
       }
+      if (defaultPeers) {
+        peers = peers.concat(state.p2pServer.defaultPeers);
+      }
       peers = peers.concat(state.p2pServer.savedPeers);
+      console.log(ngrok, defaultPeers);
+      console.log('Selected Peers:');
       console.log(peers);
 
       state.transactionPool = new TransactionPool();

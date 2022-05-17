@@ -14,13 +14,13 @@
     />
     <div
       class="switch-box"
-      v-for="item in switches"
+      v-for="(item, key) in switches"
       :key="item.name"
     >
       <p>{{ item.name }}</p>
       <CoreSwitch
         @click="item.onClick"
-        :ref="item.name"
+        :ref="key"
         v-model:checked="item.value"
       />
     </div>
@@ -76,6 +76,10 @@ export default {
       ngrok: {
         name: 'ngrok',
         value: false,
+      },
+      defaultPeers: {
+        name: 'Default Peers',
+        value: true,
       },
     });
 
@@ -137,6 +141,8 @@ export default {
     });
 
     const ngrok = ref(null);
+    const defaultPeers = ref(null);
+
     onMounted(() => {
       useTooltip({
         el: ngrok.value,
@@ -146,6 +152,13 @@ export default {
           + ' connect to you. You will have as much actual info as connections of your network. '
           + 'But if you can`t port forward you can use ngrok to expose your network. '
           + 'Register for free at ngrok.com and pass ngrok AuthToken to the field above.',
+      });
+      useTooltip({
+        el: defaultPeers.value,
+        id: 'defaultPeers-switch',
+        maxWidth: 200,
+        text: 'Connect to our default peers. \n\n'
+          + 'It can be useful if you don`t have any peer address.',
       });
       ipcRenderer.once(FROM_BG.LOAD_P2P_FORM, (event, savedForm) => {
         Object.keys(form)
@@ -177,9 +190,9 @@ export default {
         .forEach(key => {
           serverOptions[key] = form[key].value;
         });
-      Object.values(switches)
-        .forEach(item => {
-          serverOptions[item.name] = item.value;
+      Object.keys(switches)
+        .forEach(key => {
+          serverOptions[key] = switches[key].value;
         });
 
       store.dispatch('createServer', serverOptions);
@@ -204,6 +217,7 @@ export default {
       form,
       switches,
       ngrok,
+      defaultPeers,
       highlightErrors,
       connect,
     };
