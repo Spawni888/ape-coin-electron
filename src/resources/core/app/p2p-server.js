@@ -210,6 +210,7 @@ class P2pServer extends EventEmitter {
 
     try {
       if (!checking) {
+        // you already have connection with this socket
         const connectionWithAddressExists = this.allSockets
           .find(socket => socket.serverAddress === serverAddress);
 
@@ -534,7 +535,9 @@ class P2pServer extends EventEmitter {
           /// /////////////////////////////////////////// //
           const saved = await this.saveSocket(socket, data);
           if (!saved) return;
-          this.sendData(socket);
+          // previously you need to connect to every received peer.
+          // Then you will share accumulated peers with every new socket
+          setTimeout(() => this.sendData(socket), 5000);
 
           if (data.connection === 'inbound') {
             console.log('CHECK ACCESSIBILITY SEND');
