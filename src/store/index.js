@@ -105,9 +105,9 @@ export default createStore({
     myPeerLink(state) {
       // it works because of p2pServer.html Proxy and FROM_P2P.PROPERTY_CHANGED channel.
       const { p2pServer } = state;
-      if (p2pServer.externalDomain === null) return null;
+      // if (p2pServer.externalDomain === null) return null;
 
-      return `${p2pServer.protocol}://${p2pServer.externalDomain}:${p2pServer.externalPort}`;
+      return p2pServer.externalAddress || null;
     },
     serverIsUp(state) {
       return state.serverIsUp;

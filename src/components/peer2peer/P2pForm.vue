@@ -49,7 +49,8 @@ const parseUrlsAndTestRegExp = (val, regExp) => {
     .split(',');
 
   for (const url of urls) {
-    const isValid = regExp.test(url);
+    const groups = regExp.exec(url);
+    const isValid = (groups[0] && groups[0] === url);
 
     if (!isValid) {
       return false;
@@ -59,7 +60,7 @@ const parseUrlsAndTestRegExp = (val, regExp) => {
 };
 const validUrl = (val) => parseUrlsAndTestRegExp(
   val,
-  /(\w+?:\/\/)?[-a-zA-Z0-9@%._+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b([-a-zA-Z0-9()@:%_+.~#?&=]*)/i,
+  /((wss*)*:\/\/)*([\d\w._-]*)(:([\d]+))*([/\d\w._-]+)*/i,
 );
 const hasPort = (val) => parseUrlsAndTestRegExp(val, /.+:\d+/i);
 

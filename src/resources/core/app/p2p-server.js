@@ -35,7 +35,7 @@ class P2pServer extends EventEmitter {
     this.server = null;
     this.host = null;
     this.port = null;
-    this.protocol = 'http';
+    this.protocol = 'ws';
     this.externalDomain = null;
     this.externalPort = null;
     this.externalAddress = null;
@@ -74,7 +74,11 @@ class P2pServer extends EventEmitter {
   }
 
   async listen({
-    host = '127.0.0.1', port, ngrokAuthToken = null, peers,
+    host = '127.0.0.1',
+    port = 3000,
+    ngrokAuthToken = null,
+    peers = [],
+    server = null,
   }, cb = null) {
     this.port = port;
     this.host = host;
@@ -84,7 +88,12 @@ class P2pServer extends EventEmitter {
       await this.ngrokConnect(ngrokAuthToken);
     }
 
-    this.server = new Websocket.Server({ host, port });
+    if (server !== null) {
+      this.server = new Websocket.Server({ server });
+    } else {
+      this.server = new Websocket.Server({ host, port });
+    }
+
     this.server.on('connection', (socket, req) => {
       if (this.inboundsQuantity < MAXIMUM_INBOUNDS) {
         const socketExternalAddressObj = this.parseSocketExternalAddressObj(req);
@@ -148,14 +157,15 @@ class P2pServer extends EventEmitter {
   }
 
   parsePeerAddress(peerAddress) {
-    const parsedPeerLink = /(\w*?)[:/]*([.\d\w\-_]+):+(\d+)$/gi
+    const parsedPeerLink = /((wss*)*:\/\/)*([\d\w._-]*)(:([\d]+))*([/\d\w._-]+)*/gi
       .exec(peerAddress);
 
-    const [,, serverDomain, serverPort] = parsedPeerLink;
+    const [,, serverProtocol, serverDomain,, serverPort, serverPath] = parsedPeerLink;
     return {
-      serverProtocol: this.protocol,
+      serverProtocol: serverDomain ? serverProtocol : this.protocol,
       serverDomain,
       serverPort,
+      serverPath,
     };
   }
 
@@ -166,7 +176,7 @@ class P2pServer extends EventEmitter {
       const parsedPeerLink = this.parsePeerAddress(peerAddress);
       if (parsedPeerLink) {
         const { serverProtocol, serverDomain, serverPort } = parsedPeerLink;
-        peerAddress = `${this.protocol}://${serverDomain}:${serverPort}`;
+        peerAddress = `${serverProtocol}://${serverDomain}:${serverPort}`;
 
         // EXAMPLE: http://localhost:5001 || ws://localhost:5001
         this.connectToPeer({
@@ -175,7 +185,7 @@ class P2pServer extends EventEmitter {
           serverDomain,
           serverPort,
           checking: false,
-        });
+        }, 1);
       }
     }
     this.peers = [];
@@ -197,76 +207,90 @@ class P2pServer extends EventEmitter {
     console.log(`It is socket checking: ${checking}`);
     console.log('-'.repeat(10));
 
-    if (!checking) {
-      const connectionWithAddressExists = this.allSockets
-        .find(socket => socket.serverAddress === serverAddress);
+    try {
+      if (!checking) {
+        const connectionWithAddressExists = this.allSockets
+          .find(socket => socket.serverAddress === serverAddress);
 
-      if (connectionWithAddressExists) return;
-    }
+        if (connectionWithAddressExists) return;
+      }
 
-    const socket = new Websocket(serverAddress);
-
-    this.addServerAddressToSocket(socket, {
-      protocol: serverProtocol,
-      domain: serverDomain,
-      port: serverPort,
-    });
-
-    socket.on('open', () => {
-      this.connectSocket(socket);
-
-      this.requestHandshake(socket, {
-        socketID: this.id,
-        connection: 'outbound',
-        socketExternalAddressObj: {
-          protocol: serverProtocol,
-          domain: serverDomain,
-          port: serverPort,
-          address: serverAddress,
+      const socket = new Websocket(serverAddress, {
+        headers: {
+          'User-Agent': 'Ape-coin',
         },
       });
 
-      console.log(`Connected to peer: ${serverAddress}`);
-      // plus one because of "retries - 1" below
-      retries = P2P_SOCKET_RECONNECTION_RETRIES + 1;
-    });
+      this.addServerAddressToSocket(socket, {
+        protocol: serverProtocol,
+        domain: serverDomain,
+        port: serverPort,
+      });
 
-    socket.on('error', (err) => {
-      console.log(err);
-    });
+      socket.on('open', () => {
+        this.connectSocket(socket);
 
-    socket.on('close', () => {
-      if (checking) {
-        const checkedSocket = Object.values(this.inbounds)
-          .find(inbound => inbound.serverAddress === serverAddress);
-        if (checkedSocket && !checkedSocket.available) {
-          checkedSocket.checking = false;
-          checkedSocket.available = false;
-          console.log(`~PEER CHECKED: ${checkedSocket.serverAddress}: AVAILABLE: ${false}~`);
-          // TODO: send info about socket availability maybe?
-          // not sure ab it
+        this.requestHandshake(socket, {
+          socketID: this.id,
+          connection: 'outbound',
+          socketExternalAddressObj: {
+            protocol: serverProtocol,
+            domain: serverDomain,
+            port: serverPort,
+            address: serverAddress,
+          },
+        });
+
+        console.log(`Connected to peer: ${serverAddress}`);
+        // plus one because of "retries - 1" below
+        retries = P2P_SOCKET_RECONNECTION_RETRIES + 1;
+      });
+
+      socket.on('error', (err) => {
+        console.log(err);
+      });
+
+      socket.on('close', () => {
+        if (checking) {
+          const checkedSocket = Object.values(this.inbounds)
+            .find(inbound => inbound.serverAddress === serverAddress);
+          if (checkedSocket && !checkedSocket.available) {
+            checkedSocket.checking = false;
+            checkedSocket.available = false;
+            console.log(`~PEER CHECKED: ${checkedSocket.serverAddress}: AVAILABLE: ${false}~`);
+            // TODO: send info about socket availability maybe?
+            // not sure ab it
+          }
+          retries = 0;
         }
-        retries = 0;
-      }
-      if (retries === 0) return;
+        if (retries === 0) return;
 
-      setTimeout(
-        () => this.connectToPeer({
-          serverAddress,
-          serverProtocol,
-          serverDomain,
-          serverPort,
-        }, retries - 1),
-        P2P_SOCKET_RECONNECTION_INTERVAL,
-      );
-    });
+        setTimeout(
+          () => this.connectToPeer({
+            serverAddress,
+            serverProtocol,
+            serverDomain,
+            serverPort,
+          }, retries - 1),
+          P2P_SOCKET_RECONNECTION_INTERVAL,
+        );
+      });
+    } catch (err) {
+      console.log(`Wrong peer address: ${serverAddress}`);
+      console.log(err);
+    }
   }
 
-  addServerAddressToSocket(socket, { protocol = this.protocol, domain = null, port = null }) {
+  addServerAddressToSocket(socket, {
+    protocol = this.protocol,
+    domain = null,
+    port = null,
+    path = null,
+  }) {
     socket.serverProtocol = protocol;
     if (domain) socket.serverDomain = domain;
     if (port) socket.serverPort = port;
-    if (domain && port) socket.serverAddress = `${protocol}://${domain}:${port}`;
+    if (domain && port) socket.serverAddress = `${protocol}://${domain}:${port}${path || ''}`;
   }
 
   requestHandshake(socket, data) {
@@ -516,10 +540,12 @@ class P2pServer extends EventEmitter {
             this.checkAccessibility(socket);
           }
 
+          console.log('%'.repeat(30));
           console.log('inbounds');
           console.log(this.inbounds);
           console.log('outbounds');
           console.log(this.outbounds);
+          console.log('%'.repeat(30));
 
           break;
         }
@@ -629,7 +655,12 @@ class P2pServer extends EventEmitter {
     const parsedAddress = this.parsePeerAddress(socket.serverAddress);
     if (!parsedAddress) return;
 
-    const { serverProtocol, serverDomain, serverPort } = parsedAddress;
+    const {
+      serverProtocol,
+      serverDomain,
+      serverPort,
+    } = parsedAddress;
+
     this.connectToPeer({
       serverAddress: socket.serverAddress,
       serverProtocol,
@@ -645,7 +676,8 @@ class P2pServer extends EventEmitter {
 
     socket.id = socketID;
 
-    if (serverAddressObj.serverAddress !== socket.serverAddress) {
+    // don't replace serverAddress if it is your peer!
+    if (serverAddressObj.serverAddress !== socket.serverAddress && connection === 'inbound') {
       this.addServerAddressToSocket(socket, serverAddressObj);
     }
 
@@ -666,8 +698,11 @@ class P2pServer extends EventEmitter {
   }
 
   parseSocketExternalAddressObj(req) {
-    const protocol = 'http';
-    const domain = req.connection.remoteAddress;
+    const { protocol } = this;
+    console.log('PROTOCOL'.repeat(10));
+    console.log(req.connection.protocol);
+    const domain = req.connection.remoteAddress
+      .replace('::ffff:', '');
     const port = req.connection.remotePort;
 
     return {

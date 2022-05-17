@@ -188,6 +188,7 @@ export default {
     word-break: break-word;
 
     .title {
+      user-select: none;
       margin-bottom: 10px;
 
       font-size: 30px;
