@@ -43,6 +43,7 @@ class P2pServer extends EventEmitter {
     this.peers = [];
     this.miners = {};
     this.id = uuid();
+    console.log(this.id);
   }
 
   get inboundsList() {
@@ -699,8 +700,6 @@ class P2pServer extends EventEmitter {
 
   parseSocketExternalAddressObj(req) {
     const { protocol } = this;
-    console.log('PROTOCOL'.repeat(10));
-    console.log(req.connection.protocol);
     const domain = req.connection.remoteAddress
       .replace('::ffff:', '');
     const port = req.connection.remotePort;

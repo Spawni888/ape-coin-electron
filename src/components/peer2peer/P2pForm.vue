@@ -30,7 +30,7 @@
 
 <script>
 import {
-  ref, onMounted, reactive,
+  ref, onMounted, reactive, onBeforeMount,
 } from 'vue';
 import { useStore } from 'vuex';
 import CoreInput from '@/components/main/CoreInput';
@@ -75,6 +75,10 @@ export default {
     const switches = reactive({
       ngrok: {
         name: 'ngrok',
+        value: false,
+      },
+      savedPeers: {
+        name: 'Saved Peers',
         value: false,
       },
       defaultPeers: {
@@ -140,8 +144,23 @@ export default {
       },
     });
 
+    onBeforeMount(() => {
+      ipcRenderer.once(FROM_BG.LOAD_P2P_FORM, (event, savedForm) => {
+        Object.keys(form)
+          .forEach(key => {
+            form[key].value = savedForm.inputs[key];
+          });
+        Object.keys(switches)
+          .forEach(key => {
+            switches[key].value = savedForm.switches[key];
+          });
+      });
+      ipcRenderer.send(TO_BG.CHECK_P2P_FORM_SAVING);
+    });
+
     const ngrok = ref(null);
     const defaultPeers = ref(null);
+    const savedPeers = ref(null);
 
     onMounted(() => {
       useTooltip({
@@ -154,23 +173,18 @@ export default {
           + 'Register for free at ngrok.com and pass ngrok AuthToken to the field above.',
       });
       useTooltip({
+        el: savedPeers.value,
+        id: 'savedPeers-switch',
+        maxWidth: 300,
+        text: 'Use peers from previous session.',
+      });
+      useTooltip({
         el: defaultPeers.value,
         id: 'defaultPeers-switch',
-        maxWidth: 200,
+        maxWidth: 250,
         text: 'Connect to our default peers. \n\n'
           + 'It can be useful if you don`t have any peer address.',
       });
-      ipcRenderer.once(FROM_BG.LOAD_P2P_FORM, (event, savedForm) => {
-        Object.keys(form)
-          .forEach(key => {
-            form[key].value = savedForm.inputs[key];
-          });
-        Object.keys(switches)
-          .forEach(key => {
-            switches[key].value = savedForm.switches[key];
-          });
-      });
-      ipcRenderer.send(TO_BG.CHECK_P2P_FORM_SAVING);
     });
 
     const highlightErrors = ref(false);
@@ -218,6 +232,7 @@ export default {
       switches,
       ngrok,
       defaultPeers,
+      savedPeers,
       highlightErrors,
       connect,
     };
@@ -235,7 +250,7 @@ export default {
   align-items: center;
 
   .p2p-title {
-    margin-bottom: 10px;
+    margin-bottom: 25px;
 
     font-size: 40px;
     color: $onBgColor;
@@ -253,10 +268,13 @@ export default {
     align-items: center;
     justify-content: space-between;
     color: $onBgColor;
+    p {
+      margin: 10px;
+    }
   }
 
   .p2p-button {
-    margin-top: 10px;
+    margin-top: 16px;
   }
 }
 </style>

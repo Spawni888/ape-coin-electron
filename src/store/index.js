@@ -493,6 +493,7 @@ export default createStore({
         ngrokAuthToken,
         ngrok,
         defaultPeers,
+        savedPeers,
         peers: peersString,
       } = options;
 
@@ -523,7 +524,9 @@ export default createStore({
       if (defaultPeers) {
         peers = peers.concat(state.p2pServer.defaultPeers);
       }
-      peers = peers.concat(state.p2pServer.savedPeers);
+      if (savedPeers) {
+        peers = peers.concat(state.p2pServer.savedPeers);
+      }
       console.log(ngrok, defaultPeers);
       console.log('Selected Peers:');
       console.log(peers);
