@@ -2,7 +2,7 @@
   "name": "ape-coin",
   "author": "Spawni",
   "description": "Ape-coin cryptocurrency",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "private": true,
   "scripts": {
     "serve": "vue-cli-service serve",
@@ -17,6 +17,12 @@
   },
   "main": "background.js",
   "dependencies": {
+  },
+  "devDependencies": {
+    "vue": "^3.2.31",
+    "vue-router": "^4.0.0-0",
+    "vuex": "^4.0.0-0",
+    "ws": "^6.2.1",
     "core-js": "^3.6.5",
     "electron-updater": "^5.0.1",
     "elliptic": "^6.5.4",
@@ -30,12 +36,7 @@
     "portfinder": "^1.0.28",
     "serialize-javascript": "^5.0.1",
     "uuid": "^3.4.0",
-    "vue": "^3.2.31",
-    "vue-router": "^4.0.0-0",
-    "vuex": "^4.0.0-0",
-    "ws": "^6.2.1"
-  },
-  "devDependencies": {
+
     "@vue/cli-plugin-babel": "~4.5.0",
     "@vue/cli-plugin-eslint": "~4.5.0",
     "@vue/cli-plugin-router": "~4.5.0",
