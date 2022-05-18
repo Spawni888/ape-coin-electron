@@ -96,7 +96,7 @@ class Transaction {
     );
   }
 
-  static verifyRewardTransaction(rewardTransaction, usersTransactions, bc) {
+  static verifyRewardTransaction(rewardTransaction, usersTransactions, chain) {
     let fee = 0;
 
     usersTransactions.forEach(transaction => {
@@ -108,7 +108,7 @@ class Transaction {
     });
 
     return rewardTransaction.outputs[rewardTransaction.outputs.length - 1].amount
-      === (ChainUtil.miningRewardAmount(bc.chain) + fee);
+      === (ChainUtil.miningRewardAmount(chain) + fee);
   }
 }
 

@@ -211,41 +211,6 @@ try {
     if (BrowserWindow.getAllWindows().length === 0) await createMainWin();
   });
 
-  // This method will be called when Electron has finished
-  // initialization and is ready to create browser windows.
-  // Some APIs can only be used after this event occurs.
-
-  // if (!gotTheLock) {
-  //   app.quit();
-  // } else {
-  //   app.on('second-instance', () => {
-  //     // Someone tried to run a second instance, we should focus our window.
-  //     if (mainWin) {
-  //       if (mainWin.isMinimized()) mainWin.restore();
-  //       if (!mainWin.isVisible()) mainWin.show();
-  //       mainWin.focus();
-  //     }
-  //   });
-  //
-  //   app.on('ready', async () => {
-  //     if (isDevelopment && !process.env.IS_TEST) {
-  //       // Install Vue Devtools
-  //       try {
-  //         // demo vue-devtools for vue3 in electron
-  //         await installExtension({
-  //           id: 'ljjemllljcmogpfapbkkighbhhppjdbg',
-  //           electron: '>=1.2.1',
-  //         });
-  //         // await installExtension(VUEJS_DEVTOOLS);
-  //       } catch (e) {
-  //         console.error('Vue Devtools failed to install:', e.toString());
-  //       }
-  //     }
-  //     await createMainWin();
-  //     sendP2pForm();
-  //   });
-  // }
-
   app.on('ready', async () => {
     if (isDevelopment && !process.env.IS_TEST) {
       // Install Vue Devtools

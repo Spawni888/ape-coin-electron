@@ -342,13 +342,13 @@ class P2pServer extends EventEmitter {
 
   async replaceChain(newChain) {
     return new Promise(resolve => {
-      if (newChain.length < this.blockchain.chain.length) {
-        console.log('Received chain is not longer than the current chain');
+      if (!this.blockchain.isValidChain(newChain)) {
+        console.log('The received chain is not valid');
         resolve(false);
         return;
       }
-      if (!this.blockchain.isValidChain(newChain)) {
-        console.log('The received chain is not valid');
+      if (newChain.length < this.blockchain.chain.length) {
+        console.log('Received chain is not longer than the current chain');
         resolve(false);
         return;
       }
@@ -422,6 +422,7 @@ class P2pServer extends EventEmitter {
       this.emit('transaction-pool-changed', {
         transactions: this.transactionPool.transactions,
       });
+      resolve(true);
     });
   }
 
@@ -498,10 +499,6 @@ class P2pServer extends EventEmitter {
             this.externalPort = this.port;
 
             this.externalAddress = `${protocol}://${this.externalDomain}:${this.externalPort}`;
-            this.emit(
-              'info',
-              `Your external address: ${protocol}://${this.externalDomain}:${this.externalPort}`,
-            );
           }
 
           socket.send(JSON.stringify({
@@ -594,6 +591,10 @@ class P2pServer extends EventEmitter {
   }
 
   sendMiners(socket) {
+    // filter miners
+    this.miners = Object.keys(this.miners)
+      .filter(minerID => (minerID in this.outbounds) || (minerID in this.inbounds));
+
     socket.send(JSON.stringify({
       type: MESSAGE_TYPES.miners,
       data: {

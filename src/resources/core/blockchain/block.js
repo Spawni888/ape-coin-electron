@@ -109,7 +109,7 @@ class Block {
     return Math.max(difficulty, 1);
   }
 
-  static validBlock(block, bc) {
+  static validBlock(block, blockIndex, chain = []) {
     let rewardTransaction;
 
     if (!Array.isArray(block.data)) {
@@ -130,13 +130,23 @@ class Block {
       return false;
     }
     if (
-      rewardTransaction
-      && Transaction.verifyRewardTransaction(rewardTransaction, usersTransactions, bc)
+      !rewardTransaction
+      || !Transaction.verifyRewardTransaction(
+        rewardTransaction,
+        usersTransactions,
+        chain.slice(0, blockIndex),
+      )
     ) {
-      return true;
+      console.log('-'.repeat(30));
+      console.log('Wrong reward transaction. Block is corrupted!');
+      console.log('block');
+      console.log(block);
+      console.log('rewardTransaction');
+      console.log(rewardTransaction);
+      console.log('-'.repeat(30));
+      return false;
     }
-    console.log('Wrong reward transaction. Block is corrupted!');
-    return false;
+    return true;
   }
 }
 

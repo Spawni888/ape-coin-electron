@@ -35,7 +35,7 @@ export default createStore({
       savedPeers: [],
       defaultPeers: [
         'ws://ape-coin.herokuapp.com:80',
-        'ws://flying-warp-clef.glitch.me:80',
+        'ws://ape-coin-2.herokuapp.com:80',
         'ws://disco-remarkable-nasturtium.glitch.me:80',
       ],
     },

@@ -30,11 +30,11 @@ const proxyLogger = (_event, payload, win) => {
 
   const { channel, data } = JSON.parse(payload);
 
-  console.log(`Message in channel "${channel}"`);
-  if (data) {
-    console.log(JSON.stringify(data, null, 2));
-  }
-  console.log('-'.repeat(10));
+  // console.log(`Message in channel "${channel}"`);
+  // if (data) {
+  //   console.log(JSON.stringify(data, null, 2));
+  // }
+  // console.log('-'.repeat(10));
 
   win.webContents.send(channel, data);
 };
@@ -105,27 +105,24 @@ const p2pServerHandler = (mainWin) => {
   });
 };
 
+// needs because of TO_BG.START_MINING spamming sometimes
+const miningWinIds = [];
+const closeMiningWindows = () => {
+  miningWinIds.forEach(id => {
+    const win = BrowserWindow.fromId(id);
+    if (win) win.close();
+  });
+};
+
 const miningHandler = (mainWin) => {
   ipcMain.on(TO_BG.START_MINING, async (event, info) => {
-    if (miningWin !== null) {
-      miningWin.close();
-    }
+    closeMiningWindows();
 
     miningWin = await createWindow('mining.html');
+    miningWinIds.push(miningWin.id);
     miningWin.send(TO_MINING.START_MINING, info);
 
-    ipcMain.on(FROM_MINING.TO_UI, (...args) => proxyLogger(...args, mainWin));
-
-    ipcMain.once(FROM_MINING.ERROR, (_event, error) => {
-      mainWin.webContents.send(FROM_BG.CONSOLE_LOG, error);
-      miningWin.close();
-    });
-
     miningWin.on('close', () => {
-      ipcMain.removeAllListeners(FROM_MINING.TO_UI);
-      miningWin = null;
-
-      mainWin.webContents.send(FROM_MINING.MINING_STOPPED);
       console.log(`%c
       --------------------------------
       --------------------------------
@@ -136,9 +133,23 @@ const miningHandler = (mainWin) => {
     });
   });
 
+  ipcMain.on(FROM_MINING.TO_UI, (_event, payload) => {
+    const { channel } = JSON.parse(payload);
+
+    proxyLogger(_event, payload, mainWin);
+
+    if (channel !== FROM_MINING.BLOCK_HAS_CALCULATED) return;
+    closeMiningWindows();
+  });
+
+  ipcMain.once(FROM_MINING.ERROR, (_event, error) => {
+    mainWin.webContents.send(FROM_BG.CONSOLE_LOG, error);
+
+    closeMiningWindows();
+  });
+
   ipcMain.on(TO_BG.STOP_MINING, () => {
-    if (miningWin === null) return;
-    miningWin.close();
+    closeMiningWindows();
   });
 };
 

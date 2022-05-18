@@ -154,6 +154,11 @@ $blockConnectionColor: rgba(255, 255, 255, 0.6);
     }
 
     &__nonce {
+      text-overflow: ellipsis;
+      overflow: hidden;
+      white-space: nowrap;
+      max-width: 100%;
+      padding: 0 30px;
     }
   }
 }
