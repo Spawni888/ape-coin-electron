@@ -592,8 +592,11 @@ class P2pServer extends EventEmitter {
 
   sendMiners(socket) {
     // filter miners
-    this.miners = Object.keys(this.miners)
-      .filter(minerID => (minerID in this.outbounds) || (minerID in this.inbounds));
+    Object.keys(this.miners)
+      .forEach(minerID => {
+        if ((minerID in this.outbounds) || (minerID in this.inbounds)) return;
+        delete this.miners[minerID];
+      });
 
     socket.send(JSON.stringify({
       type: MESSAGE_TYPES.miners,

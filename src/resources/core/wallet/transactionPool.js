@@ -50,7 +50,7 @@ class TransactionPool extends EventEmitter {
       .filter(transaction => {
         return transaction.outputs
           .find(output => output.address === MINER_WALLET)
-          .amount >= feeThreshold;
+          ?.amount >= feeThreshold;
       })
       .sort((a, b) => {
         let aFee = 0;
