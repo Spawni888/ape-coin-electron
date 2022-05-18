@@ -106,7 +106,10 @@ class Transaction {
         }
       });
     });
-
+    console.log('+'.repeat(40));
+    console.log('verifyRewardTransaction');
+    console.log(ChainUtil.miningRewardAmount(chain) + fee);
+    console.log(rewardTransaction.outputs[rewardTransaction.outputs.length - 1].amount);
     return rewardTransaction.outputs[rewardTransaction.outputs.length - 1].amount
       === (ChainUtil.miningRewardAmount(chain) + fee);
   }

@@ -30,7 +30,7 @@ class Blockchain {
       if (
         block.lastHash !== lastBlock.hash
         || block.hash !== Block.blockHash(block)
-        || !Block.validBlock(block, i, this.chain)
+        || !Block.validBlock(block, i, chain)
       ) {
         console.log('block.lastHash !== lastBlock.hash');
         console.log(block.lastHash !== lastBlock.hash);
