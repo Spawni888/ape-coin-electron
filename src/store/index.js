@@ -335,6 +335,7 @@ export default createStore({
         console.log(chain);
         console.log('-'.repeat(10));
 
+        const prevLastBlock = state.blockchain.chain[state.blockchain.chain.length - 1];
         for (let i = state.blockchain.chain.length - 1; i >= 0; i--) {
           state.blockchain.chain.pop();
         }
@@ -346,18 +347,20 @@ export default createStore({
 
         // alert if you farmed this block
         const lastBlock = chain[chain.length - 1];
-        const reward = lastBlock.data
-          .find(transaction => transaction.input.address === BLOCKCHAIN_WALLET)
-          ?.outputs
-          .find(output => output.address === state.wallet.publicKey)
-          ?.amount;
+        if (prevLastBlock !== lastBlock) {
+          const reward = lastBlock.data
+            .find(transaction => transaction.input.address === BLOCKCHAIN_WALLET)
+            ?.outputs
+            .find(output => output.address === state.wallet.publicKey)
+            ?.amount;
 
-        if (reward) {
-          dispatch('showAlert', {
-            type: 'success',
-            title: 'Success',
-            message: `You have mine block with difficulty: ${lastBlock.difficulty} and earn ${reward} coins!`,
-          });
+          if (reward) {
+            dispatch('showAlert', {
+              type: 'success',
+              title: 'Success',
+              message: `You have mine block with difficulty: ${lastBlock.difficulty} and earn ${reward} coins!`,
+            });
+          }
         }
 
         if (!state.miningIsUp) return;
