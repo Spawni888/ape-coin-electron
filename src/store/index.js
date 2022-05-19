@@ -528,7 +528,6 @@ export default createStore({
       if (savedPeers) {
         peers = peers.concat(state.p2pServer.savedPeers);
       }
-      console.log(ngrok, defaultPeers);
       console.log('Selected Peers:');
       console.log(peers);
 

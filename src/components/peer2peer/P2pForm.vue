@@ -50,7 +50,7 @@ const parseUrlsAndTestRegExp = (val, regExp) => {
 
   for (const url of urls) {
     const groups = regExp.exec(url);
-    const isValid = (groups[0] && groups[0] === url);
+    const isValid = (groups && groups[0] === url);
 
     if (!isValid) {
       return false;
