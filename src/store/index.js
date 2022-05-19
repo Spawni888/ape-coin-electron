@@ -401,7 +401,8 @@ export default createStore({
         console.log(transactions);
         console.log('-'.repeat(10));
 
-        state.transactionPool.transactions = transactions;
+        state.transactionPool.transactions = transactions
+          .map(trans => new Transaction(trans.id, trans.input, trans.outputs));
         commit('recalculateBalance');
 
         if (!state.miningIsUp) return;
