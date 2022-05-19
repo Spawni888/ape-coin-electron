@@ -95,7 +95,7 @@ export default {
           },
           shouldBeNumber: {
             priority: 2,
-            func: (val) => !/\D/g.test(val),
+            func: (val) => /[\d.]+/gi.test(val),
             errorMsg: 'Amount should be a number',
           },
           moreThanZeroLessThanBalance: {
@@ -114,7 +114,7 @@ export default {
         validators: {
           noValOrIsNumeric: {
             priority: 1,
-            func: (val) => !val || !/\D/g.test(val),
+            func: (val) => !val || /[\d.]+/gi.test(val),
             errorMsg: 'Amount should be a number',
           },
           validValue: {

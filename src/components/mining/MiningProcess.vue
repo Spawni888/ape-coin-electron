@@ -55,12 +55,28 @@
       </div>
       <div class="reward">
         <div class="reward__title mining-title">Reward</div>
-        <div class="value-container">
-          <AnimatedNumber
-            class="reward__value mining-value"
-            :number="miningReward"
-          />
-        </div>
+        <transition name="fade" mode="out-in">
+          <div class="value-container" :key="'reward' +miningRewardInt + miningRewardDecimal">
+            <AnimatedNumber
+              class="reward__value mining-value"
+              :number="miningRewardInt"
+              :key="miningRewardInt"
+            />
+            <div
+              class="dot"
+              v-if="miningRewardDecimal > 0"
+              :key="'dot'+miningRewardDecimal"
+            >
+              .
+            </div>
+            <AnimatedNumber
+              v-if="miningRewardDecimal > 0"
+              class="reward__value mining-value"
+              :number="miningRewardDecimal"
+              :key="'num'+ miningRewardDecimal"
+            />
+          </div>
+        </transition>
       </div>
       <div class="online">
         <div class="online__title mining-title">Miners Online</div>
@@ -155,6 +171,8 @@ export default {
     onBeforeUnmount(() => clearInterval(interval));
 
     const miningReward = computed(() => store.getters.miningReward);
+    const miningRewardInt = computed(() => Math.floor(miningReward.value));
+    const miningRewardDecimal = computed(() => (miningReward.value % 1).toFixed(2) * 100);
 
     return {
       stopMining: () => store.dispatch('stopMining'),
@@ -168,6 +186,8 @@ export default {
       miningTime,
       avgBlockTime,
       miningReward,
+      miningRewardInt,
+      miningRewardDecimal,
     };
   },
 };
@@ -235,6 +255,11 @@ export default {
         font-size: 26px;
       }
       &__value {
+        font-size: 26px;
+        font-weight: bold;
+        opacity: 0.7;
+      }
+      .dot {
         font-size: 26px;
         font-weight: bold;
         opacity: 0.7;
